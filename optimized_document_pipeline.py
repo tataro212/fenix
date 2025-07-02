@@ -217,7 +217,7 @@ class OptimizedDocumentPipeline:
             results = []
             with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
                 futures = {
-                    executor.submit(process_page_worker, page_model.model_dump(), config): page_model.page_number 
+                    executor.submit(process_page_worker, {**page_model.model_dump(), 'pdf_path': pdf_path}, config): page_model.page_number 
                     for page_model in page_models
                 }
                 self.logger.info(f"Submitted {len(futures)} pages for processing.")
@@ -352,24 +352,26 @@ class OptimizedDocumentPipeline:
             # Collect all non-text items from all pages
             extracted_images_count = 0
             for result in processing_results:
-                if result.success and 'content' in result.__dict__:
+                if result.success and hasattr(result, 'content') and result.content:
                     content = result.content
-                    non_text_areas = content.get('non_text_areas', [])
-                    page_num = content.get('page_num', 0)
-                    for idx, area in enumerate(non_text_areas):
-                        label = area.get('label', 'unknown')
-                        bbox = area.get('bbox')
-                        if bbox:
-                            # Save a blank image for now (or extract from PDF if available)
-                            try:
-                                # If you have the original PDF, you can extract the image using fitz
-                                # Here, just create a placeholder file
-                                img_path = os.path.join(images_dir, f"page{page_num+1}_{label}_{idx+1}.png")
-                                with open(img_path, 'wb') as f:
-                                    f.write(b'')
-                                extracted_images_count += 1
-                            except Exception as e:
-                                self.logger.warning(f"Failed to export non-text item for {label} on page {page_num+1}: {e}")
+                    # Only process non-text areas if content is a dictionary
+                    if isinstance(content, dict):
+                        non_text_areas = content.get('non_text_areas', [])
+                        page_num = content.get('page_num', 0)
+                        for idx, area in enumerate(non_text_areas):
+                            label = area.get('label', 'unknown')
+                            bbox = area.get('bbox')
+                            if bbox:
+                                # Save a blank image for now (or extract from PDF if available)
+                                try:
+                                    # If you have the original PDF, you can extract the image using fitz
+                                    # Here, just create a placeholder file
+                                    img_path = os.path.join(images_dir, f"page{page_num+1}_{label}_{idx+1}.png")
+                                    with open(img_path, 'wb') as f:
+                                        f.write(b'')
+                                    extracted_images_count += 1
+                                except Exception as e:
+                                    self.logger.warning(f"Failed to export non-text item for {label} on page {page_num+1}: {e}")
             if extracted_images_count > 0:
                 output_files['non_text_items_folder'] = images_dir
                 self.logger.info(f"📁 Created non-text items folder with {extracted_images_count} elements")
@@ -377,27 +379,64 @@ class OptimizedDocumentPipeline:
             # --- Generate Word document ---
             doc_generator = WordDocumentGenerator()
             docx_path = os.path.join(output_dir, f'{base_name}.docx')
-            # Build structured content from all pages
+            # Collect all translated content from successful processing results
             structured_content = []
-            for result in processing_results:
-                if result.success and 'content' in result.__dict__:
-                    content = result.content
-                    text_areas = content.get('text_areas', [])
-                    for area in text_areas:
-                        structured_content.append({
-                            'type': 'text',
-                            'text': area.get('translated_content', area.get('text_content', '')),
-                            'bbox': area.get('bbox', None),
-                            'label': area.get('label', ''),
-                        })
-                    # Optionally add non-text areas as placeholders
-                    for area in content.get('non_text_areas', []):
-                        structured_content.append({
-                            'type': 'image',
-                            'bbox': area.get('bbox', None),
-                            'label': area.get('label', ''),
-                            'filename': None  # Could link to exported image if available
-                        })
+            for page_result in processing_results:
+                if page_result.success:
+                    if hasattr(page_result, 'content') and page_result.content:
+                        content = page_result.content
+                        
+                        # SIMPLIFIED: All strategies now return standardized structured content blocks
+                        if isinstance(content, list):
+                            # Standard case: content is a list of structured blocks
+                            for block in content:
+                                if isinstance(block, dict) and block.get('type') == 'text':
+                                    structured_content.append({
+                                        'type': 'text',
+                                        'text': block.get('text', ''),
+                                        'bbox': block.get('bbox'),
+                                        'label': block.get('label', 'paragraph'),
+                                    })
+                                elif isinstance(block, dict) and block.get('type') == 'image':
+                                    structured_content.append({
+                                        'type': 'image',
+                                        'bbox': block.get('bbox'),
+                                        'label': block.get('label', 'figure'),
+                                        'filename': block.get('filename')
+                                    })
+                        elif isinstance(content, dict):
+                            # Fallback for legacy strategies that still return dict structure
+                            text_areas = content.get('text_areas', [])
+                            for area in text_areas:
+                                structured_content.append({
+                                    'type': 'text',
+                                    'text': area.get('translated_content', area.get('text_content', '')),
+                                    'bbox': area.get('bbox'),
+                                    'label': area.get('label', 'paragraph'),
+                                })
+                            # Add non-text areas as image placeholders
+                            for area in content.get('non_text_areas', []):
+                                structured_content.append({
+                                    'type': 'image',
+                                    'bbox': area.get('bbox'),
+                                    'label': area.get('label', 'figure'),
+                                    'filename': None
+                                })
+                        else:
+                            # Emergency fallback for unexpected formats
+                            self.logger.warning(f"Unexpected content format for strategy {page_result.strategy}: {type(content)}")
+                            if isinstance(content, str) and content.strip():
+                                structured_content.append({
+                                    'type': 'text',
+                                    'text': content.strip(),
+                                    'bbox': None,
+                                    'label': 'paragraph',
+                                })
+                else:
+                    self.logger.warning(f"Skipping page in document generation due to processing failure: {page_result.error}")
+
+            self.logger.info(f"📝 Total text sections collected: {len([item for item in structured_content if item['type'] == 'text'])}")
+
             # Generate the Word document
             success = doc_generator.create_word_document_with_structure(
                 structured_content, docx_path, images_dir

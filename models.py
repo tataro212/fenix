@@ -22,6 +22,27 @@ BoundingBox = Tuple[float, float, float, float]
 # Define a Literal type for element types to enforce a fixed set of allowed values.
 ElementType = Literal["text", "image", "table", "figure", "title", "list", "caption", "quote", "footnote", "equation", "marginalia", "bibliography", "header", "footer"]
 
+class ContentElement(BaseModel):
+    """
+    Represents a single content element extracted from a page.
+    This model ensures consistent data structure across the pipeline.
+    """
+    id: str = Field(..., description="Unique identifier for this content element.")
+    text: str = Field(..., description="The text content of this element.")
+    label: str = Field(..., description="The type/label of this element (e.g., 'text', 'paragraph', 'title').")
+    bbox: BoundingBox = Field(..., description="The bounding box of the element on the page.")
+    confidence: float = Field(default=1.0, description="The confidence score from the detection model.")
+    
+class PageContent(BaseModel):
+    """
+    Represents the structured content of a single page.
+    This model enforces the expected data structure between pipeline components.
+    """
+    page_number: int = Field(..., description="The 1-based index of the page in the document.")
+    content_elements: List[ContentElement] = Field(default_factory=list, description="List of content elements found on the page.")
+    image_elements: List[Dict[str, Any]] = Field(default_factory=list, description="List of image elements found on the page.")
+    strategy: str = Field(default="direct_text", description="The processing strategy used for this page.")
+
 class ElementModel(BaseModel):
     """
     Represents a single detected element on a page.

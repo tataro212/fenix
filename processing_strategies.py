@@ -18,7 +18,7 @@ from pydantic import ValidationError
 from pymupdf_yolo_processor import PageModel, LayoutArea
 from types import SimpleNamespace
 import traceback
-from models import ProcessResult, ElementModel, PageModel
+from models import ProcessResult, ElementModel, PageModel, ContentElement, PageContent
 from config_manager import Config
 
 # Import existing services
@@ -58,27 +58,100 @@ class DirectTextProcessor:
         self.gemini_service = gemini_service
         self.logger.info("🔧 Direct Text Processor initialized")
     
+    def _convert_mapped_content_to_page_content(self, mapped_content: Dict[str, Any], page_number: int = 1) -> PageContent:
+        """Convert mapped_content dictionary to structured PageContent object"""
+        content_elements = []
+        image_elements = []
+        
+        for area_id, area_data in mapped_content.items():
+            try:
+                # Handle the ACTUAL data structure from the pipeline
+                if isinstance(area_data, dict):
+                    # Extract data using actual keys: 'type', 'content', 'bbox', 'confidence'
+                    element_type = area_data.get('type', 'text')
+                    text_content = area_data.get('content', '')
+                    bbox = tuple(area_data.get('bbox', [0, 0, 0, 0]))
+                    confidence = area_data.get('confidence', 1.0)
+                    
+                    self.logger.debug(f"Processing element {area_id}: type={element_type}, content_length={len(text_content)}")
+                    
+                    # Create ContentElement for text-related elements
+                    if element_type in ['text', 'paragraph', 'title'] and text_content:
+                        content_element = ContentElement(
+                            id=area_id,
+                            text=text_content,
+                            label=element_type,  # Use 'type' as 'label'
+                            bbox=bbox,
+                            confidence=confidence
+                        )
+                        content_elements.append(content_element)
+                        self.logger.debug(f"Added text element {area_id} with {len(text_content)} characters")
+                    elif element_type in ['image', 'figure', 'table']:
+                        # Store image/visual elements separately
+                        image_elements.append({
+                            'id': area_id,
+                            'label': element_type,
+                            'bbox': bbox,
+                            'confidence': confidence
+                        })
+                        self.logger.debug(f"Added image element {area_id}")
+                        
+                # Legacy support for object-style area_data (if needed)
+                elif hasattr(area_data, 'layout_info'):
+                    layout_info = area_data.layout_info
+                    label = layout_info.label if hasattr(layout_info, 'label') else 'text'
+                    bbox = layout_info.bbox if hasattr(layout_info, 'bbox') else (0, 0, 0, 0)
+                    confidence = layout_info.confidence if hasattr(layout_info, 'confidence') else 1.0
+                    text_content = getattr(area_data, 'combined_text', '')
+                    
+                    if label in ['text', 'paragraph', 'title'] and text_content:
+                        content_element = ContentElement(
+                            id=area_id,
+                            text=text_content,
+                            label=label,
+                            bbox=bbox,
+                            confidence=confidence
+                        )
+                        content_elements.append(content_element)
+                        
+            except Exception as e:
+                self.logger.warning(f"Failed to process area {area_id}: {e}")
+                continue
+        
+        self.logger.info(f"Converted mapped_content: {len(content_elements)} text elements, {len(image_elements)} image elements")
+        
+        return PageContent(
+            page_number=page_number,
+            content_elements=content_elements,
+            image_elements=image_elements,
+            strategy="direct_text"
+        )
+    
     async def process_pure_text(self, mapped_content: Dict[str, Any]) -> ProcessingResult:
         """Process text content directly without graph creation"""
         start_time = time.time()
         
         try:
-            # Extract all text areas
+            # Convert mapped_content to structured PageContent
+            page_content = self._convert_mapped_content_to_page_content(mapped_content)
+            
+            # Extract text areas for processing
             text_areas = []
-            for area_id, area_data in mapped_content.items():
-                if area_data.label in ['text', 'paragraph', 'title']:
-                    text_areas.append({
-                        'content': area_data.combined_text,
-                        'bbox': area_data.bbox,
-                        'label': area_data.label,
-                        'confidence': area_data.confidence
-                    })
+            for element in page_content.content_elements:
+                text_areas.append({
+                    'content': element.text,
+                    'bbox': element.bbox,
+                    'label': element.label,
+                    'confidence': element.confidence
+                })
             
             # Sort by vertical position (reading order)
             text_areas.sort(key=lambda x: x['bbox'][1])
             
             processing_time = time.time() - start_time
             self.logger.info(f"✅ Pure text processing completed in {processing_time:.3f}s")
+            self.logger.info(f"   Content elements processed: {len(page_content.content_elements)}")
+            self.logger.info(f"   Image elements found: {len(page_content.image_elements)}")
             
             return ProcessingResult(
                 success=True,
@@ -87,7 +160,8 @@ class DirectTextProcessor:
                 content=text_areas,
                 statistics={
                     'text_areas': len(text_areas),
-                    'sections': 0,  # No sections in direct text processing
+                    'content_elements': len(page_content.content_elements),
+                    'image_elements': len(page_content.image_elements),
                     'total_text_length': sum(len(item['content']) for item in text_areas),
                     'graph_nodes': 0,  # No graph created
                     'graph_edges': 0
@@ -107,94 +181,75 @@ class DirectTextProcessor:
                 error=str(e)
             )
     
-    async def translate_direct_text(self, document_structure: Dict[str, Any], 
-                                  target_language: str = 'en') -> Dict[str, Any]:
-        """Translate text directly without graph processing, using intelligent batching"""
-        # Validate input schema
-        try:
-            page_model = PageModel(**document_structure)
-        except ValidationError as ve:
-            self.logger.error(f"Pydantic validation error in translate_direct_text: {ve}")
-            return {
-                'error': f'Validation error: {ve}',
-                'translated_content': ''
-            }
-        # Extract text elements
-        text_elements = [el for el in page_model.elements if el.type == 'text']
-        if not text_elements:
-            return {
-                'error': 'No text elements to translate',
-                'translated_content': ''
-            }
-        # Create batches of text (max 500 characters per batch)
-        batches = self._create_section_batches(
-            [{'content': el.content} for el in text_elements], max_chars_per_batch=500)
-        self.logger.info(f"📦 Created {len(batches)} batches from {len(text_elements)} text elements")
-        # Translate batches in parallel
-        async def translate_batch(batch, batch_index):
-            batch_text = '\n\n'.join([section['content'] for section in batch])
-            self.logger.info(f"   Translating batch {batch_index + 1}/{len(batches)} ({len(batch_text)} chars)")
-            try:
-                translated_batch = await asyncio.wait_for(
-                    self.gemini_service.translate_text(batch_text, target_language, timeout=30.0),
-                    timeout=35.0
-                )
-                return translated_batch
-            except asyncio.TimeoutError:
-                self.logger.error(f"❌ Batch {batch_index + 1} translation timed out after 35s, using original")
-                return batch_text
-            except Exception as e:
-                self.logger.error(f"❌ Batch {batch_index + 1} translation failed: {e}")
-                return batch_text
-        batch_tasks = [translate_batch(batch, i) for i, batch in enumerate(batches)]
-        batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-        translated_batches = []
-        for i, result in enumerate(batch_results):
-            if isinstance(result, Exception):
-                self.logger.error(f"❌ Batch {i + 1} failed with exception: {result}")
-                batch = batches[i]
-                batch_text = '\n\n'.join([section['content'] for section in batch])
-                translated_batches.append(batch_text)
-            else:
-                translated_batches.append(result)
-        translated_text = '\n\n'.join(translated_batches)
-        translated_structure = {
-            'type': 'translated_text_document',
-            'original_structure': document_structure,
-            'translated_content': translated_text,
-            'target_language': target_language,
-            'translation_time': 0.0,
-            'total_text': translated_text
-        }
-        self.logger.info(f"🌐 Direct text translation completed (batched)")
-        self.logger.info(f"   Original text elements: {len(text_elements)}")
-        self.logger.info(f"   Translated length: {len(translated_text)}")
-        self.logger.info(f"   API calls reduced to {len(batches)}")
-        return translated_structure
-    
-    def _create_section_batches(self, sections: List[Dict[str, Any]], max_chars_per_batch: int = 2000) -> List[List[Dict[str, Any]]]:
-        """Create batches of sections based on character count"""
-        batches = []
-        current_batch = []
-        current_chars = 0
+    async def translate_direct_text(self, text_elements: list[dict], target_language: str) -> list[dict]:
+        """
+        Translates a list of text elements using the new semantic batching.
+
+        This method joins paragraphs with a unique separator, sends a single large
+        request to the API per batch, and then reliably splits the response back
+        into structured, translated paragraphs.
+        """
+        # Use the new, smarter batching method.
+        batches = self._create_batches(text_elements)
         
-        for section in sections:
-            section_chars = len(section.get('content', ''))
+        translated_paragraphs = []
+        
+        for i, batch_of_elements in enumerate(batches):
+            self.logger.info(f"  Translating batch {i+1}/{len(batches)}...")
             
-            # If adding this section would exceed the limit and we already have content, start a new batch
-            if current_chars + section_chars > max_chars_per_batch and current_batch:
-                batches.append(current_batch)
-                current_batch = [section]
-                current_chars = section_chars
-            else:
-                # Add to current batch
-                current_batch.append(section)
-                current_chars += section_chars
-        
-        # Add the last batch if it has content
-        if current_batch:
-            batches.append(current_batch)
-        
+            # Use a unique, robust separator to join and split paragraphs.
+            separator = "\n<|=|>\n"
+            source_text_for_api = separator.join([elem.get('text', '') for elem in batch_of_elements])
+
+            # Call the translation service with the large, context-rich text block.
+            translated_blob = await self.gemini_service.translate_text(source_text_for_api, target_language)
+            
+            # Split the translated blob back into individual paragraph segments.
+            translated_segments = translated_blob.split(separator.strip())
+            
+            # Re-associate translated segments with original element data (like bounding boxes).
+            for original_element, translated_text in zip(batch_of_elements, translated_segments):
+                translated_paragraphs.append({
+                    'type': 'text',
+                    'text': translated_text.strip(),
+                    'label': 'paragraph',
+                    'bbox': original_element.get('bbox') # Preserve original coordinates
+                })
+                
+        self.logger.info(f"🌐 Direct text translation completed. Created {len(translated_paragraphs)} structured paragraphs.")
+        return translated_paragraphs
+    
+    def _create_batches(self, text_elements: list[dict], max_chars_per_batch: int = 4500) -> list[list[dict]]:
+        """
+        Creates semantically coherent batches of text elements based on paragraphs.
+
+        This logic prioritizes keeping paragraphs intact. It creates a few large,
+        context-rich batches instead of many small, fragmented ones.
+        The character limit is set high (4500) to maximize context per API call.
+        """
+        if not text_elements:
+            return []
+
+        batches = []
+        current_batch_elements = []
+        current_batch_char_count = 0
+
+        for element in text_elements:
+            element_text = element.get('text', '')
+            element_char_count = len(element_text)
+
+            if current_batch_elements and (current_batch_char_count + element_char_count > max_chars_per_batch):
+                batches.append(current_batch_elements)
+                current_batch_elements = []
+                current_batch_char_count = 0
+            
+            current_batch_elements.append(element)
+            current_batch_char_count += element_char_count
+
+        if current_batch_elements:
+            batches.append(current_batch_elements)
+            
+        self.logger.info(f"📦 Created {len(batches)} semantically coherent batches from {len(text_elements)} text elements.")
         return batches
 
 
@@ -366,36 +421,60 @@ class ProcessingStrategyExecutor:
     
     async def execute_strategy(self, processing_result: Dict[str, Any], 
                              target_language: str = 'en') -> ProcessingResult:
-        """Execute the appropriate processing strategy - implements user's strategic vision"""
+        """Execute the appropriate processing strategy with enhanced error handling and validation"""
         self.logger.info(f"[DEBUG] Entering execute_strategy for page with keys: {list(processing_result.keys())}")
+        
+        # Enhanced validation with detailed error messages
+        if not isinstance(processing_result, dict):
+            raise ValueError(f"processing_result must be a dictionary, got {type(processing_result)}")
+        
         strategy = processing_result.get('strategy', None)
         mapped_content = processing_result.get('mapped_content', None)
-        if strategy is None or mapped_content is None:
-            self.logger.error(f"[ERROR] Missing 'strategy' or 'mapped_content' in processing_result: {processing_result}")
-            raise ValueError("Missing 'strategy' or 'mapped_content' in processing_result")
+        
+        if strategy is None:
+            raise ValueError("Missing 'strategy' in processing_result")
+        if mapped_content is None:
+            raise ValueError("Missing 'mapped_content' in processing_result")
+        if not hasattr(strategy, 'strategy'):
+            raise ValueError(f"Invalid strategy object: {strategy}")
+        
         start_time = time.time()
+        strategy_name = strategy.strategy
+        
         try:
-            if strategy.strategy == 'pure_text_fast':
+            self.logger.info(f"🎯 Executing {strategy_name} strategy")
+            
+            # Route to appropriate processing method with explicit strategy validation
+            if strategy_name == 'pure_text_fast':
                 result = await self._process_pure_text_fast(processing_result, target_language)
-            elif strategy.strategy == 'coordinate_based_extraction':
+            elif strategy_name == 'coordinate_based_extraction':
                 result = await self._process_coordinate_based_extraction(processing_result, target_language)
-            elif strategy.strategy == 'direct_text':
+            elif strategy_name == 'direct_text':
                 result = await self._process_direct_text(mapped_content, target_language)
-            elif strategy.strategy == 'minimal_graph':
+            elif strategy_name == 'minimal_graph':
                 result = await self._process_minimal_graph(mapped_content, target_language)
-            else:  # comprehensive_graph
+            elif strategy_name == 'comprehensive_graph':
                 result = await self._process_comprehensive_graph(processing_result, target_language)
+            else:
+                raise ValueError(f"Unknown strategy: {strategy_name}")
+            
+            # Validate result
             if result is None:
-                self.logger.error(f"[ERROR] Strategy function returned None for input: {processing_result}")
-                raise RuntimeError("Strategy function returned None")
-            self.logger.info(f"[DEBUG] Exiting execute_strategy with result: {result}")
+                raise RuntimeError(f"Strategy {strategy_name} returned None")
+            
+            if not isinstance(result, ProcessingResult):
+                raise RuntimeError(f"Strategy {strategy_name} returned invalid result type: {type(result)}")
+            
+            self.logger.info(f"✅ {strategy_name} strategy completed successfully")
             return result
+            
         except Exception as e:
             processing_time = time.time() - start_time
-            self.logger.error(f"❌ Strategy execution failed: {e}", exc_info=True)
+            self.logger.error(f"❌ Strategy {strategy_name} execution failed: {e}", exc_info=True)
+            
             return ProcessingResult(
                 success=False,
-                strategy=strategy.strategy if strategy else 'unknown',
+                strategy=strategy_name,
                 processing_time=processing_time,
                 content={},
                 statistics={},
@@ -414,64 +493,63 @@ class ProcessingStrategyExecutor:
 
     async def _process_pure_text_fast(self, processing_result: Dict[str, Any], 
                                     target_language: str) -> ProcessingResult:
-        """Process pure text content quickly, then translate."""
-        self.logger.info(f"[DEBUG] _process_pure_text_fast received type: {type(processing_result)}")
-        if not processing_result:
-            self.logger.error("[ERROR] processing_result is empty or None in _process_pure_text_fast")
-            return {'translated_text': '', 'blocks': []}
-        processing_result = self._ensure_dict_of_areas(processing_result)
-        if not processing_result:
-            self.logger.error(f"[ERROR] processing_result could not be converted to dict in _process_pure_text_fast: {processing_result}")
-            return {'translated_text': '', 'blocks': []}
+        """
+        Orchestrates the pure text processing and translation, ensuring the final
+        result is correctly structured and returned in a ProcessingResult object.
+
+        This function serves as the master controller for the 'pure_text_fast' strategy.
+        It converts raw data, invokes the semantic translation process, and critically,
+        packages the final structured content into the ProcessingResult for the main
+        pipeline to consume.
+        """
+        self.logger.info("🎯 Executing pure_text_fast strategy")
         start_time = time.time()
         
-        try:
-            mapped_content = processing_result.get('mapped_content', {})
-            
-            # First, process the text to get a structured document
-            text_processing_result = await self.direct_text_processor.process_pure_text(mapped_content)
-
-            if not text_processing_result.success:
-                return text_processing_result
-
-            # Then, translate the structured document
-            document_structure = text_processing_result.content
-            translated_content = await self.direct_text_processor.translate_direct_text(
-                document_structure, target_language
-            )
-            
-            processing_time = time.time() - start_time
-            
-            self.performance_stats['pure_text_fast']['total_time'] += processing_time
-            self.performance_stats['pure_text_fast']['count'] += 1
-            
-            self.logger.info(f"⚡ Pure text fast processing completed in {processing_time:.3f}s")
-            self.logger.info(f"   Text sections: {len(document_structure.get('sections', []))}")
-            self.logger.info(f"   Translation success: {'error' not in translated_content}")
-            
-            return ProcessingResult(
-                success=True,
-                strategy='pure_text_fast',
-                processing_time=processing_time,
-                content=translated_content,
-                statistics={
-                    **text_processing_result.statistics,
-                    'translation_success': 'error' not in translated_content
-                }
-            )
+        # Step 1: Convert the initial raw dictionary from the upstream mapping process
+        # into a clean list of text element objects.
+        mapped_content = processing_result.get('mapped_content', {})
+        page_content = self.direct_text_processor._convert_mapped_content_to_page_content(mapped_content)
+        text_elements = []
         
-        except Exception as e:
-            processing_time = time.time() - start_time
-            self.logger.error(f"❌ Pure text fast processing failed: {e}", exc_info=True)
-            
-            return ProcessingResult(
-                success=False,
-                strategy='pure_text_fast',
-                processing_time=processing_time,
-                content={},
-                statistics={},
-                error=str(e)
-            )
+        # Extract text elements with proper format for translation
+        for element in page_content.content_elements:
+            text_elements.append({
+                'text': element.text,
+                'bbox': element.bbox,
+                'label': element.label,
+                'confidence': element.confidence
+            })
+        
+        if not text_elements:
+            self.logger.warning("No text elements found to process for this page.")
+            return ProcessingResult(success=True, content=[], processing_time=0)
+
+        # Step 2: Invoke the high-quality translation method.
+        # This method now performs semantic batching and returns a list of structured
+        # dictionaries, where each dictionary is a translated paragraph.
+        translated_blocks = await self.direct_text_processor.translate_direct_text(
+            text_elements, target_language
+        )
+        
+        processing_time = time.time() - start_time
+        
+        self.logger.info(f"✅ Pure text processing completed in {processing_time:.3f}s")
+        self.logger.info(f"   Content elements processed: {len(text_elements)}")
+        
+        # Step 3: THE CRITICAL FIX - Package the final data correctly.
+        # Return a ProcessingResult object where the 'content' field is explicitly
+        # assigned the list of translated blocks. This is the data structure that
+        # will be passed back to the main process from the worker.
+        return ProcessingResult(
+            success=True,
+            strategy='pure_text_fast',
+            processing_time=processing_time,
+            content=translated_blocks,  # The translated data is now guaranteed to be here.
+            statistics={
+                'text_elements_processed': len(text_elements),
+                'translated_blocks_created': len(translated_blocks) if isinstance(translated_blocks, list) else 0
+            }
+        )
     
     async def _process_coordinate_based_extraction(self, processing_result: Dict[str, Any], 
                                                  target_language: str) -> ProcessingResult:
@@ -807,13 +885,14 @@ def _dict_to_mapped_content(d):
 
 def process_page_worker(page_data_dict: dict, config: Config) -> ProcessResult:
     """
-    Robust parallel worker for processing a single page.
+    Robust parallel worker for processing a single page with REAL content extraction.
     Accepts a serializable dict and a config object.
     Always returns a ProcessResult object, capturing either the
     processed PageModel data or a string representation of the error.
     """
     import logging
     import fitz  # PyMuPDF
+    import traceback
     logger = logging.getLogger(__name__)
     page_number = page_data_dict.get('page_number', -1)
     
@@ -821,31 +900,46 @@ def process_page_worker(page_data_dict: dict, config: Config) -> ProcessResult:
         # Deserialize and validate input using Pydantic v2 method
         page = PageModel.model_validate(page_data_dict)
 
-        # --- ACTUAL PROCESSING LOGIC ---
-        # This is where we need to extract real content from the PDF
-        # For now, simulate content extraction by creating sample elements
-        # In production, this would use the PyMuPDF-YOLO processor
+        # --- REAL CONTENT EXTRACTION ---
+        # Extract actual text from PDF instead of using placeholder content
+        pdf_path = page_data_dict.get('pdf_path')
+        if not pdf_path:
+            raise ValueError("PDF path not provided in page_data_dict")
         
-        # Create sample text elements for testing (replace with real extraction)
-        sample_elements = [
-            ElementModel(
-                type='text',
-                content=f'Sample text content from page {page_number}',
-                bbox=[100, 100, 400, 150],
-                confidence=0.95
-            ),
-            ElementModel(
-                type='text', 
-                content=f'Additional paragraph content for page {page_number}',
-                bbox=[100, 200, 400, 250],
-                confidence=0.90
-            )
-        ]
+        # Open the PDF document and extract real content
+        doc = fitz.open(pdf_path)
+        pdf_page = doc.load_page(page_number - 1)  # Convert to 0-based indexing
         
-        # Update the page with extracted elements
-        page.elements = sample_elements
+        # Extract text using PyMuPDF's structured text extraction
+        page_dict = pdf_page.get_text("dict")
         
-        logger.info(f"Worker extracted {len(sample_elements)} elements from page {page_number}")
+        extracted_elements = []
+        element_index = 0
+        
+        # Process text blocks to extract real content
+        for block in page_dict.get("blocks", []):
+            if block.get("type") == 0:  # Text block
+                for line in block.get("lines", []):
+                    # Combine all spans in a line to get the full text
+                    line_text = "".join(span.get("text", "") for span in line.get("spans", []))
+                    
+                    if line_text.strip():  # Only add non-empty lines
+                        extracted_elements.append(ElementModel(
+                            type='text',
+                            content=line_text.strip(),  # REAL CONTENT from PDF
+                            bbox=line.get("bbox", [0, 0, 0, 0]),
+                            confidence=1.0  # High confidence for PyMuPDF extraction
+                        ))
+                        element_index += 1
+        
+        doc.close()
+        
+        # Update the page with extracted real elements
+        page.elements = extracted_elements
+        
+        logger.info(f"Worker extracted {len(extracted_elements)} REAL text elements from page {page_number}")
+        if extracted_elements:
+            logger.info(f"First element preview: '{extracted_elements[0].content[:100]}...'")
         
         return ProcessResult(page_number=page.page_number, data=page)
 
