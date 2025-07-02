@@ -75,6 +75,35 @@ class MarkdownAwareTranslator:
         """
         Translate Markdown content while preserving structure and special characters
         """
+        import asyncio
+        
+        # Add timeout to prevent infinite hangs
+        timeout_seconds = 300  # 5 minutes maximum
+        
+        try:
+            return await asyncio.wait_for(
+                self._translate_markdown_with_timeout(
+                    markdown_text, translation_func, target_language, 
+                    context_before, context_after
+                ),
+                timeout=timeout_seconds
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"❌ Markdown translation timed out after {timeout_seconds}s, using fallback")
+            # Return simple translation without markdown processing
+            try:
+                return await translation_func(
+                    markdown_text, target_language, "",
+                    context_before, context_after, "text"
+                )
+            except Exception as e:
+                logger.error(f"❌ Fallback translation also failed: {e}")
+                return markdown_text  # Return original if all fails
+    
+    async def _translate_markdown_with_timeout(self, markdown_text: str,
+                                             translation_func, target_language: str,
+                                             context_before: str = "", context_after: str = "") -> str:
+        """Internal method with original markdown translation logic"""
         if not self.is_markdown_content(markdown_text):
             # Preserve special characters before translation
             preserved_text = self._preserve_special_chars(markdown_text)
@@ -171,6 +200,12 @@ class MarkdownAwareTranslator:
         except ImportError:
             TQDM_AVAILABLE = False
 
+        # Limit the number of nodes to prevent infinite processing
+        max_nodes = 50  # Safety limit
+        if len(text_nodes) > max_nodes:
+            logger.warning(f"⚠️ Too many nodes ({len(text_nodes)}), limiting to {max_nodes}")
+            text_nodes = text_nodes[:max_nodes]
+
         # Create translation tasks with proper context
         tasks = []
         for i, node in enumerate(text_nodes):
@@ -193,29 +228,41 @@ class MarkdownAwareTranslator:
         logger.info(f"🚀 Starting parallel translation of {len(tasks)} nodes...")
 
         # Use semaphore to limit concurrent requests (avoid rate limiting)
-        semaphore = asyncio.Semaphore(5)  # Max 5 concurrent translations
+        semaphore = asyncio.Semaphore(3)  # Reduced from 5 to 3 for safety
 
         async def translate_with_semaphore(task):
             async with semaphore:
-                return await task
+                return await asyncio.wait_for(task, timeout=60.0)  # 60s timeout per node
 
-        # Execute with progress tracking
+        # Execute with progress tracking and timeout
         results = []
-        if TQDM_AVAILABLE and len(tasks) > 5:  # Show progress bar for batches > 5
-            logger.info(f"📊 Progress tracking enabled for {len(tasks)} markdown nodes")
-            results = await tqdm.gather(*[translate_with_semaphore(task) for task in tasks],
-                                      desc="🔄 Translating markdown",
-                                      unit="node",
-                                      colour="blue")
-        else:
-            logger.info(f"📊 Processing {len(tasks)} markdown translation tasks...")
-            results = await asyncio.gather(*[translate_with_semaphore(task) for task in tasks],
-                                         return_exceptions=True)
+        try:
+            if TQDM_AVAILABLE and len(tasks) > 5:  # Show progress bar for batches > 5
+                logger.info(f"📊 Progress tracking enabled for {len(tasks)} markdown nodes")
+                results = await asyncio.wait_for(
+                    tqdm.gather(*[translate_with_semaphore(task) for task in tasks],
+                              desc="🔄 Translating markdown",
+                              unit="node",
+                              colour="blue"),
+                    timeout=900.0  # 15 minutes total timeout
+                )
+            else:
+                logger.info(f"📊 Processing {len(tasks)} markdown translation tasks...")
+                results = await asyncio.wait_for(
+                    asyncio.gather(*[translate_with_semaphore(task) for task in tasks],
+                                 return_exceptions=True),
+                    timeout=900.0  # 15 minutes total timeout
+                )
 
-            # Manual progress logging for smaller batches
-            for i in range(0, len(tasks), max(1, len(tasks) // 10)):
-                progress = (i / len(tasks)) * 100
-                logger.info(f"📊 Markdown translation progress: {progress:.1f}% ({i}/{len(tasks)} nodes)")
+                # Manual progress logging for smaller batches
+                for i in range(0, len(tasks), max(1, len(tasks) // 10)):
+                    progress = (i / len(tasks)) * 100
+                    logger.info(f"📊 Markdown translation progress: {progress:.1f}% ({i}/{len(tasks)} nodes)")
+
+        except asyncio.TimeoutError:
+            logger.error("❌ Parallel translation timed out, using fallback")
+            # Return original content for all nodes
+            return {node.node_path: node.content for node in text_nodes}
 
         # Process results and maintain order
         translated_nodes = {}
@@ -251,17 +298,27 @@ class MarkdownAwareTranslator:
         Translate a single node with enhanced error handling and retry logic.
         """
         import asyncio
-        max_retries = 2
-        retry_delay = 1.0
+        max_retries = 1  # Reduced from 2 to 1
+        retry_delay = 0.5  # Reduced from 1.0 to 0.5
 
         for attempt in range(max_retries + 1):
             try:
-                translated_text = await translation_func(
-                    node.content, target_language, "",
-                    context_before, context_after, "text_only"
+                translated_text = await asyncio.wait_for(
+                    translation_func(
+                        node.content, target_language, "",
+                        context_before, context_after, "text_only"
+                    ),
+                    timeout=30.0  # 30s timeout per attempt
                 )
                 return translated_text
 
+            except asyncio.TimeoutError:
+                if attempt < max_retries:
+                    logger.debug(f"Translation attempt {attempt + 1} timed out for node {node_index}, retrying")
+                    await asyncio.sleep(retry_delay * (attempt + 1))
+                else:
+                    logger.error(f"All translation attempts timed out for node {node_index}")
+                    raise asyncio.TimeoutError(f"Node {node_index} translation timed out")
             except Exception as e:
                 if attempt < max_retries:
                     logger.debug(f"Translation attempt {attempt + 1} failed for node {node_index}, retrying: {str(e)}")
@@ -833,23 +890,27 @@ REMINDER: Return ONLY the translated Markdown with identical structure. Do not a
         return cleaned
 
     def _preserve_special_chars(self, text: str) -> str:
-        """Preserve special characters by replacing them with unique placeholders"""
+        """Preserve special characters by replacing them with safe placeholders"""
         preserved_text = text
         self.preserved_chars.clear()
         
+        # Use safer, more descriptive placeholders that won't trigger safety filters
+        char_counter = 0
+        
         # Create unique placeholders for each special character
         for char_type, pattern in self.special_chars.items():
-            matches = re.finditer(pattern, preserved_text)
-            for i, match in enumerate(matches):
+            matches = list(re.finditer(pattern, preserved_text))
+            for match in matches:
                 char = match.group()
-                placeholder = f"__{char_type}_{i}__"
-                preserved_text = preserved_text.replace(char, placeholder)
+                placeholder = f"PRESERVE{char_counter:04d}"  # Use safer format like PRESERVE0001
+                preserved_text = preserved_text.replace(char, placeholder, 1)  # Replace only first occurrence
                 self.preserved_chars[placeholder] = char
+                char_counter += 1
                 
         return preserved_text
         
     def _restore_special_chars(self, text: str) -> str:
-        """Restore special characters from placeholders"""
+        """Restore special characters from safe placeholders"""
         restored_text = text
         for placeholder, char in self.preserved_chars.items():
             restored_text = restored_text.replace(placeholder, char)

@@ -9,9 +9,19 @@ import configparser
 import logging
 from dotenv import load_dotenv
 import google.generativeai as genai
+from pydantic_settings import BaseSettings
 
 # Setup logging
 logger = logging.getLogger(__name__)
+
+class Config(BaseSettings):
+    MAX_WORKERS: int = 6
+    GEMINI_API_KEY: str = ""
+    # Add other relevant pipeline settings here
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
 
 class ConfigManager:
     """Centralized configuration management"""

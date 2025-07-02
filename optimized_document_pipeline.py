@@ -29,8 +29,10 @@ from types import SimpleNamespace
 
 # Import our custom components
 from pymupdf_yolo_processor import PyMuPDFYOLOProcessor, ContentType
-from processing_strategies import ProcessingStrategyExecutor, ProcessingResult
+from processing_strategies import ProcessingStrategyExecutor, ProcessingResult, process_page_worker
 from document_generator import WordDocumentGenerator, convert_word_to_pdf
+from config_manager import Config
+from models import PageModel, ProcessResult
 
 # Import existing services
 try:
@@ -141,7 +143,7 @@ class OptimizedDocumentPipeline:
             
             # Step 1: Process all pages with PyMuPDF-YOLO mapping
             self.logger.info("📄 Step 1: PyMuPDF-YOLO content mapping...")
-            page_results = await self._process_all_pages(pdf_path)
+            page_results = self._process_all_pages(pdf_path)
             
             if not page_results:
                 raise Exception("No pages processed successfully")
@@ -195,9 +197,12 @@ class OptimizedDocumentPipeline:
                 error=str(e)
             )
     
-    async def _process_all_pages(self, pdf_path: str) -> List[Dict[str, Any]]:
-        """Process all pages with PyMuPDF-YOLO mapping in parallel using ProcessPoolExecutor for CPU-bound tasks"""
+    def _process_all_pages(self, pdf_path: str) -> List[ProcessResult]:
+        """Process all pages with PyMuPDF-YOLO mapping in parallel using ProcessPoolExecutor and robust serialization."""
         import fitz  # PyMuPDF
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+        
+        config = Config()  # Centralized config object
         try:
             doc = fitz.open(pdf_path)
             total_pages = len(doc)
@@ -205,46 +210,46 @@ class OptimizedDocumentPipeline:
 
             self.logger.info(f"📄 Processing {total_pages} pages with PyMuPDF-YOLO mapping (parallel: {self.max_workers})")
 
-            # Use ProcessPoolExecutor for CPU-bound page analysis
-            loop = asyncio.get_running_loop()
+            # Extract PageModel objects for each page (simulate for now)
+            # In real code, replace with actual extraction logic
+            page_models = [PageModel(page_number=i+1, dimensions=[612, 792], elements=[]) for i in range(total_pages)]
+
             results = []
-            with concurrent.futures.ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-                # Submit all page processing tasks
-                futures = [
-                    loop.run_in_executor(
-                        executor,
-                        self._process_page_sync,
-                        pdf_path,
-                        page_num
-                    ) for page_num in range(total_pages)
-                ]
-                # Gather results as they complete
-                for i, future in enumerate(asyncio.as_completed(futures)):
+            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = {
+                    executor.submit(process_page_worker, page_model.model_dump(), config): page_model.page_number 
+                    for page_model in page_models
+                }
+                self.logger.info(f"Submitted {len(futures)} pages for processing.")
+                
+                for future in as_completed(futures):
+                    page_num = futures[future]
                     try:
-                        result = await future
-                        results.append(result)
-                        self.logger.info(f"✅ Page {i+1}/{total_pages} processed (ProcessPoolExecutor)")
+                        result: ProcessResult = future.result()
+                        if result.error:
+                            self.logger.error(f"Worker failed on page {page_num}: {result.error}")
+                        elif result.data:
+                            self.logger.info(f"Successfully processed page {page_num}.")
+                            results.append(result)
+                        else:
+                            self.logger.warning(f"Worker for page {page_num} returned no data and no error.")
                     except Exception as e:
-                        self.logger.error(f"❌ Error processing page {i+1}: {e}")
-                        results.append({'error': str(e), 'page_num': i+1})
+                        self.logger.critical(f"A critical error occurred fetching result for page {page_num}: {e}")
+            
+            results.sort(key=lambda r: r.page_number)
+            self.logger.info(f"Pipeline finished. Successfully processed {len([r for r in results if r.data])} pages.")
             return results
         except Exception as e:
             self.logger.error(f"❌ Error processing pages: {e}")
             return []
-
-    def _process_page_sync(self, pdf_path, page_num):
-        """Synchronous wrapper for process_page for use in ProcessPoolExecutor"""
-        import asyncio
-        processor = PyMuPDFYOLOProcessor()
-        return asyncio.run(processor.process_page(pdf_path, page_num))
     
-    async def _execute_strategies(self, page_results: List[Dict[str, Any]], 
+    async def _execute_strategies(self, page_results: List[ProcessResult], 
                                 target_language: str) -> List[ProcessingResult]:
         """Execute processing strategies for each page in parallel"""
         self.logger.info(f"🔄 Executing processing strategies for {len(page_results)} pages in parallel")
         
         # Decide strategy for each page
-        strategy_inputs = [self._route_strategy_for_page(page_model) for page_model in page_results]
+        strategy_inputs = [self._route_strategy_for_page(page_result) for page_result in page_results]
         
         # Now execute strategies in parallel
         processing_results = await asyncio.gather(*[
@@ -297,16 +302,38 @@ class OptimizedDocumentPipeline:
         else:
             return {}
 
-    def _route_strategy_for_page(self, page_model: dict):
-        # Decide strategy based on content
-        text_count = sum(1 for el in page_model.get('elements', []) if el.get('type') == 'text')
-        image_count = sum(1 for el in page_model.get('elements', []) if el.get('type') == 'image')
-        # Convert elements to namespaces for attribute access
-        mapped_content = self.convert_elements_to_namespaces(page_model.get('elements', []))
+    def _route_strategy_for_page(self, page_result: ProcessResult):
+        # Extract the actual page data from ProcessResult
+        if not page_result.data:
+            # No data available, use fallback strategy
+            return {
+                'strategy': SimpleNamespace(strategy='coordinate_based_extraction'),
+                'mapped_content': {}
+            }
+        
+        # page_result.data is a PageModel object
+        page_model = page_result.data
+        
+        # Count elements by type
+        text_count = sum(1 for el in page_model.elements if el.type == 'text')
+        image_count = sum(1 for el in page_model.elements if el.type == 'image')
+        
+        # Convert elements to dictionary format for processing
+        mapped_content = {}
+        for i, element in enumerate(page_model.elements):
+            mapped_content[f"element_{i}"] = {
+                'type': element.type,
+                'content': element.content,
+                'bbox': element.bbox,
+                'confidence': element.confidence
+            }
+        
+        # Choose strategy based on content analysis
         if image_count == 0 and text_count > 0:
             strategy = SimpleNamespace(strategy='pure_text_fast')
         else:
             strategy = SimpleNamespace(strategy='coordinate_based_extraction')
+            
         return {
             'strategy': strategy,
             'mapped_content': mapped_content
@@ -402,12 +429,12 @@ class OptimizedDocumentPipeline:
             self.logger.error(f"❌ Error generating final output: {e}")
             return {}
     
-    def _calculate_pipeline_statistics(self, page_results: List[Dict[str, Any]], 
+    def _calculate_pipeline_statistics(self, page_results: List[ProcessResult], 
                                      processing_results: List[ProcessingResult], 
                                      total_time: float) -> PipelineStatistics:
         """Calculate comprehensive pipeline statistics"""
         # Count successful pages
-        successful_pages = sum(1 for result in page_results if 'error' not in result)
+        successful_pages = sum(1 for result in page_results if result.error is None)
         
         # Calculate strategy distribution
         strategy_distribution = {}
@@ -415,12 +442,12 @@ class OptimizedDocumentPipeline:
             strategy = result.strategy
             strategy_distribution[strategy] = strategy_distribution.get(strategy, 0) + 1
         
-        # Calculate content type distribution
-        content_type_distribution = {}
-        for result in page_results:
-            if 'content_type' in result:
-                content_type = result['content_type'].value
-                content_type_distribution[content_type] = content_type_distribution.get(content_type, 0) + 1
+        # Calculate content type distribution (simplified since we don't have content_type in ProcessResult)
+        content_type_distribution = {
+            'processed_pages': len(page_results),
+            'successful_pages': successful_pages,
+            'failed_pages': len(page_results) - successful_pages
+        }
         
         # Calculate graph overhead
         graph_overhead_total = sum(
@@ -436,7 +463,7 @@ class OptimizedDocumentPipeline:
         )
         translation_success_rate = successful_translations / len(processing_results) if processing_results else 0.0
         
-        # Estimate memory usage (rough calculation)
+        # Estimate memory usage
         memory_usage_mb = self._estimate_memory_usage(page_results, processing_results)
         
         return PipelineStatistics(
@@ -450,19 +477,24 @@ class OptimizedDocumentPipeline:
             memory_usage_mb=memory_usage_mb
         )
     
-    def _estimate_memory_usage(self, page_results: List[Dict[str, Any]], 
+    def _estimate_memory_usage(self, page_results: List[ProcessResult], 
                              processing_results: List[ProcessingResult]) -> float:
         """Estimate memory usage in MB"""
         # Rough estimation based on content size and processing type
         total_content_size = 0
         
+        # Estimate from ProcessResult data
         for result in page_results:
-            if 'statistics' in result:
-                stats = result['statistics']
-                total_content_size += stats.get('text_blocks', 0) * 1024  # ~1KB per text block
-                total_content_size += stats.get('image_blocks', 0) * 10240  # ~10KB per image block
+            if result.data and result.data.elements:
+                # Estimate based on number of elements
+                total_content_size += len(result.data.elements) * 512  # ~512B per element
+                
+                # Add content size
+                for element in result.data.elements:
+                    if element.content:
+                        total_content_size += len(element.content)
         
-        # Add graph overhead
+        # Add graph overhead from processing results
         for result in processing_results:
             if result.success:
                 graph_nodes = result.statistics.get('graph_nodes', 0)
@@ -473,7 +505,7 @@ class OptimizedDocumentPipeline:
         # Convert to MB
         return total_content_size / (1024 * 1024)
     
-    def _update_global_statistics(self, page_results: List[Dict[str, Any]], 
+    def _update_global_statistics(self, page_results: List[ProcessResult], 
                                 processing_results: List[ProcessingResult], 
                                 total_time: float):
         """Update global pipeline statistics"""
@@ -486,12 +518,15 @@ class OptimizedDocumentPipeline:
             if strategy in self.stats['strategy_usage']:
                 self.stats['strategy_usage'][strategy] += 1
         
-        # Update content type distribution
-        for result in page_results:
-            if 'content_type' in result:
-                content_type = result['content_type'].value
-                if content_type in self.stats['content_types']:
-                    self.stats['content_types'][content_type] += 1
+        # Update page processing stats (simplified)
+        successful_pages = sum(1 for result in page_results if result.error is None)
+        if 'pages_processed' not in self.stats:
+            self.stats['pages_processed'] = 0
+        if 'pages_successful' not in self.stats:
+            self.stats['pages_successful'] = 0
+            
+        self.stats['pages_processed'] += len(page_results)
+        self.stats['pages_successful'] += successful_pages
     
     def _generate_enhanced_processing_report(self, processing_results: List[ProcessingResult], 
                                            report_path: str):

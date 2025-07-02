@@ -33,12 +33,15 @@ except ImportError:
     logging.warning("Markdown-aware translator not available")
 
 # Import markdown content processor
-try:
-    from markdown_content_processor import markdown_processor
-    MARKDOWN_PROCESSOR_AVAILABLE = True
-except ImportError:
-    MARKDOWN_PROCESSOR_AVAILABLE = False
-    logging.warning("Markdown content processor not available")
+# try:
+#     from markdown_content_processor import markdown_processor
+#     MARKDOWN_PROCESSOR_AVAILABLE = True
+# except ImportError:
+#     MARKDOWN_PROCESSOR_AVAILABLE = False
+#     logging.warning("Markdown content processor not available")
+
+# Since this is optional and doesn't exist, disable it for now
+MARKDOWN_PROCESSOR_AVAILABLE = False
 
 # Import structured document model
 from document_model import Document, Page, ContentBlock, Heading, Paragraph, Footnote, Table

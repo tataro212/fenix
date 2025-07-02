@@ -42,6 +42,10 @@ except ImportError:
     DOCUMENT_MODEL_AVAILABLE = False
     logger.warning("Document model not available")
 
+# --- Import the Centralized Models ---
+# All data structures are now imported from the single source of truth.
+from models import PageModel, ElementModel, BoundingBox, ElementType
+
 logger = logging.getLogger(__name__)
 
 class ContentType(Enum):
@@ -505,163 +509,118 @@ class PyMuPDFYOLOProcessor:
             self.logger.warning(f"Error in quick content scan: {e}, defaulting to mixed content")
             return False
     
-    async def process_page(self, pdf_path: str, page_num: int) -> Dict[str, Any]:
-        """Main processing method with intelligent routing - implements user's strategic vision"""
+    async def process_page(self, pdf_path: str, page_num: int) -> PageModel:
+        """
+        Processes a single page and returns a validated PageModel object.
+
+        This method is now the single point of responsibility for creating the
+        "single version of truth" for a page's structure.
+        """
         start_time = time.time()
         try:
             doc = fitz.open(pdf_path)
             page = doc[page_num]
-            width, height = page.rect.width, page.rect.height
+            page_width, page_height = page.rect.width, page.rect.height
 
-            # 2. Quick content scan to determine processing path
+            elements: List[ElementModel] = []
+
+            # Quick content scan to determine processing path
             if self._quick_content_scan(page):
-                result = await self._process_pure_text_fast(page, page_num, start_time)
+                # Process as pure text
+                text_blocks = self.content_extractor.extract_text_blocks(page)
+                
+                # Convert text blocks to ElementModel objects
+                for text_block in text_blocks:
+                    elements.append(ElementModel(
+                        type='text',
+                        bbox=text_block.bbox,
+                        content=text_block.text,
+                        formatting={
+                            'font_size': text_block.font_size,
+                            'font_family': text_block.font_family,
+                            'confidence': text_block.confidence,
+                            'block_type': text_block.block_type
+                        },
+                        confidence=text_block.confidence
+                    ))
+                
+                self.logger.info(f"⚡ Page {page_num + 1}: Fast text processing completed in {time.time() - start_time:.3f}s")
             else:
-                result = await self._process_mixed_content_with_coordinates(page, page_num, start_time)
+                # Process as mixed content with YOLO
+                text_blocks = self.content_extractor.extract_text_blocks(page)
+                image_blocks = self.content_extractor.extract_images(page)
+                
+                # Render page for YOLO
+                pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                page_image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
+                
+                # Analyze layout with YOLO
+                layout_areas = self.layout_analyzer.analyze_layout(page_image)
+                
+                # Convert text blocks to ElementModel objects
+                for text_block in text_blocks:
+                    elements.append(ElementModel(
+                        type='text',
+                        bbox=text_block.bbox,
+                        content=text_block.text,
+                        formatting={
+                            'font_size': text_block.font_size,
+                            'font_family': text_block.font_family,
+                            'confidence': text_block.confidence,
+                            'block_type': text_block.block_type
+                        },
+                        confidence=text_block.confidence
+                    ))
+                
+                # Convert image blocks to ElementModel objects
+                for image_block in image_blocks:
+                    elements.append(ElementModel(
+                        type='image',
+                        bbox=image_block.bbox,
+                        content=f"Image {image_block.image_index}",  # Placeholder content
+                        formatting={
+                            'block_type': image_block.block_type,
+                            'image_index': image_block.image_index
+                        },
+                        confidence=None
+                    ))
+                
+                # Convert layout areas to ElementModel objects
+                for layout_area in layout_areas:
+                    # Map YOLO labels to ElementType values
+                    element_type = layout_area.label if layout_area.label in ['text', 'image', 'table', 'figure', 'title', 'list', 'caption', 'quote', 'footnote', 'equation', 'marginalia', 'bibliography', 'header', 'footer'] else 'text'
+                    
+                    elements.append(ElementModel(
+                        type=element_type,
+                        bbox=layout_area.bbox,
+                        content=f"Content for {element_type}",  # Placeholder content
+                        formatting={
+                            'area_id': layout_area.area_id,
+                            'class_id': layout_area.class_id
+                        },
+                        confidence=layout_area.confidence
+                    ))
+                
+                self.logger.info(f"🎯 Page {page_num + 1}: Mixed content processing completed in {time.time() - start_time:.3f}s")
 
-            # Build elements list from text_blocks and image_blocks
-            elements = []
-            # Text blocks
-            for block in result.get('text_blocks', []):
-                elements.append(ElementModel(
-                    type='text',
-                    bbox=block.bbox,
-                    content=block.text,
-                    formatting={
-                        'font_size': getattr(block, 'font_size', None),
-                        'font_family': getattr(block, 'font_family', None),
-                        'confidence': getattr(block, 'confidence', None),
-                        'block_type': getattr(block, 'block_type', None)
-                    }
-                ))
-            # Image blocks
-            for block in result.get('image_blocks', []):
-                elements.append(ElementModel(
-                    type='image',
-                    bbox=block.bbox,
-                    content=None,  # Fix: content must be str, bytes, or None
-                    formatting={
-                        'block_type': getattr(block, 'block_type', None),
-                        'image_index': getattr(block, 'image_index', None)
-                    }
-                ))
-            # Optionally, add more element types here (tables, etc.)
-
-            # Build the page model
-            try:
-                page_model = PageModel(
-                    page_number=page_num,
-                    dimensions={'width': width, 'height': height},
-                    elements=elements
-                )
-                return page_model.dict()
-            except ValidationError as ve:
-                self.logger.error(f"Pydantic validation error for page {page_num}: {ve}")
-                return {
-                    'error': f'Validation error for page {page_num}: {ve}',
-                    'page_num': page_num
-                }
-        except Exception as e:
-            self.logger.error(f"❌ Error processing page {page_num + 1}: {e}", exc_info=True)
-            return {
-                'error': f"Failed to process page {page_num + 1}: {e}",
-                'page_num': page_num
-            }
-    
-    async def _process_pure_text_fast(self, page: fitz.Page, page_num: int, start_time: float) -> Dict[str, Any]:
-        """Fast-path processing for pure text pages using only PyMuPDF."""
-        try:
-            text_blocks = self.content_extractor.extract_text_blocks(page)
-            
-            # Create a consistent mapped_content structure
-            mapped_content = {}
-            for i, block in enumerate(text_blocks):
-                area_id = f"text_area_{page_num}_{i}"
-                layout_area = LayoutArea(
-                    label='text',
-                    bbox=block.bbox,
-                    confidence=block.confidence,
-                    area_id=area_id,
-                    class_id=0 # Generic text class
-                )
-                mapped_content[area_id] = MappedContent(
-                    layout_info=layout_area,
-                    text_blocks=[block],
-                    image_blocks=[],
-                    combined_text=block.text
-                )
-
-            strategy = self.classifier.get_processing_strategy(ContentType.PURE_TEXT, mapped_content)
-
-            self.logger.info(f"⚡ Page {page_num + 1}: Fast text processing completed in {time.time() - start_time:.3f}s")
-            
-            return {
-                'page_num': page_num,
-                'processing_time': time.time() - start_time,
-                'content_type': ContentType.PURE_TEXT,
-                'strategy': strategy,
-                'mapped_content': mapped_content, # Consistent output
-                'text_blocks': text_blocks,
-                'image_blocks': [],
-                'layout_areas': list(mapped_content.keys())
-            }
-        except Exception as e:
-            self.logger.error(f"❌ Error in fast text processing for page {page_num + 1}: {e}", exc_info=True)
-            return {'error': str(e), 'page_num': page_num}
-    
-    async def _process_mixed_content_with_coordinates(self, page: fitz.Page, page_num: int, start_time: float) -> Dict[str, Any]:
-        """Process mixed-content pages using both PyMuPDF and YOLO, with coordinate-based mapping."""
-        try:
-            # 1. Extract content with PyMuPDF
-            text_blocks = self.content_extractor.extract_text_blocks(page)
-            image_blocks = self.content_extractor.extract_images(page)
-            
-            # 2. Render page for YOLO
-            pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            page_image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
-            
-            # 3. Analyze layout with YOLO (0.15 confidence)
-            layout_areas = self.layout_analyzer.analyze_layout(page_image)
-            
-            # 4. Map content to layout using coordinates
-            mapped_content = self.content_mapper.map_content_to_layout(
-                text_blocks, image_blocks, layout_areas
+            # Create and return the final PageModel
+            page_model = PageModel(
+                page_number=page_num + 1,  # 1-based page numbering
+                dimensions=[page_width, page_height],  # List of two floats as expected
+                elements=elements
             )
             
-            # 5. Classify content type and get strategy
-            content_type = self.classifier.classify_mapped_content(mapped_content)
-            strategy = self.classifier.get_processing_strategy(content_type, mapped_content)
-            
-            processing_time = time.time() - start_time
-            
-            self.logger.info(f"🎯 Page {page_num}: Coordinate-based processing completed in {processing_time:.3f}s")
-            self.logger.info(f"   Content type: {content_type.value}")
-            self.logger.info(f"   Strategy: {strategy.strategy}")
-            self.logger.info(f"   Text blocks: {len(text_blocks)}")
-            self.logger.info(f"   Image blocks: {len(image_blocks)}")
-            self.logger.info(f"   Layout areas: {len(layout_areas)}")
-            
-            return {
-                'mapped_content': mapped_content,
-                'content_type': content_type,
-                'strategy': strategy,
-                'page_num': page_num,
-                'processing_time': processing_time,
-                'text_blocks': text_blocks,
-                'image_blocks': image_blocks,
-                'layout_areas': layout_areas,
-                'statistics': {
-                    'text_blocks': len(text_blocks),
-                    'image_blocks': len(image_blocks),
-                    'layout_areas': len(layout_areas),
-                    'mapped_areas': len(mapped_content),
-                    'processing_path': 'coordinate_based_extraction'
-                }
-            }
+            doc.close()
+            return page_model
             
         except Exception as e:
-            self.logger.error(f"❌ Error in coordinate-based processing: {e}")
-            raise
+            self.logger.error(f"❌ Error processing page {page_num + 1}: {e}", exc_info=True)
+            # Return a minimal PageModel with error information
+            return PageModel(
+                page_number=page_num + 1,
+                dimensions=[0.0, 0.0],
+                elements=[]
+            )
     
     def get_processing_stats(self) -> Dict[str, Any]:
         """Get processing statistics"""
@@ -675,14 +634,3 @@ class PyMuPDFYOLOProcessor:
                 'figure', 'caption', 'quote', 'footnote', 'equation'
             ]
         } 
-
-class ElementModel(BaseModel):
-    type: str  # e.g., 'text', 'image', 'table', etc.
-    bbox: Tuple[float, float, float, float]
-    content: Union[str, bytes, None]  # text for text blocks, image data/path for images, etc.
-    formatting: Dict[str, Union[str, float, int, None]] = Field(default_factory=dict)
-
-class PageModel(BaseModel):
-    page_number: int
-    dimensions: Dict[str, float]  # {'width': float, 'height': float}
-    elements: List[ElementModel] 
