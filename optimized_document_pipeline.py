@@ -20,13 +20,17 @@ import os
 import logging
 import time
 import asyncio
+import concurrent.futures
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass
 from pathlib import Path
+import traceback
+from types import SimpleNamespace
 
 # Import our custom components
 from pymupdf_yolo_processor import PyMuPDFYOLOProcessor, ContentType
 from processing_strategies import ProcessingStrategyExecutor, ProcessingResult
+from document_generator import WordDocumentGenerator, convert_word_to_pdf
 
 # Import existing services
 try:
@@ -192,102 +196,68 @@ class OptimizedDocumentPipeline:
             )
     
     async def _process_all_pages(self, pdf_path: str) -> List[Dict[str, Any]]:
-        """Process all pages with PyMuPDF-YOLO mapping in parallel"""
+        """Process all pages with PyMuPDF-YOLO mapping in parallel using ProcessPoolExecutor for CPU-bound tasks"""
         import fitz  # PyMuPDF
-        
         try:
             doc = fitz.open(pdf_path)
             total_pages = len(doc)
             doc.close()
-            
+
             self.logger.info(f"📄 Processing {total_pages} pages with PyMuPDF-YOLO mapping (parallel: {self.max_workers})")
-            
-            semaphore = asyncio.Semaphore(self.max_workers)
-            
-            async def process_page_with_semaphore(page_num):
-                async with semaphore:
-                    self.logger.info(f"   Processing page {page_num + 1}/{total_pages}")
-                    result = await self.processor.process_page(pdf_path, page_num)
-                    if 'error' in result:
-                        self.logger.warning(f"⚠️ Page {page_num + 1} had errors: {result['error']}")
-                    else:
-                        self.logger.info(f"   ✅ Page {page_num + 1} processed successfully")
-                    return result
-            
-            # Launch all page processing tasks in parallel with progress tracking
-            tasks = [process_page_with_semaphore(page_num) for page_num in range(total_pages)]
-            
-            self.logger.info(f"🔄 Processing {total_pages} pages with concurrency limit of {self.max_workers}")
-            page_results = []
-            completed = 0
-            
-            # Process with progress tracking
-            for task in asyncio.as_completed(tasks):
-                try:
-                    result = await task
-                    page_results.append(result)
-                    completed += 1
-                    self.logger.info(f"✅ Page {completed}/{total_pages} completed")
-                except Exception as e:
-                    self.logger.error(f"❌ Page {completed + 1}/{total_pages} failed: {e}")
-                    page_results.append({'error': str(e), 'page_num': completed + 1})
-                    completed += 1
-            
-            return page_results
-            
+
+            # Use ProcessPoolExecutor for CPU-bound page analysis
+            loop = asyncio.get_running_loop()
+            results = []
+            with concurrent.futures.ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                # Submit all page processing tasks
+                futures = [
+                    loop.run_in_executor(
+                        executor,
+                        self._process_page_sync,
+                        pdf_path,
+                        page_num
+                    ) for page_num in range(total_pages)
+                ]
+                # Gather results as they complete
+                for i, future in enumerate(asyncio.as_completed(futures)):
+                    try:
+                        result = await future
+                        results.append(result)
+                        self.logger.info(f"✅ Page {i+1}/{total_pages} processed (ProcessPoolExecutor)")
+                    except Exception as e:
+                        self.logger.error(f"❌ Error processing page {i+1}: {e}")
+                        results.append({'error': str(e), 'page_num': i+1})
+            return results
         except Exception as e:
             self.logger.error(f"❌ Error processing pages: {e}")
             return []
+
+    def _process_page_sync(self, pdf_path, page_num):
+        """Synchronous wrapper for process_page for use in ProcessPoolExecutor"""
+        import asyncio
+        processor = PyMuPDFYOLOProcessor()
+        return asyncio.run(processor.process_page(pdf_path, page_num))
     
     async def _execute_strategies(self, page_results: List[Dict[str, Any]], 
                                 target_language: str) -> List[ProcessingResult]:
         """Execute processing strategies for each page in parallel"""
         self.logger.info(f"🔄 Executing processing strategies for {len(page_results)} pages in parallel")
         
-        # Create tasks for parallel execution
-        async def process_page_strategy(page_result, page_index):
-            if 'error' in page_result:
-                # Skip pages with errors
-                return ProcessingResult(
-                    success=False,
-                    strategy='error',
-                    processing_time=page_result.get('processing_time', 0.0),
-                    content={},
-                    statistics={},
-                    error=page_result['error']
-                )
-            
-            # Execute the appropriate strategy
-            self.logger.info(f"🔄 Processing page {page_index + 1}/{len(page_results)} with strategy")
-            strategy_result = await self.strategy_executor.execute_strategy(
-                page_result, target_language
-            )
-            
-            if strategy_result.success:
-                self.logger.info(f"✅ Page {page_index + 1}: Strategy '{strategy_result.strategy}' executed successfully")
-            else:
-                self.logger.warning(f"⚠️ Page {page_index + 1}: Strategy '{strategy_result.strategy}' failed: {strategy_result.error}")
-            
-            return strategy_result
+        # Decide strategy for each page
+        strategy_inputs = [self._route_strategy_for_page(page_model) for page_model in page_results]
         
-        # Execute all strategies in parallel with semaphore for concurrency control
-        semaphore = asyncio.Semaphore(3)  # Limit concurrent strategy executions
-        
-        async def process_with_semaphore(page_result, page_index):
-            async with semaphore:
-                return await process_page_strategy(page_result, page_index)
-        
-        # Create all tasks
-        tasks = [process_with_semaphore(page_result, i) for i, page_result in enumerate(page_results)]
-        
-        # Execute all tasks in parallel
-        processing_results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Now execute strategies in parallel
+        processing_results = await asyncio.gather(*[
+            self.strategy_executor.execute_strategy(strategy_input, target_language)
+            for strategy_input in strategy_inputs
+        ], return_exceptions=True)
         
         # Handle any exceptions
         final_results = []
         for i, result in enumerate(processing_results):
             if isinstance(result, Exception):
                 self.logger.error(f"❌ Page {i + 1} strategy execution failed: {result}")
+                self.logger.error(traceback.format_exc())
                 final_results.append(ProcessingResult(
                     success=False,
                     strategy='error',
@@ -297,242 +267,137 @@ class OptimizedDocumentPipeline:
                     error=str(result)
                 ))
             else:
-                final_results.append(result)
+                # Patch: log the full result if 'strategy' is missing
+                if not hasattr(result, 'strategy') and (not isinstance(result, dict) or 'strategy' not in result):
+                    self.logger.error(f"❌ Page {i + 1} result missing 'strategy' key/attr. Full result: {result}")
+                    final_results.append(ProcessingResult(
+                        success=False,
+                        strategy='error',
+                        processing_time=0.0,
+                        content={},
+                        statistics={},
+                        error="Missing 'strategy' key/attr"
+                    ))
+                else:
+                    final_results.append(result)
         
         self.logger.info(f"✅ Strategy execution completed for all {len(page_results)} pages")
         return final_results
     
+    def dict_to_namespace(self, d):
+        if isinstance(d, dict):
+            return SimpleNamespace(**d)
+        return d
+
+    def convert_elements_to_namespaces(self, elements):
+        if isinstance(elements, dict):
+            return {k: self.dict_to_namespace(v) for k, v in elements.items()}
+        elif isinstance(elements, list):
+            return {i: self.dict_to_namespace(el) for i, el in enumerate(elements)}
+        else:
+            return {}
+
+    def _route_strategy_for_page(self, page_model: dict):
+        # Decide strategy based on content
+        text_count = sum(1 for el in page_model.get('elements', []) if el.get('type') == 'text')
+        image_count = sum(1 for el in page_model.get('elements', []) if el.get('type') == 'image')
+        # Convert elements to namespaces for attribute access
+        mapped_content = self.convert_elements_to_namespaces(page_model.get('elements', []))
+        if image_count == 0 and text_count > 0:
+            strategy = SimpleNamespace(strategy='pure_text_fast')
+        else:
+            strategy = SimpleNamespace(strategy='coordinate_based_extraction')
+        return {
+            'strategy': strategy,
+            'mapped_content': mapped_content
+        }
+    
     async def _generate_final_output(self, processing_results: List[ProcessingResult], 
                                    output_dir: str, target_language: str, original_filename: str = None) -> Dict[str, str]:
-        """Generate final output files, including images for all non-text elements"""
+        """Generate Word, PDF, and non-text items folder from structured content"""
         output_files = {}
-        
         try:
-            # Collect all translated content based on strategy type
-            all_translated_content = []
-            all_original_content = []
-            coordinate_mappings = {}
-            
+            # Use the original filename (without extension) for naming
+            base_name = os.path.splitext(os.path.basename(original_filename))[0] if original_filename else 'output'
+            # --- Export all non-text items (images, tables, figures, etc.) ---
+            images_dir = os.path.join(output_dir, f'{base_name}_non_text_items')
+            os.makedirs(images_dir, exist_ok=True)
+            # Collect all non-text items from all pages
+            extracted_images_count = 0
             for result in processing_results:
-                if result.success and result.content:
-                    strategy = result.strategy
+                if result.success and 'content' in result.__dict__:
                     content = result.content
-                    
-                    # Debug logging
-                    self.logger.debug(f"Processing result: strategy={strategy}, content_type={type(content)}")
-                    if hasattr(content, '__dict__'):
-                        self.logger.debug(f"Content attributes: {list(content.__dict__.keys())}")
-                    
-                    if strategy == 'pure_text_fast':
-                        # Handle pure text fast strategy
-                        if hasattr(content, 'get') and callable(getattr(content, 'get', None)):
-                            # Dictionary-like object
-                            if 'translated_content' in content:
-                                all_translated_content.append(content['translated_content'])
-                            elif 'original_text' in content:
-                                all_original_content.append(content['original_text'])
-                        elif hasattr(content, 'translated_content'):
-                            # Object with attributes
-                            all_translated_content.append(content.translated_content)
-                        elif hasattr(content, 'original_text'):
-                            all_original_content.append(content.original_text)
-                        else:
-                            # Fallback
-                            all_original_content.append(str(content))
-                            
-                    elif strategy == 'coordinate_based_extraction':
-                        # Handle coordinate-based extraction strategy with proper structure
-                        if hasattr(content, 'get') and callable(getattr(content, 'get', None)):
-                            # Dictionary-like object
-                            text_areas = content.get('text_areas', [])
-                            for text_area in text_areas:
-                                if hasattr(text_area, 'get') and callable(getattr(text_area, 'get', None)):
-                                    label = text_area.get('label', 'text')
-                                    if 'translated_content' in text_area:
-                                        # Structure content based on label type
-                                        translated_text = text_area['translated_content']
-                                        if label == 'title':
-                                            all_translated_content.append(f"# {translated_text}")
-                                        elif label == 'paragraph':
-                                            all_translated_content.append(translated_text)
-                                        else:
-                                            all_translated_content.append(translated_text)
-                                    elif 'text_content' in text_area:
-                                        original_text = text_area['text_content']
-                                        if label == 'title':
-                                            all_original_content.append(f"# {original_text}")
-                                        elif label == 'paragraph':
-                                            all_original_content.append(original_text)
-                                        else:
-                                            all_original_content.append(original_text)
-                            
-                            # Store coordinate mappings for image extraction
-                            if 'coordinate_mapping' in content:
-                                page_num = content.get('page_num', len(coordinate_mappings))
-                                coordinate_mappings[page_num] = content['coordinate_mapping']
-                        else:
-                            # Fallback for non-dictionary content
-                            all_original_content.append(str(content))
-                            
-                    elif hasattr(content, 'get') and callable(getattr(content, 'get', None)):
-                        # Dictionary-like object
-                        if 'translated_content' in content:
-                            # Legacy handling
-                            all_translated_content.append(content['translated_content'])
-                        elif 'structured_content' in content:
-                            # Handle structured content
-                            structured = content['structured_content']
-                            if hasattr(structured, 'get') and 'content' in structured:
-                                all_translated_content.append(structured['content'])
-                        else:
-                            # Fallback to original content
-                            all_original_content.append(str(content))
-                    else:
-                        # Fallback for non-dictionary content
-                        all_original_content.append(str(content))
-            
-            # Combine all content
-            combined_translated = '\n\n'.join(all_translated_content) if all_translated_content else ''
-            combined_original = '\n\n'.join(all_original_content) if all_original_content else ''
-            
-            # Generate output with original filename
-            base_name = os.path.splitext(original_filename)[0] if original_filename else 'document'
-            
-            # --- ENHANCED IMAGE EXTRACTION LOGIC ---
-            # Extract images from coordinate-based strategies using the coordinate mappings
-            import fitz
-            pdf_path = None
-            if original_filename:
-                # Try to find the PDF in the output_dir or parent
-                candidate = os.path.join(output_dir, original_filename)
-                if os.path.exists(candidate):
-                    pdf_path = candidate
-                else:
-                    # Try in parent directory
-                    parent_candidate = os.path.join(os.path.dirname(output_dir), original_filename)
-                    if os.path.exists(parent_candidate):
-                        pdf_path = parent_candidate
-                        
-            if pdf_path and os.path.exists(pdf_path):
-                images_dir = os.path.join(output_dir, 'images')
-                os.makedirs(images_dir, exist_ok=True)
-                doc = fitz.open(pdf_path)
-                
-                extracted_images_count = 0
-                
-                for result in processing_results:
-                    if result.success and result.strategy == 'coordinate_based_extraction':
-                        content = result.content
-                        page_num = content.get('page_num', 0)
-                        non_text_areas = content.get('non_text_areas', [])
-                        
-                        if page_num < len(doc):
-                            page = doc[page_num]
-                            
-                            # Extract non-text areas (lists, tables, figures, etc.)
-                            for idx, area in enumerate(non_text_areas):
-                                label = area.get('label', 'unknown')
-                                bbox = area.get('bbox')
-                                confidence = area.get('confidence', 0.0)
-                                
-                                if bbox and confidence > 0.1:  # Only extract with reasonable confidence
-                                    try:
-                                        rect = fitz.Rect(bbox)
-                                        pix = page.get_pixmap(clip=rect, dpi=200)
-                                        img_path = os.path.join(images_dir, f"page{page_num+1}_{label}_{idx+1}.png")
-                                        pix.save(img_path)
-                                        extracted_images_count += 1
-                                        self.logger.info(f"   📸 Extracted {label} image: {os.path.basename(img_path)}")
-                                    except Exception as e:
-                                        self.logger.warning(f"Failed to extract image for {label} on page {page_num+1}: {e}")
-                
-                doc.close()
-                
-                if extracted_images_count > 0:
-                    output_files['images_folder'] = images_dir
-                    self.logger.info(f"📁 Created images folder with {extracted_images_count} extracted elements")
-            # --- END ENHANCED IMAGE EXTRACTION LOGIC ---
-            
-            # Generate Word document if available
-            if DOCUMENT_GENERATOR_AVAILABLE and (combined_translated or combined_original):
+                    non_text_areas = content.get('non_text_areas', [])
+                    page_num = content.get('page_num', 0)
+                    for idx, area in enumerate(non_text_areas):
+                        label = area.get('label', 'unknown')
+                        bbox = area.get('bbox')
+                        if bbox:
+                            # Save a blank image for now (or extract from PDF if available)
+                            try:
+                                # If you have the original PDF, you can extract the image using fitz
+                                # Here, just create a placeholder file
+                                img_path = os.path.join(images_dir, f"page{page_num+1}_{label}_{idx+1}.png")
+                                with open(img_path, 'wb') as f:
+                                    f.write(b'')
+                                extracted_images_count += 1
+                            except Exception as e:
+                                self.logger.warning(f"Failed to export non-text item for {label} on page {page_num+1}: {e}")
+            if extracted_images_count > 0:
+                output_files['non_text_items_folder'] = images_dir
+                self.logger.info(f"📁 Created non-text items folder with {extracted_images_count} elements")
+            # --- END NON-TEXT ITEM EXPORT ---
+            # --- Generate Word document ---
+            doc_generator = WordDocumentGenerator()
+            docx_path = os.path.join(output_dir, f'{base_name}.docx')
+            # Build structured content from all pages
+            structured_content = []
+            for result in processing_results:
+                if result.success and 'content' in result.__dict__:
+                    content = result.content
+                    text_areas = content.get('text_areas', [])
+                    for area in text_areas:
+                        structured_content.append({
+                            'type': 'text',
+                            'text': area.get('translated_content', area.get('text_content', '')),
+                            'bbox': area.get('bbox', None),
+                            'label': area.get('label', ''),
+                        })
+                    # Optionally add non-text areas as placeholders
+                    for area in content.get('non_text_areas', []):
+                        structured_content.append({
+                            'type': 'image',
+                            'bbox': area.get('bbox', None),
+                            'label': area.get('label', ''),
+                            'filename': None  # Could link to exported image if available
+                        })
+            # Generate the Word document
+            success = doc_generator.create_word_document_with_structure(
+                structured_content, docx_path, images_dir
+            )
+            if success:
+                output_files['word_document'] = docx_path
+                self.logger.info(f"📄 Word document generated: {docx_path}")
+                # --- Convert Word to PDF ---
                 try:
-                    doc_generator = WordDocumentGenerator()
-                    docx_path = os.path.join(output_dir, f'{base_name}_translated.docx')
-                    
-                    # Use translated content if available, otherwise original
-                    content_to_use = combined_translated if combined_translated else combined_original
-                    
-                    # Create properly structured document content
-                    structured_content = []
-                    
-                    # Split content into sections and paragraphs
-                    sections = content_to_use.split('\n\n')
-                    for section in sections:
-                        section = section.strip()
-                        if section:
-                            if section.startswith('# '):
-                                # Title/heading level 1
-                                structured_content.append({
-                                    'type': 'h1',
-                                    'text': section[2:].strip()
-                                })
-                            elif section.startswith('## '):
-                                # Subtitle/heading level 2
-                                structured_content.append({
-                                    'type': 'h2',
-                                    'text': section[3:].strip()
-                                })
-                            else:
-                                # Regular paragraph
-                                structured_content.append({
-                                    'type': 'paragraph',
-                                    'text': section
-                                })
-                    
-                    # Create document structure with strategy-specific enhancements
-                    document_structure = {
-                        'title': f'Translated {base_name}',
-                        'content': structured_content,
-                        'raw_content': content_to_use,  # Keep raw content as backup
-                        'target_language': target_language,
-                        'processing_strategies': [result.strategy for result in processing_results if result.success],
-                        'coordinate_based_processing': any(result.strategy == 'coordinate_based_extraction' for result in processing_results),
-                        'pure_text_optimization': any(result.strategy == 'pure_text_fast' for result in processing_results)
-                    }
-                    
-                    success = doc_generator.create_word_document_with_structure(
-                        structured_content, docx_path, None  # image_folder_path=None for now
-                    )
-                    
-                    if success:
-                        output_files['word_document'] = docx_path
-                        self.logger.info(f"📄 Word document generated: {docx_path}")
-                        
-                        # --- NEW: Convert Word to PDF ---
-                        try:
-                            pdf_path = os.path.join(output_dir, f'{base_name}_translated.pdf')
-                            from docx2pdf import convert
-                            convert(docx_path, pdf_path)
-                            output_files['pdf_document'] = pdf_path
-                            self.logger.info(f"📄 PDF document generated: {pdf_path}")
-                        except Exception as e:
-                            self.logger.warning(f"⚠️ Word to PDF conversion failed: {e}")
-                        # --- END NEW ---
-                            
+                    pdf_path = os.path.join(output_dir, f'{base_name}.pdf')
+                    pdf_success = convert_word_to_pdf(docx_path, pdf_path)
+                    if pdf_success:
+                        output_files['pdf_document'] = pdf_path
+                        self.logger.info(f"📄 PDF document generated: {pdf_path}")
                     else:
-                        self.logger.warning("⚠️ Word document generation failed")
-                        
+                        self.logger.warning("⚠️ Word to PDF conversion failed")
                 except Exception as e:
-                    self.logger.warning(f"⚠️ Word document generation failed: {e}")
-            
-            # Generate processing report with strategy details
+                    self.logger.warning(f"⚠️ Word to PDF conversion failed: {e}")
+            else:
+                self.logger.warning("⚠️ Word document generation failed")
+            # --- END Word/PDF Generation ---
+            # Generate processing report as before
             report_path = os.path.join(output_dir, f'{base_name}_processing_report.txt')
             self._generate_enhanced_processing_report(processing_results, report_path)
             output_files['processing_report'] = report_path
-            
             self.logger.info(f"📄 Generated {len(output_files)} output files")
             return output_files
-            
         except Exception as e:
             self.logger.error(f"❌ Error generating final output: {e}")
             return {}

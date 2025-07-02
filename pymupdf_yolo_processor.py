@@ -25,6 +25,7 @@ from enum import Enum
 import fitz  # PyMuPDF
 from PIL import Image
 import numpy as np
+from pydantic import BaseModel, Field, ValidationError
 
 # Import existing services
 try:
@@ -137,28 +138,34 @@ class PyMuPDFContentExtractor:
             return []
     
     def extract_images(self, page: fitz.Page) -> List[ImageBlock]:
-        """Extract native images with coordinates"""
+        """Extract native images with coordinates (patched for full image list)"""
         image_blocks = []
-        
         try:
-            images = page.get_images()
-            
+            images = page.get_images(full=True)
             for img_index, img in enumerate(images):
-                bbox = page.get_image_bbox(img)
-                
-                image_block = ImageBlock(
-                    image_index=img_index,
-                    bbox=tuple(bbox),
-                    block_type='image'
-                )
-                
-                image_blocks.append(image_block)
-            
-            self.logger.info(f"🖼️ Extracted {len(image_blocks)} image blocks from page")
+                try:
+                    xref = img[0]
+                    bbox = None
+                    # Try to get image bbox using get_image_rects
+                    img_rects = page.get_image_rects(xref)
+                    if img_rects:
+                        bbox = (img_rects[0].x0, img_rects[0].y0, img_rects[0].x1, img_rects[0].y1)
+                    else:
+                        # Fallback: use (0,0,0,0) if bbox not found
+                        bbox = (0, 0, 0, 0)
+                    image_block = ImageBlock(
+                        image_index=img_index,
+                        bbox=tuple(bbox),
+                        block_type='image'
+                    )
+                    image_blocks.append(image_block)
+                except Exception as e:
+                    self.logger.warning(f"Could not extract bbox for image {img_index}: {e}")
+                    continue
+            self.logger.info(f"🖼️ Extracted {len(image_blocks)} image blocks from page (patched)")
             return image_blocks
-            
         except Exception as e:
-            self.logger.error(f"❌ Error extracting images: {e}")
+            self.logger.error(f"❌ Error extracting images (patched): {e}")
             return []
     
     def _extract_text_from_block(self, block: Dict) -> str:
@@ -501,18 +508,59 @@ class PyMuPDFYOLOProcessor:
     async def process_page(self, pdf_path: str, page_num: int) -> Dict[str, Any]:
         """Main processing method with intelligent routing - implements user's strategic vision"""
         start_time = time.time()
-        
         try:
-            # 1. Open PDF and get page
             doc = fitz.open(pdf_path)
             page = doc[page_num]
-            
+            width, height = page.rect.width, page.rect.height
+
             # 2. Quick content scan to determine processing path
             if self._quick_content_scan(page):
-                return await self._process_pure_text_fast(page, page_num, start_time)
+                result = await self._process_pure_text_fast(page, page_num, start_time)
             else:
-                return await self._process_mixed_content_with_coordinates(page, page_num, start_time)
-            
+                result = await self._process_mixed_content_with_coordinates(page, page_num, start_time)
+
+            # Build elements list from text_blocks and image_blocks
+            elements = []
+            # Text blocks
+            for block in result.get('text_blocks', []):
+                elements.append(ElementModel(
+                    type='text',
+                    bbox=block.bbox,
+                    content=block.text,
+                    formatting={
+                        'font_size': getattr(block, 'font_size', None),
+                        'font_family': getattr(block, 'font_family', None),
+                        'confidence': getattr(block, 'confidence', None),
+                        'block_type': getattr(block, 'block_type', None)
+                    }
+                ))
+            # Image blocks
+            for block in result.get('image_blocks', []):
+                elements.append(ElementModel(
+                    type='image',
+                    bbox=block.bbox,
+                    content=None,  # Fix: content must be str, bytes, or None
+                    formatting={
+                        'block_type': getattr(block, 'block_type', None),
+                        'image_index': getattr(block, 'image_index', None)
+                    }
+                ))
+            # Optionally, add more element types here (tables, etc.)
+
+            # Build the page model
+            try:
+                page_model = PageModel(
+                    page_number=page_num,
+                    dimensions={'width': width, 'height': height},
+                    elements=elements
+                )
+                return page_model.dict()
+            except ValidationError as ve:
+                self.logger.error(f"Pydantic validation error for page {page_num}: {ve}")
+                return {
+                    'error': f'Validation error for page {page_num}: {ve}',
+                    'page_num': page_num
+                }
         except Exception as e:
             self.logger.error(f"❌ Error processing page {page_num + 1}: {e}", exc_info=True)
             return {
@@ -627,3 +675,14 @@ class PyMuPDFYOLOProcessor:
                 'figure', 'caption', 'quote', 'footnote', 'equation'
             ]
         } 
+
+class ElementModel(BaseModel):
+    type: str  # e.g., 'text', 'image', 'table', etc.
+    bbox: Tuple[float, float, float, float]
+    content: Union[str, bytes, None]  # text for text blocks, image data/path for images, etc.
+    formatting: Dict[str, Union[str, float, int, None]] = Field(default_factory=dict)
+
+class PageModel(BaseModel):
+    page_number: int
+    dimensions: Dict[str, float]  # {'width': float, 'height': float}
+    elements: List[ElementModel] 

@@ -14,6 +14,9 @@ import time
 import asyncio
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass
+from pydantic import ValidationError
+from pymupdf_yolo_processor import PageModel, LayoutArea
+from types import SimpleNamespace
 
 # Import existing services
 # try:
@@ -60,12 +63,12 @@ class DirectTextProcessor:
             # Extract all text areas
             text_areas = []
             for area_id, area_data in mapped_content.items():
-                if area_data.layout_info.label in ['text', 'paragraph', 'title']:
+                if area_data.label in ['text', 'paragraph', 'title']:
                     text_areas.append({
                         'content': area_data.combined_text,
-                        'bbox': area_data.layout_info.bbox,
-                        'label': area_data.layout_info.label,
-                        'confidence': area_data.layout_info.confidence
+                        'bbox': area_data.bbox,
+                        'label': area_data.label,
+                        'confidence': area_data.confidence
                     })
             
             # Sort by vertical position (reading order)
@@ -104,95 +107,67 @@ class DirectTextProcessor:
     async def translate_direct_text(self, document_structure: Dict[str, Any], 
                                   target_language: str = 'en') -> Dict[str, Any]:
         """Translate text directly without graph processing, using intelligent batching"""
-        if not self.gemini_service:
-            self.logger.warning("⚠️ Gemini service not available for direct text translation.")
-            return {
-                'error': 'Gemini service not provided',
-                'translated_content': document_structure['total_text']
-            }
-        
+        # Validate input schema
         try:
-            # Get all text content
-            sections = document_structure.get('sections', [])
-            if not sections:
-                # If no sections, treat the total text as one section
-                total_text = document_structure.get('total_text', '')
-                if total_text:
-                    sections = [{'content': total_text}]
-            
-            if not sections:
-                return {
-                    'error': 'No content to translate',
-                    'translated_content': ''
-                }
-            
-            # Create batches of sections (max 500 characters per batch for faster processing)
-            batches = self._create_section_batches(sections, max_chars_per_batch=500)
-            
-            self.logger.info(f"📦 Created {len(batches)} batches from {len(sections)} sections")
-            
-            # Translate batches in parallel instead of sequentially
-            async def translate_batch(batch, batch_index):
-                batch_text = '\n\n'.join([section['content'] for section in batch])
-                self.logger.info(f"   Translating batch {batch_index + 1}/{len(batches)} ({len(batch_text)} chars)")
-                
-                try:
-                    # Add timeout protection for each batch
-                    translated_batch = await asyncio.wait_for(
-                        self.gemini_service.translate_text(batch_text, target_language, timeout=30.0),
-                        timeout=35.0  # 5 seconds extra for processing
-                    )
-                    return translated_batch
-                except asyncio.TimeoutError:
-                    self.logger.error(f"❌ Batch {batch_index + 1} translation timed out after 35s, using original")
-                    return batch_text
-                except Exception as e:
-                    self.logger.error(f"❌ Batch {batch_index + 1} translation failed: {e}")
-                    # Use original text for failed batch
-                    return batch_text
-            
-            # Execute all batch translations in parallel
-            batch_tasks = [translate_batch(batch, i) for i, batch in enumerate(batches)]
-            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-            
-            # Combine all translated batches
-            translated_batches = []
-            for i, result in enumerate(batch_results):
-                if isinstance(result, Exception):
-                    self.logger.error(f"❌ Batch {i + 1} failed with exception: {result}")
-                    # Use original text for failed batch
-                    batch = batches[i]
-                    batch_text = '\n\n'.join([section['content'] for section in batch])
-                    translated_batches.append(batch_text)
-                else:
-                    translated_batches.append(result)
-            
-            # Combine all translated batches
-            translated_text = '\n\n'.join(translated_batches)
-            
-            # Create translated document structure
-            translated_structure = {
-                'type': 'translated_text_document',
-                'original_structure': document_structure,
-                'translated_content': translated_text,
-                'target_language': target_language,
-                'translation_time': 0.0,  # Could add timing if needed
-                'total_text': translated_text  # Add this for compatibility
-            }
-            
-            self.logger.info(f"🌐 Direct text translation completed (batched)")
-            self.logger.info(f"   Original length: {len(document_structure.get('total_text', ''))}")
-            self.logger.info(f"   Translated length: {len(translated_text)}")
-            self.logger.info(f"   API calls reduced from {len(sections)} to {len(batches)}")
-            
-            return translated_structure
-            
-        except Exception as e:
-            self.logger.error(f"❌ Direct text translation failed: {e}")
+            page_model = PageModel(**document_structure)
+        except ValidationError as ve:
+            self.logger.error(f"Pydantic validation error in translate_direct_text: {ve}")
             return {
-                'error': str(e),
-                'translated_content': document_structure.get('total_text', '')
+                'error': f'Validation error: {ve}',
+                'translated_content': ''
             }
+        # Extract text elements
+        text_elements = [el for el in page_model.elements if el.type == 'text']
+        if not text_elements:
+            return {
+                'error': 'No text elements to translate',
+                'translated_content': ''
+            }
+        # Create batches of text (max 500 characters per batch)
+        batches = self._create_section_batches(
+            [{'content': el.content} for el in text_elements], max_chars_per_batch=500)
+        self.logger.info(f"📦 Created {len(batches)} batches from {len(text_elements)} text elements")
+        # Translate batches in parallel
+        async def translate_batch(batch, batch_index):
+            batch_text = '\n\n'.join([section['content'] for section in batch])
+            self.logger.info(f"   Translating batch {batch_index + 1}/{len(batches)} ({len(batch_text)} chars)")
+            try:
+                translated_batch = await asyncio.wait_for(
+                    self.gemini_service.translate_text(batch_text, target_language, timeout=30.0),
+                    timeout=35.0
+                )
+                return translated_batch
+            except asyncio.TimeoutError:
+                self.logger.error(f"❌ Batch {batch_index + 1} translation timed out after 35s, using original")
+                return batch_text
+            except Exception as e:
+                self.logger.error(f"❌ Batch {batch_index + 1} translation failed: {e}")
+                return batch_text
+        batch_tasks = [translate_batch(batch, i) for i, batch in enumerate(batches)]
+        batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+        translated_batches = []
+        for i, result in enumerate(batch_results):
+            if isinstance(result, Exception):
+                self.logger.error(f"❌ Batch {i + 1} failed with exception: {result}")
+                batch = batches[i]
+                batch_text = '\n\n'.join([section['content'] for section in batch])
+                translated_batches.append(batch_text)
+            else:
+                translated_batches.append(result)
+        translated_text = '\n\n'.join(translated_batches)
+        translated_structure = {
+            'type': 'translated_text_document',
+            'original_structure': document_structure,
+            'translated_content': translated_text,
+            'target_language': target_language,
+            'translation_time': 0.0,
+            'total_text': translated_text
+        }
+        self.logger.info(f"🌐 Direct text translation completed (batched)")
+        self.logger.info(f"   Original text elements: {len(text_elements)}")
+        self.logger.info(f"   Translated length: {len(translated_text)}")
+        self.logger.info(f"   API calls reduced to {len(batches)}")
+        return translated_structure
     
     def _create_section_batches(self, sections: List[Dict[str, Any]], max_chars_per_batch: int = 2000) -> List[List[Dict[str, Any]]]:
         """Create batches of sections based on character count"""
@@ -237,23 +212,20 @@ class MinimalGraphBuilder:
         graph = DocumentGraph()
         
         for area_id, area_data in mapped_content.items():
-            layout_info = area_data['layout_info']
-            
-            # Create node based on area type
-            if layout_info['label'] in ['text', 'paragraph', 'title']:
+            if area_data['label'] in ['text', 'paragraph', 'title']:
                 node_id = graph.add_node(
-                    bbox=layout_info['bbox'],
-                    class_label=layout_info['label'],
-                    confidence=layout_info['confidence'],
+                    bbox=area_data['bbox'],
+                    class_label=area_data['label'],
+                    confidence=area_data['confidence'],
                     text=area_data['combined_text'],
                     semantic_role=self._infer_semantic_role(area_data['combined_text']),
                     extra={'area_id': area_id}
                 )
-            elif layout_info['label'] in ['figure', 'table', 'image']:
+            elif area_data['label'] in ['figure', 'table', 'image']:
                 node_id = graph.add_node(
-                    bbox=layout_info['bbox'],
-                    class_label=layout_info['label'],
-                    confidence=layout_info['confidence'],
+                    bbox=area_data['bbox'],
+                    class_label=area_data['label'],
+                    confidence=area_data['confidence'],
                     text=None,  # Visual content
                     semantic_role='visual_content',
                     extra={'area_id': area_id, 'image_blocks': area_data['image_blocks']}
@@ -299,13 +271,13 @@ class ComprehensiveGraphBuilder:
         # Add YOLO detections as nodes
         yolo_detections = []
         for area_id, area_data in mapped_content.items():
-            layout_info = area_data['layout_info']
-            yolo_detections.append({
-                'label': layout_info['label'],
-                'confidence': layout_info['confidence'],
-                'bounding_box': list(layout_info['bbox']),
-                'class_id': layout_info.get('class_id', 0)
-            })
+            if area_data['label'] in ['text', 'paragraph', 'title']:
+                yolo_detections.append({
+                    'label': area_data['label'],
+                    'confidence': area_data['confidence'],
+                    'bounding_box': list(area_data['bbox']),
+                    'class_id': area_data.get('class_id', 0)
+                })
         
         # Add YOLO detections to graph
         yolo_node_ids = add_yolo_detections_to_graph(graph, yolo_detections, page_num=1)
@@ -392,42 +364,62 @@ class ProcessingStrategyExecutor:
     async def execute_strategy(self, processing_result: Dict[str, Any], 
                              target_language: str = 'en') -> ProcessingResult:
         """Execute the appropriate processing strategy - implements user's strategic vision"""
-        strategy = processing_result['strategy']
-        mapped_content = processing_result['mapped_content']
-        
+        self.logger.info(f"[DEBUG] Entering execute_strategy for page with keys: {list(processing_result.keys())}")
+        strategy = processing_result.get('strategy', None)
+        mapped_content = processing_result.get('mapped_content', None)
+        if strategy is None or mapped_content is None:
+            self.logger.error(f"[ERROR] Missing 'strategy' or 'mapped_content' in processing_result: {processing_result}")
+            raise ValueError("Missing 'strategy' or 'mapped_content' in processing_result")
         start_time = time.time()
-        
         try:
             if strategy.strategy == 'pure_text_fast':
-                # Fast path for pure text (user's strategic vision)
-                return await self._process_pure_text_fast(processing_result, target_language)
+                result = await self._process_pure_text_fast(processing_result, target_language)
             elif strategy.strategy == 'coordinate_based_extraction':
-                # Coordinate-based extraction for mixed content (user's strategic vision)
-                return await self._process_coordinate_based_extraction(processing_result, target_language)
+                result = await self._process_coordinate_based_extraction(processing_result, target_language)
             elif strategy.strategy == 'direct_text':
-                # Legacy fallback
-                return await self._process_direct_text(mapped_content, target_language)
+                result = await self._process_direct_text(mapped_content, target_language)
             elif strategy.strategy == 'minimal_graph':
-                return await self._process_minimal_graph(mapped_content, target_language)
+                result = await self._process_minimal_graph(mapped_content, target_language)
             else:  # comprehensive_graph
-                return await self._process_comprehensive_graph(processing_result, target_language)
-                
+                result = await self._process_comprehensive_graph(processing_result, target_language)
+            if result is None:
+                self.logger.error(f"[ERROR] Strategy function returned None for input: {processing_result}")
+                raise RuntimeError("Strategy function returned None")
+            self.logger.info(f"[DEBUG] Exiting execute_strategy with result: {result}")
+            return result
         except Exception as e:
             processing_time = time.time() - start_time
-            self.logger.error(f"❌ Strategy execution failed: {e}")
-            
+            self.logger.error(f"❌ Strategy execution failed: {e}", exc_info=True)
             return ProcessingResult(
                 success=False,
-                strategy=strategy.strategy,
+                strategy=strategy.strategy if strategy else 'unknown',
                 processing_time=processing_time,
                 content={},
                 statistics={},
                 error=str(e)
             )
     
+    def _ensure_dict_of_areas(self, mapped_content):
+        # If it's already a dict of areas, return as is
+        if isinstance(mapped_content, dict):
+            return mapped_content
+        # If it's a list of dicts (elements), convert to dict by index
+        if isinstance(mapped_content, list) and all(isinstance(el, dict) for el in mapped_content):
+            return {i: el for i, el in enumerate(mapped_content)}
+        # If it's something else, return empty dict
+        return {}
+
     async def _process_pure_text_fast(self, processing_result: Dict[str, Any], 
                                     target_language: str) -> ProcessingResult:
         """Process pure text content quickly, then translate."""
+        self.logger.info(f"[DEBUG] _process_pure_text_fast received type: {type(processing_result)}")
+        if not processing_result:
+            self.logger.error("[ERROR] processing_result is empty or None in _process_pure_text_fast")
+            return {'translated_text': '', 'blocks': []}
+        processing_result = self._ensure_dict_of_areas(processing_result)
+        if not processing_result:
+            self.logger.error(f"[ERROR] processing_result could not be converted to dict in _process_pure_text_fast: {processing_result}")
+            return {'translated_text': '', 'blocks': []}
         start_time = time.time()
         
         try:
@@ -481,56 +473,43 @@ class ProcessingStrategyExecutor:
     async def _process_coordinate_based_extraction(self, processing_result: Dict[str, Any], 
                                                  target_language: str) -> ProcessingResult:
         """Process mixed content using coordinate-based extraction with intelligent batching"""
+        self.logger.info(f"[DEBUG] _process_coordinate_based_extraction received type: {type(processing_result)}")
+        if not processing_result:
+            self.logger.error("[ERROR] processing_result is empty or None in _process_coordinate_based_extraction")
+            return {'translated_text': '', 'blocks': []}
+        processing_result = self._ensure_dict_of_areas(processing_result)
+        if not processing_result:
+            self.logger.error(f"[ERROR] processing_result could not be converted to dict in _process_coordinate_based_extraction: {processing_result}")
+            return {'translated_text': '', 'blocks': []}
         start_time = time.time()
-        
         try:
             mapped_content = processing_result.get('mapped_content', {})
             text_areas = []
             non_text_areas = []
-
             for area_id, area_data in mapped_content.items():
-                # Use attribute access for dataclass, not .get()
                 if hasattr(area_data, 'combined_text') and area_data.combined_text:
                     text_areas.append(area_data)
                 else:
                     non_text_areas.append(area_data)
-
-            # Sort text areas by reading order (top to bottom, left to right)
-            text_areas.sort(key=lambda x: (x.layout_info.bbox[1], x.layout_info.bbox[0]))
-            
-            # Create intelligent batches instead of individual API calls
+            text_areas.sort(key=lambda x: (x.bbox[1], x.bbox[0]))
             translated_texts = []
             if self.gemini_service:
-                # Create batches of text areas (max 500 characters per batch for faster processing)
                 batches = self._create_text_batches(text_areas, max_chars_per_batch=500)
-                
                 self.logger.info(f"📦 Created {len(batches)} batches from {len(text_areas)} text areas")
-                
-                # Translate batches in parallel instead of sequentially
                 async def translate_batch(batch, batch_index):
                     batch_text = '\n\n'.join([area.combined_text for area in batch])
                     self.logger.info(f"   Translating batch {batch_index + 1}/{len(batches)} ({len(batch_text)} chars)")
-                    
                     try:
-                        # Add timeout protection for each batch
                         translated_batch = await asyncio.wait_for(
                             self.gemini_service.translate_text(batch_text, target_language, timeout=30.0),
-                            timeout=35.0  # 5 seconds extra for processing
+                            timeout=35.0
                         )
-                        
-                        # Split translated batch back into individual texts using a more reliable method
-                        # First try the original separator
                         translated_parts = translated_batch.split('\n\n')
-                        
-                        # If splitting failed, try alternative separators
                         if len(translated_parts) != len(batch):
-                            # Try single newline
                             translated_parts = translated_batch.split('\n')
                             if len(translated_parts) != len(batch):
-                                # Try period + space as separator
                                 translated_parts = translated_batch.split('. ')
                                 if len(translated_parts) != len(batch):
-                                    # Last resort: split by character count proportionally
                                     self.logger.warning(f"⚠️ Batch {batch_index + 1}: Using proportional splitting")
                                     total_chars = sum(len(area.combined_text) for area in batch)
                                     translated_parts = []
@@ -540,44 +519,30 @@ class ProcessingStrategyExecutor:
                                         area_chars = int(len(translated_batch) * area_ratio)
                                         translated_parts.append(translated_batch[current_pos:current_pos + area_chars])
                                         current_pos += area_chars
-                        
-                        # Ensure we have the right number of parts
                         if len(translated_parts) == len(batch):
                             return translated_parts
                         else:
-                            # Fallback: use original text if splitting failed
                             self.logger.warning(f"⚠️ Batch {batch_index + 1}: Translation splitting mismatch, using original")
                             return [area.combined_text for area in batch]
-                            
                     except asyncio.TimeoutError:
                         self.logger.error(f"❌ Batch {batch_index + 1} translation timed out after 35s, using original")
                         return [area.combined_text for area in batch]
                     except Exception as e:
                         self.logger.error(f"❌ Batch {batch_index + 1} translation failed: {e}")
-                        # Use original text for failed batch
                         return [area.combined_text for area in batch]
-                
-                # Execute all batch translations in parallel
                 batch_tasks = [translate_batch(batch, i) for i, batch in enumerate(batches)]
                 batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-                
-                # Combine all results
                 for i, result in enumerate(batch_results):
                     if isinstance(result, Exception):
                         self.logger.error(f"❌ Batch {i + 1} failed with exception: {result}")
-                        # Use original text for failed batch
                         batch = batches[i]
                         translated_texts.extend([area.combined_text for area in batch])
                     else:
                         translated_texts.extend(result)
-                
                 self.logger.info(f"✅ Completed parallel batch translation: {len(translated_texts)} texts translated")
-                
             else:
                 self.logger.warning("⚠️ Gemini service not available for coordinate-based extraction.")
                 translated_texts = [area.combined_text for area in text_areas]
-
-            # Combine translated text with original layout info
             final_content = []
             for i, area in enumerate(text_areas):
                 final_content.append({
@@ -586,35 +551,28 @@ class ProcessingStrategyExecutor:
                     'translated_text': translated_texts[i] if i < len(translated_texts) else area.combined_text,
                     'layout_info': area.layout_info
                 })
-
             for area in non_text_areas:
-                 final_content.append({
+                final_content.append({
                     'type': 'visual_element',
                     'layout_info': area.layout_info,
-                    'image_blocks': area.image_blocks
+                    'image_blocks': getattr(area, 'image_blocks', [])
                 })
-            
-            # Sort final content by reading order
-            final_content.sort(key=lambda x: (x['layout_info'].bbox[1], x['layout_info'].bbox[0]))
-
+            final_content.sort(key=lambda x: (x['bbox'][1], x['bbox'][0]))
             processing_time = time.time() - start_time
-            
             self.performance_stats['coordinate_based_extraction']['total_time'] += processing_time
             self.performance_stats['coordinate_based_extraction']['count'] += 1
-            
             self.logger.info(f"🎯 Coordinate-based extraction completed in {processing_time:.3f}s")
             self.logger.info(f"   Total areas processed: {len(mapped_content)}")
             self.logger.info(f"   Text areas: {len(text_areas)}")
             self.logger.info(f"   Non-text areas: {len(non_text_areas)}")
             self.logger.info(f"   API calls reduced from {len(text_areas)} to {len(batches) if 'batches' in locals() else 0}")
-            
             return ProcessingResult(
                 success=True,
                 strategy='coordinate_based_extraction',
                 processing_time=processing_time,
                 content={
-                    'text_areas': [{'label': area.layout_info.label, 'text_content': area.combined_text, 'translated_content': translated_texts[i] if i < len(translated_texts) else area.combined_text} for i, area in enumerate(text_areas)],
-                    'non_text_areas': [{'label': area.layout_info.label, 'bbox': area.layout_info.bbox} for area in non_text_areas],
+                    'text_areas': [{'label': area.label, 'text_content': area.combined_text, 'translated_content': translated_texts[i] if i < len(translated_texts) else area.combined_text} for i, area in enumerate(text_areas)],
+                    'non_text_areas': [{'label': area.label, 'bbox': area.bbox} for area in non_text_areas],
                     'coordinate_mapping': mapped_content,
                     'page_num': processing_result.get('page_num', 0)
                 },
@@ -627,11 +585,9 @@ class ProcessingStrategyExecutor:
                     'processing_efficiency': 'batched'
                 }
             )
-
         except Exception as e:
             processing_time = time.time() - start_time
             self.logger.error(f"❌ Coordinate-based extraction failed: {e}", exc_info=True)
-            
             return ProcessingResult(
                 success=False,
                 strategy='coordinate_based_extraction',
@@ -819,4 +775,29 @@ class ProcessingStrategyExecutor:
                 'graph_overhead': 'high',
                 'best_for': 'Visual-heavy documents'
             }
-        } 
+        }
+
+def _dict_to_layout_area(d):
+    if isinstance(d, LayoutArea):
+        return d
+    return LayoutArea(
+        label=d['label'],
+        bbox=tuple(d['bbox']),
+        confidence=d.get('confidence', 1.0),
+        area_id=d.get('area_id', ''),
+        class_id=d.get('class_id', 0)
+    )
+
+def _dict_to_mapped_content(d):
+    # Accepts either a dict or a SimpleNamespace/MappedContent
+    if hasattr(d, 'layout_info'):
+        return d
+    layout_info = d.get('layout_info')
+    if isinstance(layout_info, dict):
+        layout_info = _dict_to_layout_area(layout_info)
+    return SimpleNamespace(
+        layout_info=layout_info,
+        combined_text=d.get('combined_text', ''),
+        text_blocks=d.get('text_blocks', []),
+        image_blocks=d.get('image_blocks', []),
+    ) 
