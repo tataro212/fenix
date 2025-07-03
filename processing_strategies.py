@@ -58,6 +58,28 @@ class DirectTextProcessor:
         self.gemini_service = gemini_service
         self.logger.info("🔧 Direct Text Processor initialized")
     
+    def _sanitize_text_for_translation(self, text: str) -> str:
+        """
+        Removes known instructional artifacts and system prompts from the text
+        before sending it to the translation API.
+        """
+        instructions_to_remove = [
+            "ΣΗΜΑΝΤΙΚΕΣ ΟΔΗΓΙΕΣ:",
+            "Κείμενο προς μετάφραση:",
+            "Text to translate:",
+            "1. Διατηρήστε τα όρια των λέξεων ακριβώς όπως στο πρωτότυπο",
+            "2. Διατηρήστε τα ιδίωμα και τους τεχνικούς όρους αμετάβλητους",
+            "3. Διατηρήστε την ακριβή διαστήματα και στίξη",
+        ]
+
+        sanitized_text = text
+        for instruction in instructions_to_remove:
+            sanitized_text = sanitized_text.replace(instruction, "")
+
+        # Rebuild the text from non-empty lines to collapse whitespace and remove artifact lines.
+        lines = [line.strip() for line in sanitized_text.split('\n') if line.strip()]
+        return "\n".join(lines)
+    
     def _convert_mapped_content_to_page_content(self, mapped_content: Dict[str, Any], page_number: int = 1) -> PageContent:
         """Convert mapped_content dictionary to structured PageContent object"""
         content_elements = []
@@ -183,41 +205,55 @@ class DirectTextProcessor:
     
     async def translate_direct_text(self, text_elements: list[dict], target_language: str) -> list[dict]:
         """
-        Translates a list of text elements using the new semantic batching.
-
-        This method joins paragraphs with a unique separator, sends a single large
-        request to the API per batch, and then reliably splits the response back
-        into structured, translated paragraphs.
+        Translates a list of text elements using a robust, tag-based
+        reconstruction method to ensure perfect data integrity.
         """
-        # Use the new, smarter batching method.
-        batches = self._create_batches(text_elements)
+        import re
         
-        translated_paragraphs = []
-        
-        for i, batch_of_elements in enumerate(batches):
-            self.logger.info(f"  Translating batch {i+1}/{len(batches)}...")
-            
-            # Use a unique, robust separator to join and split paragraphs.
-            separator = "\n<|=|>\n"
-            source_text_for_api = separator.join([elem.get('text', '') for elem in batch_of_elements])
+        batches = self._create_batches(text_elements) # Assumes self._create_batches exists
+        all_translated_blocks = []
 
-            # Call the translation service with the large, context-rich text block.
+        for i, batch_of_elements in enumerate(batches):
+            self.logger.info(f"Translating batch {i+1}/{len(batches)} using tag-based reconstruction...")
+
+            # Step 1: Sanitize and wrap each element in a unique, numbered tag.
+            tagged_payload_parts = []
+            original_elements_map = {}
+            for j, element in enumerate(batch_of_elements):
+                # CRITICAL: Call the sanitizer from Mission 2.
+                sanitized_text = self._sanitize_text_for_translation(element.get('text', ''))
+                if sanitized_text:
+                    tagged_payload_parts.append(f'<p id="{j}">{sanitized_text}</p>')
+                    original_elements_map[j] = element # Map ID to original element data
+
+            if not tagged_payload_parts:
+                continue # Skip empty batches
+
+            source_text_for_api = "\n".join(tagged_payload_parts)
+
+            # Step 2: Call the translation service.
             translated_blob = await self.gemini_service.translate_text(source_text_for_api, target_language)
-            
-            # Split the translated blob back into individual paragraph segments.
-            translated_segments = translated_blob.split(separator.strip())
-            
-            # Re-associate translated segments with original element data (like bounding boxes).
-            for original_element, translated_text in zip(batch_of_elements, translated_segments):
-                translated_paragraphs.append({
+
+            # Step 3: Use a robust regex to parse the translated tags, ignoring LLM chatter.
+            translated_segments = {}
+            pattern = re.compile(r'<p id="(\d+)"\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE)
+            for match in pattern.finditer(translated_blob):
+                p_id = int(match.group(1))
+                content = match.group(2).strip()
+                translated_segments[p_id] = content
+
+            # Step 4: Reconstruct the final block list, matching by ID.
+            for j, original_element in original_elements_map.items():
+                translated_text = translated_segments.get(j, f"[TRANSLATION_ERROR: ID {j} NOT FOUND]")
+                all_translated_blocks.append({
                     'type': 'text',
-                    'text': translated_text.strip(),
-                    'label': 'paragraph',
-                    'bbox': original_element.get('bbox') # Preserve original coordinates
+                    'text': translated_text,
+                    'label': original_element.get('label', 'paragraph'),
+                    'bbox': original_element.get('bbox')
                 })
-                
-        self.logger.info(f"🌐 Direct text translation completed. Created {len(translated_paragraphs)} structured paragraphs.")
-        return translated_paragraphs
+
+        self.logger.info(f"Tag-based translation completed. Created {len(all_translated_blocks)} blocks.")
+        return all_translated_blocks
     
     def _create_batches(self, text_elements: list[dict], max_chars_per_batch: int = 4500) -> list[list[dict]]:
         """
@@ -575,52 +611,24 @@ class ProcessingStrategyExecutor:
             text_areas.sort(key=lambda x: (x.bbox[1], x.bbox[0]))
             translated_texts = []
             if self.gemini_service:
-                batches = self._create_text_batches(text_areas, max_chars_per_batch=500)
-                self.logger.info(f"📦 Created {len(batches)} batches from {len(text_areas)} text areas")
-                async def translate_batch(batch, batch_index):
-                    batch_text = '\n\n'.join([area.combined_text for area in batch])
-                    self.logger.info(f"   Translating batch {batch_index + 1}/{len(batches)} ({len(batch_text)} chars)")
-                    try:
-                        translated_batch = await asyncio.wait_for(
-                            self.gemini_service.translate_text(batch_text, target_language, timeout=30.0),
-                            timeout=35.0
-                        )
-                        translated_parts = translated_batch.split('\n\n')
-                        if len(translated_parts) != len(batch):
-                            translated_parts = translated_batch.split('\n')
-                            if len(translated_parts) != len(batch):
-                                translated_parts = translated_batch.split('. ')
-                                if len(translated_parts) != len(batch):
-                                    self.logger.warning(f"⚠️ Batch {batch_index + 1}: Using proportional splitting")
-                                    total_chars = sum(len(area.combined_text) for area in batch)
-                                    translated_parts = []
-                                    current_pos = 0
-                                    for area in batch:
-                                        area_ratio = len(area.combined_text) / total_chars
-                                        area_chars = int(len(translated_batch) * area_ratio)
-                                        translated_parts.append(translated_batch[current_pos:current_pos + area_chars])
-                                        current_pos += area_chars
-                        if len(translated_parts) == len(batch):
-                            return translated_parts
-                        else:
-                            self.logger.warning(f"⚠️ Batch {batch_index + 1}: Translation splitting mismatch, using original")
-                            return [area.combined_text for area in batch]
-                    except asyncio.TimeoutError:
-                        self.logger.error(f"❌ Batch {batch_index + 1} translation timed out after 35s, using original")
-                        return [area.combined_text for area in batch]
-                    except Exception as e:
-                        self.logger.error(f"❌ Batch {batch_index + 1} translation failed: {e}")
-                        return [area.combined_text for area in batch]
-                batch_tasks = [translate_batch(batch, i) for i, batch in enumerate(batches)]
-                batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-                for i, result in enumerate(batch_results):
-                    if isinstance(result, Exception):
-                        self.logger.error(f"❌ Batch {i + 1} failed with exception: {result}")
-                        batch = batches[i]
-                        translated_texts.extend([area.combined_text for area in batch])
-                    else:
-                        translated_texts.extend(result)
-                self.logger.info(f"✅ Completed parallel batch translation: {len(translated_texts)} texts translated")
+                # CRITICAL: Use the robust translate_direct_text method instead of fragile splitting
+                # Convert text areas to the format expected by translate_direct_text
+                text_elements = []
+                for area in text_areas:
+                    text_elements.append({
+                        'text': area.combined_text,
+                        'bbox': area.layout_info.bbox if hasattr(area, 'layout_info') else [0, 0, 0, 0],
+                        'label': area.layout_info.label if hasattr(area, 'layout_info') else 'text'
+                    })
+                
+                # Use the DirectTextProcessor's robust translation method
+                direct_processor = DirectTextProcessor(self.gemini_service)
+                translated_blocks = await direct_processor.translate_direct_text(text_elements, target_language)
+                
+                # Extract translated texts in the same order
+                translated_texts = [block['text'] for block in translated_blocks]
+                
+                self.logger.info(f"✅ Used robust tag-based translation: {len(translated_texts)} texts translated")
             else:
                 self.logger.warning("⚠️ Gemini service not available for coordinate-based extraction.")
                 translated_texts = [area.combined_text for area in text_areas]
@@ -630,15 +638,26 @@ class ProcessingStrategyExecutor:
                     'type': 'text',
                     'original_text': area.combined_text,
                     'translated_text': translated_texts[i] if i < len(translated_texts) else area.combined_text,
-                    'layout_info': area.layout_info
+                    'layout_info': area.layout_info if hasattr(area, 'layout_info') else {'bbox': getattr(area, 'bbox', [0, 0, 0, 0])}
                 })
             for area in non_text_areas:
                 final_content.append({
                     'type': 'visual_element',
-                    'layout_info': area.layout_info,
+                    'layout_info': area.layout_info if hasattr(area, 'layout_info') else {'bbox': getattr(area, 'bbox', [0, 0, 0, 0])},
                     'image_blocks': getattr(area, 'image_blocks', [])
                 })
-            final_content.sort(key=lambda x: (x['bbox'][1], x['bbox'][0]))
+            # Sort by layout position (y-coordinate first, then x-coordinate)
+            def get_sort_key(item):
+                layout_info = item.get('layout_info', {})
+                if hasattr(layout_info, 'bbox'):
+                    bbox = layout_info.bbox
+                elif isinstance(layout_info, dict):
+                    bbox = layout_info.get('bbox', [0, 0, 0, 0])
+                else:
+                    bbox = [0, 0, 0, 0]
+                return (bbox[1], bbox[0])  # y, x
+            
+            final_content.sort(key=get_sort_key)
             processing_time = time.time() - start_time
             self.performance_stats['coordinate_based_extraction']['total_time'] += processing_time
             self.performance_stats['coordinate_based_extraction']['count'] += 1
@@ -652,8 +671,11 @@ class ProcessingStrategyExecutor:
                 strategy='coordinate_based_extraction',
                 processing_time=processing_time,
                 content={
-                    'text_areas': [{'label': area.label, 'text_content': area.combined_text, 'translated_content': translated_texts[i] if i < len(translated_texts) else area.combined_text} for i, area in enumerate(text_areas)],
-                    'non_text_areas': [{'label': area.label, 'bbox': area.bbox} for area in non_text_areas],
+                    'text_areas': [{'label': getattr(area.layout_info, 'label', 'text') if hasattr(area, 'layout_info') else 'text', 
+                                   'text_content': area.combined_text, 
+                                   'translated_content': translated_texts[i] if i < len(translated_texts) else area.combined_text} for i, area in enumerate(text_areas)],
+                    'non_text_areas': [{'label': getattr(area.layout_info, 'label', 'visual') if hasattr(area, 'layout_info') else 'visual', 
+                                       'bbox': getattr(area.layout_info, 'bbox', [0, 0, 0, 0]) if hasattr(area, 'layout_info') else getattr(area, 'bbox', [0, 0, 0, 0])} for area in non_text_areas],
                     'coordinate_mapping': mapped_content,
                     'page_num': processing_result.get('page_num', 0)
                 },
@@ -678,30 +700,7 @@ class ProcessingStrategyExecutor:
                 error=str(e)
             )
     
-    def _create_text_batches(self, text_areas: List[Any], max_chars_per_batch: int = 2000) -> List[List[Any]]:
-        """Create batches of text areas based on character count"""
-        batches = []
-        current_batch = []
-        current_chars = 0
-        
-        for area in text_areas:
-            area_chars = len(area.combined_text)
-            
-            # If adding this area would exceed the limit and we already have content, start a new batch
-            if current_chars + area_chars > max_chars_per_batch and current_batch:
-                batches.append(current_batch)
-                current_batch = [area]
-                current_chars = area_chars
-            else:
-                # Add to current batch
-                current_batch.append(area)
-                current_chars += area_chars
-        
-        # Add the last batch if it has content
-        if current_batch:
-            batches.append(current_batch)
-        
-        return batches
+    # REMOVED: _create_text_batches - now uses DirectTextProcessor's robust batching
     
     async def _process_direct_text(self, mapped_content: Dict[str, Any], 
                                  target_language: str) -> ProcessingResult:
@@ -883,67 +882,7 @@ def _dict_to_mapped_content(d):
         image_blocks=d.get('image_blocks', []),
     )
 
-def process_page_worker(page_data_dict: dict, config: Config) -> ProcessResult:
-    """
-    Robust parallel worker for processing a single page with REAL content extraction.
-    Accepts a serializable dict and a config object.
-    Always returns a ProcessResult object, capturing either the
-    processed PageModel data or a string representation of the error.
-    """
-    import logging
-    import fitz  # PyMuPDF
-    import traceback
-    logger = logging.getLogger(__name__)
-    page_number = page_data_dict.get('page_number', -1)
-    
-    try:
-        # Deserialize and validate input using Pydantic v2 method
-        page = PageModel.model_validate(page_data_dict)
-
-        # --- REAL CONTENT EXTRACTION ---
-        # Extract actual text from PDF instead of using placeholder content
-        pdf_path = page_data_dict.get('pdf_path')
-        if not pdf_path:
-            raise ValueError("PDF path not provided in page_data_dict")
-        
-        # Open the PDF document and extract real content
-        doc = fitz.open(pdf_path)
-        pdf_page = doc.load_page(page_number - 1)  # Convert to 0-based indexing
-        
-        # Extract text using PyMuPDF's structured text extraction
-        page_dict = pdf_page.get_text("dict")
-        
-        extracted_elements = []
-        element_index = 0
-        
-        # Process text blocks to extract real content
-        for block in page_dict.get("blocks", []):
-            if block.get("type") == 0:  # Text block
-                for line in block.get("lines", []):
-                    # Combine all spans in a line to get the full text
-                    line_text = "".join(span.get("text", "") for span in line.get("spans", []))
-                    
-                    if line_text.strip():  # Only add non-empty lines
-                        extracted_elements.append(ElementModel(
-                            type='text',
-                            content=line_text.strip(),  # REAL CONTENT from PDF
-                            bbox=line.get("bbox", [0, 0, 0, 0]),
-                            confidence=1.0  # High confidence for PyMuPDF extraction
-                        ))
-                        element_index += 1
-        
-        doc.close()
-        
-        # Update the page with extracted real elements
-        page.elements = extracted_elements
-        
-        logger.info(f"Worker extracted {len(extracted_elements)} REAL text elements from page {page_number}")
-        if extracted_elements:
-            logger.info(f"First element preview: '{extracted_elements[0].content[:100]}...'")
-        
-        return ProcessResult(page_number=page.page_number, data=page)
-
-    except Exception as e:
-        error_str = f"Failed to process page {page_number}: {e}\n{traceback.format_exc()}"
-        logger.error(error_str)
-        return ProcessResult(page_number=page_number, error=error_str) 
+# REMOVED: process_page_worker function has been eliminated as part of the architectural refactoring.
+# This function was the source of the "rogue worker" issue that caused mojibake, hyphenation failures,
+# and data loss. The system now uses the architecturally sound PyMuPDFContentExtractor and
+# ProcessingStrategyExecutor as the single source of truth for content extraction and translation. 

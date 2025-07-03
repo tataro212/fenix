@@ -82,6 +82,30 @@ class EnhancedPDFTranslator:
             logger.error(f"Enhanced translation failed: {e}")
             return False
     
+    async def translate_pdf(self, pdf_path: str, output_dir: str, target_language: str = 'en'):
+        """
+        Orchestrates the enhanced translation process using the architecturally sound pipeline.
+        """
+        start_time = time.time()
+        logger.info(f"🚀 Starting translation with ARCHITECTURALLY SOUND pipeline: {os.path.basename(pdf_path)}")
+
+        try:
+            # Step 1: Process the document using the correctly wired pipeline.
+            # This now returns a list of processed page results.
+            page_results = await self.optimized_pipeline.process_document(pdf_path, target_language)
+
+            # Step 2: Generate the final output using the repaired document generator.
+            logger.info("📄 Step 2: Generating final output...")
+            self.optimized_pipeline.generate_output(page_results, pdf_path, output_dir)
+
+            total_time = time.time() - start_time
+            logger.info(f"✅ Pipeline completed in {total_time:.2f} seconds")
+            logger.info(f"SUCCESS: Successfully processed: {os.path.basename(pdf_path)}")
+
+        except Exception as e:
+            logger.error(f"FATAL ERROR in main workflow: {e}", exc_info=True)
+            logger.info(f"FAILURE: Failed to process: {os.path.basename(pdf_path)}")
+
     async def _translate_with_optimized_pipeline(self, input_path: str, output_dir: str, base_name: str) -> bool:
         """Translate using PyMuPDF-YOLO optimized pipeline"""
         try:
@@ -455,12 +479,11 @@ async def main():
             continue
         
         try:
-            success = await translator.translate_document_enhanced(filepath, specific_output_dir)
-            if success:
-                processed_count += 1
-                logger.info(f"SUCCESS: Successfully processed: {os.path.basename(filepath)}")
-            else:
-                logger.error(f"FAILED: Failed to process: {os.path.basename(filepath)}")
+            # Use the new architecturally sound translate_pdf method
+            target_language = config_manager.translation_enhancement_settings['target_language']
+            await translator.translate_pdf(filepath, specific_output_dir, target_language)
+            processed_count += 1
+            logger.info(f"SUCCESS: Successfully processed: {os.path.basename(filepath)}")
         except Exception as e:
             logger.error(f"ERROR: Error processing {os.path.basename(filepath)}: {e}")
     

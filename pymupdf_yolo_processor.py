@@ -134,12 +134,44 @@ class PyMuPDFContentExtractor:
                         
                         text_blocks.append(text_block)
             
-            self.logger.info(f"📄 Extracted {len(text_blocks)} text blocks from page")
+            # CRITICAL: Apply hyphenation reconstruction at page level on ALL text blocks
+            text_blocks = self._apply_page_level_hyphenation_reconstruction(text_blocks)
+            
+            self.logger.info(f"📄 Extracted {len(text_blocks)} text blocks from page (with hyphenation reconstruction)")
             return text_blocks
             
         except Exception as e:
             self.logger.error(f"❌ Error extracting text blocks: {e}")
             return []
+    
+    def _apply_page_level_hyphenation_reconstruction(self, text_blocks: List[TextBlock]) -> List[TextBlock]:
+        """Apply the directive's hyphenation reconstruction across ALL text blocks for the entire page"""
+        if not text_blocks:
+            return []
+        
+        # Convert TextBlocks to the format expected by directive's function
+        blocks_for_reconstruction = [{'text': tb.text} for tb in text_blocks]
+        
+        # Apply the directive's exact hyphenation reconstruction
+        reconstructed_blocks = self._reconstruct_hyphenated_text(blocks_for_reconstruction)
+        
+        # Rebuild TextBlock objects with reconstructed text
+        result_blocks = []
+        for i, reconstructed_block in enumerate(reconstructed_blocks):
+            if i < len(text_blocks):
+                # Use original block metadata but with reconstructed text
+                original_block = text_blocks[i]
+                result_blocks.append(TextBlock(
+                    text=reconstructed_block['text'],
+                    bbox=original_block.bbox,
+                    font_size=original_block.font_size,
+                    font_family=original_block.font_family,
+                    confidence=original_block.confidence,
+                    block_type=original_block.block_type
+                ))
+        
+        self.logger.info(f"🔧 Applied page-level hyphenation reconstruction: {len(text_blocks)} → {len(result_blocks)} blocks")
+        return result_blocks
     
     def extract_images(self, page: fitz.Page) -> List[ImageBlock]:
         """Extract native images with coordinates (patched for full image list)"""
@@ -173,25 +205,58 @@ class PyMuPDFContentExtractor:
             return []
     
     def _extract_text_from_block(self, block: Dict) -> str:
-        """Extract text from a PyMuPDF block"""
-        block_text = ""
-        
+        """Extract raw text from a PyMuPDF block (hyphenation will be handled at page level)"""
         try:
+            # Extract all lines as simple text - no hyphenation processing here
+            lines = []
             for line in block.get("lines", []):
                 line_text = ""
-                
                 for span in line.get("spans", []):
                     span_text = span.get("text", "")
                     line_text += span_text
-                
                 if line_text.strip():
-                    block_text += line_text + "\n"
+                    lines.append(line_text.strip())
             
-            return block_text.strip()
+            # Return raw text - hyphenation reconstruction happens at page level
+            return "\n".join(lines).strip()
             
         except Exception as e:
             self.logger.warning(f"Error extracting text from block: {e}")
             return ""
+    
+    def _reconstruct_hyphenated_text(self, blocks: list) -> list:
+        """
+        Intelligently reconstructs paragraphs from raw text blocks, correcting
+        for words that are hyphenated across line breaks.
+        """
+        if not blocks:
+            return []
+
+        reconstructed_texts = []
+        # Start with the text from the first block.
+        current_text = blocks[0].get('text', '')
+
+        # Iterate up to the second-to-last block to allow look-ahead.
+        for i in range(len(blocks) - 1):
+            cleaned_text = current_text.strip()
+            # Check if the current, cleaned text ends with a hyphen.
+            if cleaned_text.endswith('-'):
+                # Look ahead to the next block's text.
+                next_block_text = blocks[i+1].get('text', '')
+                # Merge: remove the hyphen and append the next block's text.
+                current_text = cleaned_text[:-1] + next_block_text
+            else:
+                # No hyphen found. Finalize the current text block.
+                # Replace internal newlines with spaces and strip whitespace.
+                reconstructed_texts.append(current_text.replace('\n', ' ').strip())
+                # Start the next block.
+                current_text = blocks[i+1].get('text', '')
+
+        # Append the final text block after the loop finishes.
+        reconstructed_texts.append(current_text.replace('\n', ' ').strip())
+
+        # Return a list of dictionaries, ensuring no empty text elements are included.
+        return [{'text': text} for text in reconstructed_texts if text]
     
     def _get_dominant_font_size(self, block: Dict) -> float:
         """Get the dominant font size in a block"""

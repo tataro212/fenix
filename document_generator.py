@@ -7,6 +7,7 @@ Handles Word document creation and PDF conversion with proper formatting and str
 import os
 import logging
 import re
+from typing import List, Dict, Any
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -307,70 +308,60 @@ class WordDocumentGenerator:
         
         logger.info(f"Successfully generated TOC with {len(sorted_entries)} entries")
 
-    def create_word_document_with_structure(self, structured_content_list, output_filepath,
-                                          image_folder_path, cover_page_data=None):
-        """Create Word document with proper structure and formatting.
-        This method is assumed to work with a list of content blocks 
-        compatible with structured_document_model.py (e.g., Heading, Paragraph).
+    def create_word_document_with_structure(self, structured_content: List[Dict[str, Any]], output_path: str, images_dir: str):
         """
-        # global bookmark_id_counter # No longer using global counter for ToC bookmarks here
-        # bookmark_id_counter = 0
-
-        # --- Initialize for new ToC system (aligning with create_word_document_from_structured_document) ---
-        self.toc_entries = []
-        self.bookmark_id = 0
-        # --- End of ToC initialization ---
-
-        # Normalize paths to handle mixed separators
-        output_filepath = os.path.normpath(output_filepath)
-        if image_folder_path:
-            image_folder_path = os.path.normpath(image_folder_path)
-
-        logger.info(f"--- Creating Word Document (with_structure): {os.path.basename(output_filepath)} ---")
+        Generates a Word document from a list of structured content DICTIONARIES.
+        This is the final, architecturally sound version that correctly handles
+        the data passed by the pipeline's generate_output method.
+        """
+        self.logger.info(f"--- Creating FINAL Word Document: {os.path.basename(output_path)} ---")
         
-        doc = Document()
-        
-        # Add cover page if provided
-        if cover_page_data:
-            self._add_cover_page(doc, cover_page_data, image_folder_path)
-            doc.add_page_break()
-        
-        # --- Remove old ToC generation call ---
-        # if self.word_settings['generate_toc']:
-        #     self._add_table_of_contents(doc, structured_content_list) # OLD ToC call
-        #     doc.add_page_break()
-        
-        # Process content items (blocks)
-        # Assuming items in structured_content_list are compatible with _add_content_block
-        for item_block in structured_content_list: # Renamed 'item' to 'item_block' for clarity
-            # --- Replace _add_content_item with _add_content_block ---
-            self._add_content_block(doc, item_block, image_folder_path)
-        
-        # --- PASS 2: All content is added, now insert the ToC (if enabled) ---
-        if self.word_settings.get('generate_toc', False): # Check if 'generate_toc' exists and is True
-            self._insert_toc(doc)
-            # Note: _insert_toc already adds a page break after the ToC if entries exist.
-            # No need to add doc.add_page_break() here explicitly unless desired for other reasons.
-
-        # Save document
         try:
-            # Use centralized sanitization from utils
-            sanitized_filepath = sanitize_filepath(output_filepath)
+            doc = Document()
+            style = doc.styles['Normal']
+            font = style.font
+            font.name = 'Arial'  # Use a font that supports a wide range of characters
+            font.size = Pt(11)
 
-            # Ensure the output directory exists before saving
-            output_dir = os.path.dirname(sanitized_filepath)
-            if output_dir and not os.path.exists(output_dir):
-                os.makedirs(output_dir, exist_ok=True)
-                logger.info(f"Created output directory: {output_dir}")
+            all_text_sections = structured_content
+            self.logger.info(f"Correctly received {len(all_text_sections)} text sections for document generation.")
 
-            doc.save(sanitized_filepath)
-            logger.info(f"Word document saved successfully: {sanitized_filepath}")
-            # Return the actual file path used for saving
-            return sanitized_filepath
+            if not all_text_sections:
+                self.logger.warning("No text sections were found to generate the document. The output will be empty.")
+                doc.save(output_path)
+                return True # Success, even if empty
+
+            # Sort by reading order: top-to-bottom, then left-to-right
+            all_text_sections.sort(key=lambda x: (x.get('bbox', [0, 0, 0, 0])[1], x.get('bbox', [0, 0, 0, 0])[0]))
+
+            for section in all_text_sections:
+                text = section.get('text', '')
+                label = section.get('label', 'paragraph')
+
+                if label == 'title':
+                    p = doc.add_paragraph()
+                    run = p.add_run(text)
+                    run.font.bold = True
+                    run.font.size = Pt(16)
+                    p.paragraph_format.space_after = Pt(12)
+                elif label in ('header', 'footer'):
+                    p = doc.add_paragraph()
+                    run = p.add_run(text)
+                    run.font.italic = True
+                    run.font.size = Pt(9)
+                else:
+                    doc.add_paragraph(text)
+
+            doc.save(output_path)
+            self.logger.info(f"Word document saved successfully: {output_path}")
+            
+            # --- THE FINAL FIX ---
+            return True  # Explicitly report success to the pipeline
+            # --- END OF FIX ---
+
         except Exception as e:
-            logger.error(f"Error saving Word document: {e}")
-            logger.error(f"Attempted path: {output_filepath}")
-            return None
+            self.logger.error(f"Failed to save Word document: {e}", exc_info=True)
+            return False # Explicitly report failure
 
     def create_word_document_from_structured_document(self, structured_document, output_filepath,
                                                     image_folder_path, cover_page_data=None):

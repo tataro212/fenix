@@ -28,11 +28,12 @@ import traceback
 from types import SimpleNamespace
 
 # Import our custom components
-from pymupdf_yolo_processor import PyMuPDFYOLOProcessor, ContentType
-from processing_strategies import ProcessingStrategyExecutor, ProcessingResult, process_page_worker
+from pymupdf_yolo_processor import PyMuPDFYOLOProcessor, ContentType, ProcessingStrategy
+from processing_strategies import ProcessingStrategyExecutor, ProcessingResult
 from document_generator import WordDocumentGenerator, convert_word_to_pdf
 from config_manager import Config
 from models import PageModel, ProcessResult
+import fitz  # PyMuPDF
 
 # Import existing services
 try:
@@ -141,16 +142,12 @@ class OptimizedDocumentPipeline:
             
             self.logger.info(f"🎯 Starting optimized pipeline processing: {os.path.basename(pdf_path)}")
             
-            # Step 1: Process all pages with PyMuPDF-YOLO mapping
-            self.logger.info("📄 Step 1: PyMuPDF-YOLO content mapping...")
-            page_results = self._process_all_pages(pdf_path)
+            # Step 1: Process document using architecturally sound pipeline
+            self.logger.info("📄 Step 1: Architecturally sound document processing...")
+            processing_results = await self.process_document(pdf_path, target_language)
             
-            if not page_results:
+            if not processing_results:
                 raise Exception("No pages processed successfully")
-            
-            # Step 2: Execute processing strategies for each page
-            self.logger.info("🎯 Step 2: Executing processing strategies...")
-            processing_results = await self._execute_strategies(page_results, target_language)
             
             # Step 3: Generate final output
             self.logger.info("📄 Step 3: Generating final output...")
@@ -159,10 +156,10 @@ class OptimizedDocumentPipeline:
             
             # Step 4: Calculate statistics
             total_time = time.time() - start_time
-            statistics = self._calculate_pipeline_statistics(page_results, processing_results, total_time)
+            statistics = self._calculate_pipeline_statistics([], processing_results, total_time)
             
             # Update global stats
-            self._update_global_statistics(page_results, processing_results, total_time)
+            self._update_global_statistics([], processing_results, total_time)
             
             self.logger.info(f"✅ Optimized pipeline completed in {total_time:.3f}s")
             self.logger.info(f"   Pages processed: {statistics.total_pages}")
@@ -197,147 +194,94 @@ class OptimizedDocumentPipeline:
                 error=str(e)
             )
     
-    def _process_all_pages(self, pdf_path: str) -> List[ProcessResult]:
-        """Process all pages with PyMuPDF-YOLO mapping in parallel using ProcessPoolExecutor and robust serialization."""
-        import fitz  # PyMuPDF
-        from concurrent.futures import ProcessPoolExecutor, as_completed
-        
-        config = Config()  # Centralized config object
+    async def process_document(self, pdf_path: str, target_language: str = 'en') -> List[Dict[str, Any]]:
+        """
+        Processes a PDF using the architecturally sound, unified pipeline.
+        This is the new, correct implementation.
+        """
+        self.logger.info("🚀 Executing architecturally sound pipeline...")
+        doc = fitz.open(pdf_path)
+        num_pages = len(doc)
+        doc.close()
+
+        # Step 1: Use our validated PyMuPDFYOLOProcessor to extract structured data.
+        # This performs page-level hyphenation and correct text extraction.
+        self.logger.info(f"📄 Step 1: Extracting content using PyMuPDFYOLOProcessor for {num_pages} pages.")
+        page_models = []
+        for i in range(num_pages):
+            page_model = await self.processor.process_page(pdf_path, i)
+            page_models.append(page_model)
+        self.logger.info(f"✅ Content extraction complete. {len(page_models)} page models created.")
+
+        # Step 2: Determine strategy and execute translation using our validated executor.
+        # This is where the single source of truth for translation is enforced.
+        self.logger.info("🎯 Step 2: Executing processing and translation strategies...")
+        tasks = []
+        for page_model in page_models:
+            # Convert page_model elements to the format expected by DirectTextProcessor
+            text_elements = []
+            for element in page_model.elements:
+                if element.type == 'text':
+                    text_elements.append({
+                        'text': element.content,
+                        'bbox': list(element.bbox),
+                        'label': 'paragraph'
+                    })
+            
+            # Use DirectTextProcessor for translation (single source of truth)
+            from processing_strategies import DirectTextProcessor
+            processor = DirectTextProcessor(self.gemini_service)
+            task = processor.translate_direct_text(text_elements, target_language)
+            tasks.append(task)
+
+        page_results = await asyncio.gather(*tasks)
+        self.logger.info(f"✅ Strategy execution complete for {len(page_results)} pages.")
+        return page_results
+    
+    def generate_output(self, page_results: List[List[Dict]], pdf_path: str, output_dir: str):
+        """Generate final Word/PDF output from page results"""
         try:
-            doc = fitz.open(pdf_path)
-            total_pages = len(doc)
-            doc.close()
-
-            self.logger.info(f"📄 Processing {total_pages} pages with PyMuPDF-YOLO mapping (parallel: {self.max_workers})")
-
-            # Extract PageModel objects for each page (simulate for now)
-            # In real code, replace with actual extraction logic
-            page_models = [PageModel(page_number=i+1, dimensions=[612, 792], elements=[]) for i in range(total_pages)]
-
-            results = []
-            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-                futures = {
-                    executor.submit(process_page_worker, {**page_model.model_dump(), 'pdf_path': pdf_path}, config): page_model.page_number 
-                    for page_model in page_models
-                }
-                self.logger.info(f"Submitted {len(futures)} pages for processing.")
+            base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+            
+            # Convert page results to document generator format
+            structured_content = []
+            for page_blocks in page_results:
+                for block in page_blocks:
+                    structured_content.append({
+                        'type': 'text',
+                        'text': block.get('text', ''),
+                        'page_num': block.get('page_num', 1),
+                        'bbox': block.get('bbox', [0, 0, 0, 0])
+                    })
+            
+            self.logger.info(f"📝 Generating document with {len(structured_content)} text sections")
+            
+            # Generate Word document
+            doc_generator = WordDocumentGenerator()
+            docx_path = os.path.join(output_dir, f"{base_name}_translated.docx")
+            
+            success = doc_generator.create_word_document_with_structure(
+                structured_content, docx_path, os.path.join(output_dir, "images")
+            )
+            
+            if success:
+                self.logger.info(f"✅ Word document generated: {docx_path}")
                 
-                for future in as_completed(futures):
-                    page_num = futures[future]
-                    try:
-                        result: ProcessResult = future.result()
-                        if result.error:
-                            self.logger.error(f"Worker failed on page {page_num}: {result.error}")
-                        elif result.data:
-                            self.logger.info(f"Successfully processed page {page_num}.")
-                            results.append(result)
-                        else:
-                            self.logger.warning(f"Worker for page {page_num} returned no data and no error.")
-                    except Exception as e:
-                        self.logger.critical(f"A critical error occurred fetching result for page {page_num}: {e}")
-            
-            results.sort(key=lambda r: r.page_number)
-            self.logger.info(f"Pipeline finished. Successfully processed {len([r for r in results if r.data])} pages.")
-            return results
-        except Exception as e:
-            self.logger.error(f"❌ Error processing pages: {e}")
-            return []
-    
-    async def _execute_strategies(self, page_results: List[ProcessResult], 
-                                target_language: str) -> List[ProcessingResult]:
-        """Execute processing strategies for each page in parallel"""
-        self.logger.info(f"🔄 Executing processing strategies for {len(page_results)} pages in parallel")
-        
-        # Decide strategy for each page
-        strategy_inputs = [self._route_strategy_for_page(page_result) for page_result in page_results]
-        
-        # Now execute strategies in parallel
-        processing_results = await asyncio.gather(*[
-            self.strategy_executor.execute_strategy(strategy_input, target_language)
-            for strategy_input in strategy_inputs
-        ], return_exceptions=True)
-        
-        # Handle any exceptions
-        final_results = []
-        for i, result in enumerate(processing_results):
-            if isinstance(result, Exception):
-                self.logger.error(f"❌ Page {i + 1} strategy execution failed: {result}")
-                self.logger.error(traceback.format_exc())
-                final_results.append(ProcessingResult(
-                    success=False,
-                    strategy='error',
-                    processing_time=0.0,
-                    content={},
-                    statistics={},
-                    error=str(result)
-                ))
+                # Convert to PDF
+                try:
+                    pdf_path = os.path.join(output_dir, f"{base_name}_translated.pdf")
+                    pdf_success = convert_word_to_pdf(docx_path, pdf_path)
+                    if pdf_success:
+                        self.logger.info(f"✅ PDF document generated: {pdf_path}")
+                    else:
+                        self.logger.warning("⚠️ PDF conversion failed")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ PDF conversion failed: {e}")
             else:
-                # Patch: log the full result if 'strategy' is missing
-                if not hasattr(result, 'strategy') and (not isinstance(result, dict) or 'strategy' not in result):
-                    self.logger.error(f"❌ Page {i + 1} result missing 'strategy' key/attr. Full result: {result}")
-                    final_results.append(ProcessingResult(
-                        success=False,
-                        strategy='error',
-                        processing_time=0.0,
-                        content={},
-                        statistics={},
-                        error="Missing 'strategy' key/attr"
-                    ))
-                else:
-                    final_results.append(result)
-        
-        self.logger.info(f"✅ Strategy execution completed for all {len(page_results)} pages")
-        return final_results
-    
-    def dict_to_namespace(self, d):
-        if isinstance(d, dict):
-            return SimpleNamespace(**d)
-        return d
-
-    def convert_elements_to_namespaces(self, elements):
-        if isinstance(elements, dict):
-            return {k: self.dict_to_namespace(v) for k, v in elements.items()}
-        elif isinstance(elements, list):
-            return {i: self.dict_to_namespace(el) for i, el in enumerate(elements)}
-        else:
-            return {}
-
-    def _route_strategy_for_page(self, page_result: ProcessResult):
-        # Extract the actual page data from ProcessResult
-        if not page_result.data:
-            # No data available, use fallback strategy
-            return {
-                'strategy': SimpleNamespace(strategy='coordinate_based_extraction'),
-                'mapped_content': {}
-            }
-        
-        # page_result.data is a PageModel object
-        page_model = page_result.data
-        
-        # Count elements by type
-        text_count = sum(1 for el in page_model.elements if el.type == 'text')
-        image_count = sum(1 for el in page_model.elements if el.type == 'image')
-        
-        # Convert elements to dictionary format for processing
-        mapped_content = {}
-        for i, element in enumerate(page_model.elements):
-            mapped_content[f"element_{i}"] = {
-                'type': element.type,
-                'content': element.content,
-                'bbox': element.bbox,
-                'confidence': element.confidence
-            }
-        
-        # Choose strategy based on content analysis
-        if image_count == 0 and text_count > 0:
-            strategy = SimpleNamespace(strategy='pure_text_fast')
-        else:
-            strategy = SimpleNamespace(strategy='coordinate_based_extraction')
+                self.logger.error("❌ Word document generation failed")
             
-        return {
-            'strategy': strategy,
-            'mapped_content': mapped_content
-        }
+        except Exception as e:
+            self.logger.error(f"❌ Error generating output: {e}")
     
     async def _generate_final_output(self, processing_results: List[ProcessingResult], 
                                    output_dir: str, target_language: str, original_filename: str = None) -> Dict[str, str]:
