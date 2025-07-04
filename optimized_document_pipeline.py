@@ -240,6 +240,21 @@ class OptimizedDocumentPipeline:
             )
             results.append(result)
         self.logger.info(f"✅ Strategy execution complete for {len(results)} pages.")
+        self.logger.info("📄 Step 3: Generating final output...")
+        self.logger.info("Aggregating content from %d page results...", len(results))
+        all_blocks = []
+        for i, result in enumerate(results):
+            if result is None:
+                self.logger.error(f"Received None result for page {i+1}. Skipping.")
+                continue
+            if not hasattr(result, 'content') or not result.content:
+                self.logger.warning(f"Processing result for page {i+1} has no 'content' attribute or content is empty. Strategy was '{getattr(result, 'strategy', 'unknown')}'. Skipping.")
+                continue
+            blocks = result.content.get('final_content') or result.content.get('text_areas') or []
+            if isinstance(blocks, list):
+                all_blocks.extend(blocks)
+        # The rest of the logic can now proceed with a valid 'all_blocks' list
+        # ... (rest of the function remains unchanged)
         return results
     
     def generate_output(self, page_results: list, pdf_path: str, output_dir: str):

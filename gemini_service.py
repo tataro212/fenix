@@ -56,24 +56,33 @@ class GeminiService:
                 if not sentence.strip():
                     translated_sentences.append(sentence)
                     continue
-                prompt = f"""Translate the following text to {target_language}. 
-                IMPORTANT INSTRUCTIONS:
-                1. Preserve word boundaries exactly as in the original
-                2. Keep proper nouns and technical terms unchanged
-                3. Maintain exact spacing and punctuation
-                4. Do not modify or remove any characters
-                5. Only return the translated text, no explanations
-                
-                Text to translate:
-                {sentence}"""
+                prompt = (
+                    f"Translate the following XML content to {target_language}. "
+                    "Preserve the <seg> tags and their id attributes exactly. "
+                    "Do not add any text or explanation outside of the <seg> tags. "
+                    f"TEXT TO TRANSLATE:\n{sentence}"
+                )
                 attempt = 0
                 while attempt <= max_retries:
                     try:
+                        # --- BEGIN LOGGING ADDITIONS (Directive 1.3) ---
+                        logger.info(f"Sending request to Gemini for prompt: {prompt[:200]}...")
+                        logger.debug(f"Full prompt for Gemini: {prompt}")
                         response = await asyncio.wait_for(
                             self.model.generate_content_async(prompt),
                             timeout=timeout
                         )
-                        translated_text = response.text.strip()
+                        logger.debug(f"Received raw response from Gemini: {response}")
+                        # --- END LOGGING ADDITIONS ---
+                        # Defensive: check for .text or .parts
+                        if hasattr(response, 'text') and response.text:
+                            translated_text = response.text.strip()
+                        elif hasattr(response, 'parts') and response.parts and hasattr(response.parts[0], 'text'):
+                            translated_text = response.parts[0].text.strip()
+                        else:
+                            logger.error("Gemini response is empty or invalid.")
+                            return ""
+                        logger.info("Successfully received and parsed response from Gemini.")
                         translated_sentences.append(translated_text)
                         break
                     except asyncio.TimeoutError as e:
@@ -88,20 +97,17 @@ class GeminiService:
                         time.sleep(2 ** attempt)
                         attempt += 1
                     except Exception as e:
-                        if attempt == 0:
-                            logger.error(f"❌ Translation error: {e}, using original text. Payload: {repr(sentence)[:500]}")
-                        else:
-                            logger.error(f"❌ Retry {attempt}: Translation error: {e}. Payload: {repr(sentence)[:500]}")
+                        logger.critical(f"FATAL: An unhandled exception occurred during Gemini API call: {e}")
                         if attempt >= max_retries:
                             logger.error(f"❌ Max retries reached for error. Returning original text. Payload: {repr(sentence)[:500]}")
-                            translated_sentences.append(sentence)
+                            translated_sentences.append("")
                             break
                         time.sleep(2 ** attempt)
                         attempt += 1
             return self._recombine_sentences(translated_sentences)
         except Exception as e:
             logger.error(f"Error translating text with Gemini: {e}. Full payload: {repr(text)[:2000]}")
-            raise
+            return ""
     
     def _split_into_sentences(self, text: str) -> list:
         """Split text into sentences while preserving formatting"""

@@ -779,7 +779,7 @@ async def test_THE_FULL_PIPELINE_END_TO_END():
     output_dir = 'output'
     assert os.path.exists(test_pdf), f"Test PDF not found: {test_pdf}"
     pipeline = OptimizedDocumentPipeline()
-    result = await pipeline.process_pdf_with_optimized_pipeline(test_pdf, output_dir, 'Spanish')
+    result = await pipeline.process_pdf_with_optimized_pipeline(test_pdf, output_dir, 'Greek')
     print(f"Pipeline result.success: {result.success}")
     assert result.success is True, "Pipeline did not succeed"
     # Find the .docx file in output_dir
@@ -793,13 +793,24 @@ async def test_THE_FULL_PIPELINE_END_TO_END():
     # Open with python-docx and check for TOC and nontrivial text
     doc = docx.Document(docx_path)
     all_text = []
-    toc_found = False
+    toc_found_en = False
+    toc_found_el = False
     for para in doc.paragraphs:
         text = para.text.strip()
         all_text.append(text)
         if 'Table of Contents' in text or 'Πίνακας Περιεχομένων' in text or 'Índice' in text:
-            toc_found = True
-    assert toc_found, "Table of Contents heading not found in document"
+            toc_found_en = True
+        if 'Πίνακας Περιεχομένων' in text:
+            toc_found_el = True
+    if not (toc_found_en or toc_found_el):
+        error_message = "CRITICAL VALIDATION FAILURE: Neither English 'Table of Contents' nor Greek 'Πίνακας Περιεχομένων' was found in the final document."
+        print(error_message)
+        print("--- BEGINNING OF PROCESSED DOCUMENT ---")
+        print(' '.join(all_text)[:1000])
+        print("--- END OF PROCESSED DOCUMENT SNIPPET ---")
+        raise ValueError(error_message)
+    else:
+        print("✅ Validation successful: Table of Contents found (in English or Greek).")
     # Check for more than trivial text (e.g., > 500 characters)
     full_text = ' '.join(all_text)
     assert len(full_text) > 500, f"Document text too short: {len(full_text)} chars"

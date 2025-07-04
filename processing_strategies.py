@@ -260,78 +260,6 @@ class DirectTextProcessor:
         self.gemini_service = gemini_service
         self.logger.info("🔧 Direct Text Processor initialized")
     
-    def _sanitize_text_for_translation(self, text: str) -> str:
-        """
-        Enhanced sanitization method as per Sub-Directive B.
-        
-        Aggressively removes academic metadata, system prompts, and common artifacts
-        to ensure clean text is sent for translation.
-        """
-        import re
-        
-        # Original instruction artifacts
-        instructions_to_remove = [
-            "ΣΗΜΑΝΤΙΚΕΣ ΟΔΗΓΙΕΣ:",
-            "Κείμενο προς μετάφραση:",
-            "Text to translate:",
-            "1. Διατηρήστε τα όρια των λέξεων ακριβώς όπως στο πρωτότυπο",
-            "2. Διατηρήστε τα ιδίωμα και τους τεχνικούς όρους αμετάβλητους",
-            "3. Διατηρήστε την ακριβή διαστήματα και στίξη",
-        ]
-
-        sanitized_text = text
-        for instruction in instructions_to_remove:
-            sanitized_text = sanitized_text.replace(instruction, "")
-
-        # Enhanced aggressive sanitization patterns (Sub-Directive B)
-        # Note: These patterns are more conservative to avoid removing legitimate content
-        sanitization_patterns = [
-            # Page numbers (specific formats only)
-            (r'\bPage\s+\d+\s+of\s+\d+\b', ''),
-            (r'^-\s*\d+\s*-$', ''),  # Only full line page numbers
-            
-            # In-line citations (more specific)
-            (r'\([A-Za-z]+\s*,?\s*\d{4}\)', ''),  # (Author, 2021) style
-            (r'\[\d{1,3}\]', ''),  # [23] style (numeric only)
-            (r'\b\w+\s+et\s+al\.?\s*\(\d{4}\)', ''),  # Smith et al. (2021)
-            
-            # DOI and URL patterns
-            (r'doi:\s*10\.\d+\/[^\s]+', ''),  # More specific DOI pattern
-            (r'https?://[^\s]+', ''),
-            (r'www\.[^\s]+', ''),
-            
-            # Journal headers/footers patterns (more specific)
-            (r'^Vol\.\s*\d+,?\s*(No\.\s*\d+)?\s*$', ''),  # Volume information (full line only)
-            (r'^ISSN\s+[\d\-]+\s*$', ''),  # ISSN numbers (full line only)
-            (r'^Published\s+by.*$', ''),  # Publisher info (full line only)
-            (r'^Copyright.*\d{4}.*$', ''),  # Copyright notices (full line only)
-            
-            # Academic artifacts (full line only)
-            (r'^Abstract\s*$', ''),
-            (r'^Keywords:\s*.*$', ''),
-            (r'^Received\s+\d+.*$', ''),
-            (r'^Accepted\s+\d+.*$', ''),
-            (r'^Published\s+\d+.*$', ''),
-            
-            # Footer patterns (very specific)
-            (r'^\s*-\s*\d+\s*-\s*$', ''),  # - 19 - style page numbers (full line)
-            (r'^\s*\|\s*\d+\s*\|\s*$', ''),  # | 19 | style page numbers (full line)
-        ]
-        
-        # Apply regex patterns
-        for pattern, replacement in sanitization_patterns:
-            sanitized_text = re.sub(pattern, replacement, sanitized_text, flags=re.MULTILINE | re.IGNORECASE)
-        
-        # Rebuild the text from non-empty lines to collapse whitespace and remove artifact lines
-        lines = [line.strip() for line in sanitized_text.split('\n') if line.strip()]
-        cleaned_text = "\n".join(lines)
-        
-        # Log sanitization if significant content was removed
-        if len(cleaned_text) < len(text) * 0.8:
-            self.logger.info(f"Aggressive sanitization removed {len(text) - len(cleaned_text)} characters")
-        
-        return cleaned_text
-    
     def _convert_mapped_content_to_page_content(self, mapped_content: Dict[str, Any], page_number: int = 1) -> PageContent:
         """Convert mapped_content dictionary to structured PageContent object"""
         content_elements = []
@@ -481,102 +409,85 @@ class DirectTextProcessor:
         self.logger.info(f"Semantic filtering: {len(elements_to_translate)} elements to translate, {len(excluded_elements)} excluded")
         return elements_to_translate, excluded_elements
     
+    def _parse_and_reconstruct_translation(self, translated_text: str) -> dict:
+        """
+        Parses the XML-like response from Gemini and reconstructs the translated segments.
+        Uses a robust regex parser to handle malformed API responses.
+        """
+        # CRITICAL FIX: Initialize the dictionary before the try block.
+        translated_segments = {} 
+        import re
+        try:
+            # Use regex to find all <seg id="...">...</seg> blocks.
+            # This is more robust to malformed XML or injected text from the API.
+            # re.DOTALL ensures that '.' matches newlines as well.
+            seg_pattern = re.compile(r'<seg id="(\d+?)">(.*?)</seg>', re.DOTALL)
+            matches = seg_pattern.findall(translated_text)
+            if not matches:
+                self.logger.warning(f"Regex could not find any <seg> tags in the response.")
+            for seg_id, seg_text in matches:
+                if seg_id:
+                    # Clean up the text just in case there's leading/trailing whitespace
+                    translated_segments[seg_id] = seg_text.strip()
+            if not translated_segments:
+                 self.logger.warning(f"Regex parsed 0 segments from Gemini response. Raw response: {translated_text}")
+        except Exception as e:
+            # Catch any other unexpected errors during regex processing.
+            self.logger.error(f"An unexpected error occurred during regex parsing of Gemini response: {e}")
+            self.logger.error(f"Problematic Gemini response: {translated_text}")
+        return translated_segments
+    
     async def translate_direct_text(self, text_elements: list[dict], target_language: str) -> list[dict]:
         """
         Translates a list of text elements using a robust, tag-based
         reconstruction method to ensure perfect data integrity.
-        
         Enhanced with semantic filtering as per Sub-Directive B.
         """
-        import re
-        
         # Apply semantic filtering (Sub-Directive B)
         elements_to_translate, excluded_elements = self._apply_semantic_filtering(text_elements)
-        
         # If no elements to translate, return original elements
         if not elements_to_translate:
             self.logger.warning("No elements to translate after semantic filtering")
             return text_elements
-        
         batches = self._create_batches(elements_to_translate)
         all_translated_blocks = []
-
         for i, batch_of_elements in enumerate(batches):
             self.logger.info(f"Translating batch {i+1}/{len(batches)} using tag-based reconstruction...")
-
-            # Step 1: Sanitize and wrap each element in a unique, numbered tag.
+            # Step 1: Wrap each element in a unique, numbered tag (no sanitization)
             tagged_payload_parts = []
             original_elements_map = {}
             for j, element in enumerate(batch_of_elements):
-                # CRITICAL: Call the sanitizer from Mission 2.
-                sanitized_text = self._sanitize_text_for_translation(element.get('text', ''))
-                if sanitized_text:
-                    tagged_payload_parts.append(f'<p id="{j}">{sanitized_text}</p>')
-                    original_elements_map[j] = element # Map ID to original element data
-
+                text = element.get('text', '')
+                if text:
+                    tagged_payload_parts.append(f'<seg id="{j}">{text}</seg>')
+                    original_elements_map[j] = element
             if not tagged_payload_parts:
-                continue # Skip empty batches
-
+                continue
             source_text_for_api = "\n".join(tagged_payload_parts)
-
             # Step 2: Call the translation service.
             translated_blob = await self.gemini_service.translate_text(source_text_for_api, target_language)
-
-            # Step 3: Use hardened response parsing (Sub-Directive A)
-            translated_segments = {}
-            
-            # Enhanced regex pattern that's more tolerant of LLM variations
-            patterns = [
-                # Standard pattern
-                re.compile(r'<p\s+id\s*=\s*["\'](\d+)["\'](?:\s+[^>]*)?\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE),
-                # Fallback pattern for variations
-                re.compile(r'<p\s+id\s*=\s*(\d+)(?:\s+[^>]*)?\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE),
-                # Basic pattern as last resort
-                re.compile(r'<p id="(\d+)"\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE)
-            ]
-            
-            # Try each pattern until we get matches
-            for pattern in patterns:
-                matches = list(pattern.finditer(translated_blob))
-                if matches:
-                    for match in matches:
-                        try:
-                            p_id = int(match.group(1))
-                            content = match.group(2).strip()
-                            translated_segments[p_id] = content
-                        except (ValueError, IndexError) as e:
-                            self.logger.warning(f"Failed to parse segment from match: {e}")
-                            continue
-                    break
-                    
+            # Step 3: Use the new robust parser
+            translated_segments = self._parse_and_reconstruct_translation(translated_blob)
             self.logger.info(f"Parsed {len(translated_segments)} segments from {len(original_elements_map)} original elements")
-
-            # Step 4: Reconstruct the final block list with graceful fallback (Sub-Directive A)
+            # Step 4: Reconstruct the final block list with graceful fallback
             for j, original_element in original_elements_map.items():
-                if j in translated_segments:
-                    # Successfully translated
-                    translated_text = translated_segments[j]
+                if str(j) in translated_segments:
+                    translated_text = translated_segments[str(j)]
                 else:
-                    # Graceful fallback: use original text instead of error marker
                     self.logger.warning(f"Translation missing for segment ID {j}, using original text")
                     translated_text = original_element.get('text', '')
-                
                 all_translated_blocks.append({
                     'type': 'text',
                     'text': translated_text,
                     'label': original_element.get('label', 'paragraph'),
                     'bbox': original_element.get('bbox')
                 })
-
         # Merge translated elements with excluded elements in original order
         final_blocks = []
         translated_index = 0
-        
         for original_element in text_elements:
             semantic_label = original_element.get('semantic_label') or original_element.get('label', '')
-            
             if semantic_label.lower() in ['header', 'footer']:
-                # Keep excluded elements as-is (untranslated)
                 final_blocks.append({
                     'type': 'text',
                     'text': original_element.get('text', ''),
@@ -585,19 +496,16 @@ class DirectTextProcessor:
                     'excluded_from_translation': True
                 })
             else:
-                # Use translated element
                 if translated_index < len(all_translated_blocks):
                     final_blocks.append(all_translated_blocks[translated_index])
                     translated_index += 1
                 else:
-                    # Fallback to original if translation missing
                     final_blocks.append({
                         'type': 'text',
                         'text': original_element.get('text', ''),
                         'label': original_element.get('label', 'paragraph'),
                         'bbox': original_element.get('bbox')
                     })
-        
         self.logger.info(f"Tag-based translation completed. Created {len(final_blocks)} blocks ({len(all_translated_blocks)} translated, {len(excluded_elements)} excluded).")
         return final_blocks
     
@@ -625,6 +533,59 @@ class DirectTextProcessor:
         if current_batch:
             batches.append(current_batch)
         return batches
+
+    def execute(self, page_model: PageModel, **kwargs) -> ProcessingResult:
+        # ... (the start of the method remains the same)
+        # ... from self.logger.info(...) to elements_to_translate = ...
+        # This is where the changes begin
+        final_translated_blocks = []
+        untranslated_elements = list(elements_to_translate)
+        retries = 2 # Set the number of retries
+
+        for i in range(retries + 1):
+            if not untranslated_elements:
+                break # Exit if everything is translated
+
+            self.logger.info(f"Translation attempt {i+1}/{retries+1}. Translating {len(untranslated_elements)} elements.")
+            # Prepare the XML-like string for the current batch of untranslated elements
+            xml_string = "\n".join([f'<seg id="{el.id}">{el.text}</seg>' for el in untranslated_elements])
+            # Get the translation
+            translated_xml = self.gemini_service.translate_text(xml_string, self.target_language)
+            # Parse the response
+            translated_segments = self._parse_and_reconstruct_translation(translated_xml)
+            # Process the results
+            successfully_translated = []
+            still_untranslated = []
+            for element in untranslated_elements:
+                if element.id in translated_segments and translated_segments[element.id]:
+                    # Success: create a new translated block
+                    translated_block = TextBlock(
+                        text=translated_segments[element.id],
+                        bbox=element.bbox,
+                        block_type=element.block_type,
+                        confidence=element.confidence,
+                        page_num=element.page_num,
+                        id=element.id
+                    )
+                    final_translated_blocks.append(translated_block)
+                    successfully_translated.append(element)
+                else:
+                    # Failure: add to the list for the next retry
+                    still_untranslated.append(element)
+            if still_untranslated:
+                self.logger.warning(f"{len(still_untranslated)} segments failed to translate on attempt {i+1}.")
+                untranslated_elements = still_untranslated # This becomes the list for the next loop
+            else:
+                untranslated_elements = [] # All done
+        # After the loop, handle any elements that permanently failed
+        for element in untranslated_elements:
+            self.logger.error(f"Permanently failed to translate segment ID {element.id} after {retries+1} attempts. Using original text.")
+            final_translated_blocks.append(element) # Add the original english block
+        # Add back the excluded elements
+        all_blocks = final_translated_blocks + excluded_elements
+        # Sort all blocks by their original position
+        all_blocks.sort(key=lambda b: (b.page_num, b.bbox[1], b.bbox[0]))
+        return ProcessingResult(data=all_blocks, strategy_used="direct_text_with_retry")
 
 
 class MinimalGraphBuilder:

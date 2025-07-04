@@ -1,0 +1,11 @@
+# requirements.txt
+google-generativeai
+python-dotenv
+pymupdf
+torch
+torchvision
+ultralytics
+fastapi
+uvicorn
+numpy
+Pillow 
