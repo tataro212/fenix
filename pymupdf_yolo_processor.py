@@ -46,6 +46,14 @@ except ImportError:
 # All data structures are now imported from the single source of truth.
 from models import PageModel, ElementModel, BoundingBox, ElementType
 
+# Import the new Digital Twin model for enhanced functionality
+from digital_twin_model import (
+    DocumentModel, PageModel as DigitalTwinPageModel, 
+    TextBlock as DigitalTwinTextBlock, ImageBlock as DigitalTwinImageBlock, 
+    TableBlock as DigitalTwinTableBlock, TOCEntry, BlockType, StructuralRole,
+    create_text_block, create_image_block, create_table_block
+)
+
 logger = logging.getLogger(__name__)
 
 class ContentType(Enum):
@@ -771,4 +779,475 @@ class PyMuPDFYOLOProcessor:
                 'text', 'title', 'paragraph', 'list', 'table', 
                 'figure', 'caption', 'quote', 'footnote', 'equation'
             ]
-        } 
+        }
+    
+    async def process_page_digital_twin(self, pdf_path: str, page_num: int, 
+                                      output_dir: str) -> DigitalTwinPageModel:
+        """
+        Enhanced page processing that creates a Digital Twin representation
+        with proper image extraction, saving, and structured content preservation.
+        
+        This implements the user's "Digital Twin" vision by:
+        1. Extracting all content with precise coordinates
+        2. Saving images to designated output directory
+        3. Creating structured blocks with proper linking
+        4. Preserving spatial relationships and metadata
+        """
+        start_time = time.time()
+        
+        try:
+            # Open document and get page
+            doc = fitz.open(pdf_path)
+            page = doc[page_num]
+            page_width, page_height = page.rect.width, page.rect.height
+            
+            # Create output directory for images if it doesn't exist
+            images_dir = os.path.join(output_dir, "images")
+            os.makedirs(images_dir, exist_ok=True)
+            
+            # Initialize Digital Twin page model
+            digital_twin_page = DigitalTwinPageModel(
+                page_number=page_num + 1,  # 1-based numbering
+                dimensions=(page_width, page_height),
+                page_metadata={
+                    'source_file': pdf_path,
+                    'extraction_method': 'pymupdf_yolo_digital_twin',
+                    'processing_timestamp': time.time()
+                },
+                processing_strategy='digital_twin'
+            )
+            
+            # Extract text blocks with enhanced metadata
+            raw_text_blocks = self.content_extractor.extract_text_blocks(page)
+            
+            # Convert to Digital Twin text blocks
+            text_block_id = 0
+            for text_block in raw_text_blocks:
+                text_block_id += 1
+                
+                # Determine block type based on content analysis
+                block_type = self._classify_text_block_type(text_block)
+                structural_role = self._determine_structural_role(text_block, block_type)
+                
+                # Create Digital Twin text block
+                dt_text_block = create_text_block(
+                    block_id=f"text_{page_num + 1}_{text_block_id}",
+                    text=text_block.text,
+                    bbox=text_block.bbox,
+                    page_number=page_num + 1,
+                    block_type=block_type,
+                    structural_role=structural_role,
+                    font_family=text_block.font_family,
+                    font_size=text_block.font_size,
+                    confidence=text_block.confidence,
+                    extraction_method='pymupdf'
+                )
+                
+                digital_twin_page.add_block(dt_text_block)
+            
+            # Extract and save images with proper linking
+            raw_image_blocks = self.content_extractor.extract_images(page)
+            
+            image_block_id = 0
+            for image_block in raw_image_blocks:
+                image_block_id += 1
+                
+                try:
+                    # Extract and save the actual image
+                    image_path = self._extract_and_save_image(
+                        page, image_block, images_dir, page_num, image_block_id
+                    )
+                    
+                    if image_path:
+                        # Create Digital Twin image block with proper file linking
+                        dt_image_block = create_image_block(
+                            block_id=f"image_{page_num + 1}_{image_block_id}",
+                            image_path=image_path,
+                            bbox=image_block.bbox,
+                            page_number=page_num + 1,
+                            structural_role=StructuralRole.ILLUSTRATION,
+                            extraction_method='pymupdf',
+                            image_format='png',
+                            processing_notes=[f"Extracted from page {page_num + 1}"]
+                        )
+                        
+                        digital_twin_page.add_block(dt_image_block)
+                        
+                        self.logger.info(f"📸 Saved image: {image_path}")
+                        
+                except Exception as e:
+                    self.logger.warning(f"Failed to extract image {image_block_id} from page {page_num + 1}: {e}")
+                    continue
+            
+            # Apply YOLO analysis for mixed content if needed
+            if not self._quick_content_scan(page):
+                self.logger.info(f"🎯 Applying YOLO analysis for mixed content on page {page_num + 1}")
+                
+                # Render page for YOLO analysis
+                pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                page_image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
+                
+                # Analyze layout with YOLO
+                layout_areas = self.layout_analyzer.analyze_layout(page_image)
+                layout_areas = self._prune_and_merge_layout_areas(layout_areas)
+                
+                # Enhance blocks with YOLO-detected structure
+                self._enhance_blocks_with_yolo_structure(digital_twin_page, layout_areas)
+            
+            # Record processing time
+            processing_time = time.time() - start_time
+            digital_twin_page.extraction_time = processing_time
+            
+            self.logger.info(f"✅ Digital Twin processing completed for page {page_num + 1} in {processing_time:.3f}s")
+            self.logger.info(f"   Text blocks: {len(digital_twin_page.text_blocks)}")
+            self.logger.info(f"   Image blocks: {len(digital_twin_page.image_blocks)}")
+            
+            doc.close()
+            return digital_twin_page
+            
+        except Exception as e:
+            self.logger.error(f"❌ Digital Twin processing failed for page {page_num + 1}: {e}", exc_info=True)
+            
+            # Return minimal page model with error information
+            error_page = DigitalTwinPageModel(
+                page_number=page_num + 1,
+                dimensions=(0.0, 0.0),
+                page_metadata={'error': str(e), 'processing_failed': True}
+            )
+            
+            if 'doc' in locals():
+                doc.close()
+            
+            return error_page
+    
+    def _extract_and_save_image(self, page: fitz.Page, image_block: ImageBlock, 
+                               images_dir: str, page_num: int, image_id: int) -> Optional[str]:
+        """
+        Extract and save image to filesystem as required by Digital Twin model.
+        
+        This implements the user's requirement for proper image file linking
+        between the extractor and generator.
+        """
+        try:
+            # Get image list and find the specific image
+            images = page.get_images(full=True)
+            if image_id - 1 >= len(images):
+                self.logger.warning(f"Image index {image_id} out of range for page {page_num + 1}")
+                return None
+            
+            img_info = images[image_id - 1]
+            xref = img_info[0]
+            
+            # Extract image data
+            base_image = page.parent.extract_image(xref)
+            image_bytes = base_image["image"]
+            image_ext = base_image["ext"]
+            
+            # Generate safe filename
+            filename = f"page_{page_num + 1}_image_{image_id}.{image_ext}"
+            image_path = os.path.join(images_dir, filename)
+            
+            # Save image to file
+            with open(image_path, "wb") as img_file:
+                img_file.write(image_bytes)
+            
+            # Return relative path for portability
+            return os.path.relpath(image_path)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to extract and save image: {e}")
+            return None
+    
+    def _classify_text_block_type(self, text_block: TextBlock) -> BlockType:
+        """
+        Classify text block type based on content and formatting analysis.
+        
+        This implements intelligent block type detection to support
+        proper document structure reconstruction.
+        """
+        text = text_block.text.strip()
+        font_size = text_block.font_size
+        
+        # Title detection (large font, short text, capitalized)
+        if font_size > 16 and len(text) < 100 and text.isupper():
+            return BlockType.TITLE
+        
+        # Heading detection (larger font, sentence case, ends with colon or period)
+        elif font_size > 14 and len(text) < 200 and (text.endswith(':') or text.endswith('.')):
+            return BlockType.HEADING
+        
+        # List item detection (starts with bullet or number)
+        elif text.startswith(('•', '▪', '◦', '-')) or (len(text.split('.', 1)) == 2 and text.split('.', 1)[0].isdigit()):
+            return BlockType.LIST_ITEM
+        
+        # Caption detection (starts with "Figure", "Table", "Chart")
+        elif any(text.lower().startswith(word) for word in ['figure', 'table', 'chart', 'diagram']):
+            return BlockType.CAPTION
+        
+        # Footnote detection (small font, starts with number or symbol)
+        elif font_size < 10 and (text.startswith(('*', '†', '‡')) or (text[0].isdigit() and text[1] in '.):')):
+            return BlockType.FOOTNOTE
+        
+        # Quote detection (indented or starts with quote marks)
+        elif text.startswith(('"', '"', '«', '„')) or 'quote' in text.lower():
+            return BlockType.QUOTE
+        
+        # Default to paragraph
+        else:
+            return BlockType.PARAGRAPH
+    
+    def _determine_structural_role(self, text_block: TextBlock, block_type: BlockType) -> StructuralRole:
+        """Determine the structural role of a text block in the document"""
+        
+        if block_type in [BlockType.HEADING, BlockType.TITLE]:
+            return StructuralRole.NAVIGATION
+        elif block_type == BlockType.CAPTION:
+            return StructuralRole.ILLUSTRATION
+        elif block_type == BlockType.FOOTNOTE:
+            return StructuralRole.ANNOTATION
+        elif block_type in [BlockType.HEADER, BlockType.FOOTER]:
+            return StructuralRole.METADATA
+        else:
+            return StructuralRole.CONTENT
+    
+    def _enhance_blocks_with_yolo_structure(self, page_model: DigitalTwinPageModel, 
+                                          layout_areas: List[LayoutArea]) -> None:
+        """
+        Enhance existing text blocks with YOLO-detected structural information.
+        
+        This refines block classification using YOLO's layout analysis while
+        preserving the high-quality PyMuPDF text extraction.
+        """
+        for layout_area in layout_areas:
+            # Find overlapping text blocks
+            overlapping_blocks = []
+            for text_block in page_model.text_blocks:
+                if self._bbox_overlaps(text_block.bbox, layout_area.bbox):
+                    overlapping_blocks.append(text_block)
+            
+            # Update block types based on YOLO detection
+            if overlapping_blocks and layout_area.label in ['title', 'heading', 'table', 'figure']:
+                for block in overlapping_blocks:
+                    # Refine block type if YOLO provides better classification
+                    if layout_area.label == 'title':
+                        block.block_type = BlockType.TITLE
+                    elif layout_area.label == 'heading':
+                        block.block_type = BlockType.HEADING
+                    
+                    # Add YOLO confidence as processing note
+                    block.processing_notes.append(
+                        f"YOLO classification: {layout_area.label} (conf: {layout_area.confidence:.3f})"
+                    )
+        
+        self.logger.info(f"Enhanced {len(page_model.text_blocks)} text blocks with YOLO structure")
+    
+    def _bbox_overlaps(self, bbox1: Tuple[float, float, float, float], 
+                      bbox2: Tuple[float, float, float, float], 
+                      threshold: float = 0.3) -> bool:
+        """Check if two bounding boxes overlap with a given threshold"""
+        x1_1, y1_1, x2_1, y2_1 = bbox1
+        x1_2, y1_2, x2_2, y2_2 = bbox2
+        
+        # Calculate intersection area
+        intersection_x1 = max(x1_1, x1_2)
+        intersection_y1 = max(y1_1, y1_2)
+        intersection_x2 = min(x2_1, x2_2)
+        intersection_y2 = min(y2_1, y2_2)
+        
+        if intersection_x1 >= intersection_x2 or intersection_y1 >= intersection_y2:
+            return False  # No intersection
+        
+        intersection_area = (intersection_x2 - intersection_x1) * (intersection_y2 - intersection_y1)
+        
+        # Calculate area of smaller box
+        area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
+        area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
+        smaller_area = min(area1, area2)
+        
+        # Check if intersection is significant
+        overlap_ratio = intersection_area / smaller_area if smaller_area > 0 else 0
+        return overlap_ratio >= threshold
+    
+    async def process_document_digital_twin(self, pdf_path: str, output_dir: str) -> DocumentModel:
+        """
+        Process entire PDF document and create complete Digital Twin representation.
+        
+        This is the master method that implements the user's complete vision:
+        1. Extract TOC using PyMuPDF's native get_toc() method
+        2. Process all pages with image extraction and structured content
+        3. Create a complete DocumentModel with proper linking
+        4. Preserve document structure and relationships
+        """
+        start_time = time.time()
+        self.logger.info(f"🚀 Starting Digital Twin document processing: {pdf_path}")
+        
+        try:
+            # Open PDF document
+            doc = fitz.open(pdf_path)
+            total_pages = len(doc)
+            
+            # Extract document metadata
+            document_metadata = doc.metadata
+            document_title = document_metadata.get('title', '') or os.path.splitext(os.path.basename(pdf_path))[0]
+            
+            # Create Digital Twin document model
+            digital_twin_doc = DocumentModel(
+                title=document_title,
+                filename=os.path.basename(pdf_path),
+                total_pages=total_pages,
+                document_metadata=document_metadata,
+                source_language='auto-detect',  # Will be updated by translation service
+                extraction_method='pymupdf_yolo_digital_twin'
+            )
+            
+            # Extract Table of Contents using PyMuPDF's native method
+            self.logger.info("📖 Extracting Table of Contents...")
+            toc_entries = self._extract_toc_digital_twin(doc)
+            
+            if toc_entries:
+                digital_twin_doc.toc_entries.extend(toc_entries)
+                self.logger.info(f"✅ Extracted {len(toc_entries)} TOC entries")
+            else:
+                self.logger.info("📝 No TOC found in document")
+            
+            # Process all pages
+            self.logger.info(f"📄 Processing {total_pages} pages...")
+            
+            for page_num in range(total_pages):
+                try:
+                    # Process page using Digital Twin method
+                    digital_twin_page = await self.process_page_digital_twin(
+                        pdf_path, page_num, output_dir
+                    )
+                    
+                    # Add page to document
+                    digital_twin_doc.add_page(digital_twin_page)
+                    
+                    self.logger.info(f"✅ Processed page {page_num + 1}/{total_pages}")
+                    
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to process page {page_num + 1}: {e}")
+                    # Create error page to maintain document integrity
+                    error_page = DigitalTwinPageModel(
+                        page_number=page_num + 1,
+                        dimensions=(0.0, 0.0),
+                        page_metadata={'error': str(e), 'processing_failed': True}
+                    )
+                    digital_twin_doc.add_page(error_page)
+            
+            # Finalize document processing
+            processing_time = time.time() - start_time
+            digital_twin_doc.processing_time = processing_time
+            
+            # Validate document structure
+            validation_issues = digital_twin_doc.validate_structure()
+            if validation_issues:
+                self.logger.warning(f"⚠️ Document validation issues found: {len(validation_issues)}")
+                for issue in validation_issues:
+                    self.logger.warning(f"   - {issue}")
+            
+            # Log final statistics
+            stats = digital_twin_doc.get_statistics()
+            self.logger.info(f"🎉 Digital Twin document processing completed in {processing_time:.3f}s")
+            self.logger.info(f"   📊 Document Statistics:")
+            self.logger.info(f"      - Total pages: {stats['total_pages']}")
+            self.logger.info(f"      - Text blocks: {stats['total_text_blocks']}")
+            self.logger.info(f"      - Image blocks: {stats['total_image_blocks']}")
+            self.logger.info(f"      - Table blocks: {stats['total_tables']}")
+            self.logger.info(f"      - TOC entries: {stats['total_toc_entries']}")
+            self.logger.info(f"      - Total words: {stats['total_words']}")
+            
+            doc.close()
+            return digital_twin_doc
+            
+        except Exception as e:
+            self.logger.error(f"❌ Digital Twin document processing failed: {e}", exc_info=True)
+            
+            # Create minimal document with error information
+            error_doc = DocumentModel(
+                title="Processing Failed",
+                filename=os.path.basename(pdf_path),
+                total_pages=0,
+                document_metadata={'error': str(e), 'processing_failed': True}
+            )
+            
+            if 'doc' in locals():
+                doc.close()
+            
+            return error_doc
+    
+    def _extract_toc_digital_twin(self, doc: fitz.Document) -> List[TOCEntry]:
+        """
+        Extract Table of Contents using PyMuPDF's native get_toc() method.
+        
+        This implements the user's requirement for structured TOC handling
+        rather than treating TOC as plain text.
+        """
+        try:
+            # Get TOC from PyMuPDF
+            raw_toc = doc.get_toc()
+            
+            if not raw_toc:
+                return []
+            
+            toc_entries = []
+            entry_id = 0
+            
+            for toc_item in raw_toc:
+                entry_id += 1
+                
+                # Parse TOC item: [level, title, page_number, dest_dict]
+                level = toc_item[0]
+                title = toc_item[1].strip()
+                page_number = toc_item[2]
+                
+                # Create TOC entry with Digital Twin model
+                toc_entry = TOCEntry(
+                    entry_id=f"toc_{entry_id}",
+                    title=title,
+                    original_title=title,  # Will be used for translation mapping
+                    level=level,
+                    page_number=page_number,
+                    anchor_id=f"toc_anchor_{entry_id}"
+                )
+                
+                toc_entries.append(toc_entry)
+                
+                self.logger.debug(f"TOC Entry: Level {level}, Page {page_number}, Title: {title[:50]}...")
+            
+            # Build hierarchical relationships
+            self._build_toc_hierarchy(toc_entries)
+            
+            return toc_entries
+            
+        except Exception as e:
+            self.logger.error(f"Failed to extract TOC: {e}")
+            return []
+    
+    def _build_toc_hierarchy(self, toc_entries: List[TOCEntry]) -> None:
+        """
+        Build parent-child relationships in TOC entries based on hierarchical levels.
+        
+        This creates proper navigation structure for the Digital Twin model.
+        """
+        if not toc_entries:
+            return
+        
+        # Stack to track parent entries at each level
+        parent_stack = []
+        
+        for entry in toc_entries:
+            # Remove parents that are at the same or deeper level
+            while parent_stack and parent_stack[-1].level >= entry.level:
+                parent_stack.pop()
+            
+            # Set parent relationship if there's a parent in the stack
+            if parent_stack:
+                parent_entry = parent_stack[-1]
+                entry.parent_entry_id = parent_entry.entry_id
+                parent_entry.children_ids.append(entry.entry_id)
+            
+            # Add current entry to stack
+            parent_stack.append(entry)
+        
+        self.logger.info(f"Built hierarchical TOC structure with {len(toc_entries)} entries") 

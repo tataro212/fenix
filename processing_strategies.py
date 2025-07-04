@@ -36,6 +36,15 @@ except ImportError:
     DOCUMENT_MODEL_AVAILABLE = False
     logger.warning("Document model not available")
 
+# Import Digital Twin model and enhanced processor
+try:
+    from digital_twin_model import DocumentModel, PageModel as DigitalTwinPageModel, TextBlock as DigitalTwinTextBlock, BlockType, StructuralRole
+    from pymupdf_yolo_processor import PyMuPDFYOLOProcessor
+    DIGITAL_TWIN_AVAILABLE = True
+except ImportError:
+    DIGITAL_TWIN_AVAILABLE = False
+    logger.warning("Digital Twin model or enhanced processor not available")
+
 logger = logging.getLogger(__name__)
 
 
@@ -1047,15 +1056,45 @@ class ProcessingStrategyExecutor:
         self.minimal_graph_builder = MinimalGraphBuilder(gemini_service)
         self.comprehensive_graph_builder = ComprehensiveGraphBuilder(gemini_service)
         
+        # Initialize Digital Twin processor if available
+        if DIGITAL_TWIN_AVAILABLE:
+            self.digital_twin_processor = PyMuPDFYOLOProcessor()
+            self.logger.info("✅ Digital Twin processor initialized")
+        else:
+            self.digital_twin_processor = None
+            self.logger.warning("⚠️ Digital Twin processor not available")
+        
         self.performance_stats = {
             'pure_text_fast': {'total_time': 0.0, 'count': 0},
             'coordinate_based_extraction': {'total_time': 0.0, 'count': 0},
             'direct_text': {'total_time': 0.0, 'count': 0},
             'minimal_graph': {'total_time': 0.0, 'count': 0},
-            'comprehensive_graph': {'total_time': 0.0, 'count': 0}
+            'comprehensive_graph': {'total_time': 0.0, 'count': 0},
+            'digital_twin': {'total_time': 0.0, 'count': 0}
         }
         
         self.logger.info("🔧 Processing Strategy Executor initialized")
+    
+    async def cleanup(self):
+        """Cleanup all processing components and services"""
+        try:
+            self.logger.debug("🧹 Cleaning up Processing Strategy Executor...")
+            
+            # Cleanup Gemini service if available
+            if self.gemini_service and hasattr(self.gemini_service, 'cleanup'):
+                await self.gemini_service.cleanup()
+            
+            # Clear references to prevent memory leaks
+            self.digital_twin_processor = None
+            self.direct_text_processor = None
+            self.table_processor = None
+            self.minimal_graph_builder = None
+            self.comprehensive_graph_builder = None
+            
+            self.logger.debug("✅ Processing Strategy Executor cleanup completed")
+            
+        except Exception as e:
+            self.logger.debug(f"⚠️ Cleanup warning (non-critical): {e}")
     
     async def execute_strategy(self, processing_result: Dict[str, Any], 
                              target_language: str = 'en') -> ProcessingResult:
@@ -1093,6 +1132,8 @@ class ProcessingStrategyExecutor:
                 result = await self._process_minimal_graph(mapped_content, target_language)
             elif strategy_name == 'comprehensive_graph':
                 result = await self._process_comprehensive_graph(processing_result, target_language)
+            elif strategy_name == 'digital_twin':
+                result = await self._process_digital_twin(processing_result, target_language)
             else:
                 raise ValueError(f"Unknown strategy: {strategy_name}")
             
@@ -1525,6 +1566,239 @@ class ProcessingStrategyExecutor:
                 'best_for': 'Visual-heavy documents'
             }
         }
+
+    async def execute_strategy_digital_twin(self, pdf_path: str, output_dir: str, 
+                                          target_language: str = 'en') -> ProcessingResult:
+        """
+        Execute complete Digital Twin document processing strategy.
+        
+        This is the master method for Digital Twin processing that:
+        1. Processes entire PDF using enhanced PyMuPDF-YOLO processor
+        2. Creates complete Digital Twin representation with images and TOC
+        3. Applies translation to all translatable blocks
+        4. Returns processed document ready for reconstruction
+        """
+        if not DIGITAL_TWIN_AVAILABLE or not self.digital_twin_processor:
+            raise RuntimeError("Digital Twin processing not available")
+        
+        start_time = time.time()
+        
+        try:
+            self.logger.info(f"🚀 Starting Digital Twin strategy execution for: {pdf_path}")
+            
+            # Step 1: Process entire document with Digital Twin processor
+            self.logger.info("📖 Processing document with Digital Twin model...")
+            digital_twin_doc = await self.digital_twin_processor.process_document_digital_twin(
+                pdf_path, output_dir
+            )
+            
+            if not digital_twin_doc or digital_twin_doc.total_pages == 0:
+                raise RuntimeError("Digital Twin document processing failed or returned empty document")
+            
+            # Step 2: Apply translation to all translatable blocks
+            if self.gemini_service and target_language != 'en':
+                self.logger.info(f"🌐 Translating Digital Twin document to {target_language}...")
+                translated_doc = await self._translate_digital_twin_document(digital_twin_doc, target_language)
+            else:
+                self.logger.info("⏭️ Skipping translation (no service or target is English)")
+                translated_doc = digital_twin_doc
+            
+            # Step 3: Package results
+            processing_time = time.time() - start_time
+            self.performance_stats['digital_twin']['total_time'] += processing_time
+            self.performance_stats['digital_twin']['count'] += 1
+            
+            # Create comprehensive statistics
+            doc_stats = translated_doc.get_statistics()
+            
+            self.logger.info(f"✅ Digital Twin strategy completed in {processing_time:.3f}s")
+            self.logger.info(f"   📊 Final Statistics:")
+            for key, value in doc_stats.items():
+                self.logger.info(f"      - {key}: {value}")
+            
+            return ProcessingResult(
+                success=True,
+                strategy='digital_twin',
+                processing_time=processing_time,
+                content={
+                    'digital_twin_document': translated_doc,
+                    'document_statistics': doc_stats,
+                    'processing_metadata': {
+                        'pdf_path': pdf_path,
+                        'output_dir': output_dir,
+                        'target_language': target_language,
+                        'translation_applied': target_language != 'en' and self.gemini_service is not None
+                    }
+                },
+                statistics={
+                    'total_pages': doc_stats['total_pages'],
+                    'total_text_blocks': doc_stats['total_text_blocks'],
+                    'total_image_blocks': doc_stats['total_image_blocks'],
+                    'total_tables': doc_stats['total_tables'],
+                    'total_toc_entries': doc_stats['total_toc_entries'],
+                    'translated_blocks': doc_stats['translated_blocks'],
+                    'processing_time': processing_time,
+                    'extraction_method': doc_stats['extraction_method']
+                }
+            )
+            
+        except Exception as e:
+            processing_time = time.time() - start_time
+            self.logger.error(f"❌ Digital Twin strategy execution failed: {e}", exc_info=True)
+            
+            return ProcessingResult(
+                success=False,
+                strategy='digital_twin',
+                processing_time=processing_time,
+                content={},
+                statistics={},
+                error=str(e)
+            )
+    
+    async def _translate_digital_twin_document(self, digital_twin_doc: DocumentModel, 
+                                             target_language: str) -> DocumentModel:
+        """
+        Apply translation to all translatable blocks in a Digital Twin document.
+        
+        This method integrates the existing robust translation logic with
+        the new Digital Twin model structure.
+        """
+        try:
+            # Get all translatable text blocks
+            translatable_blocks = digital_twin_doc.get_translatable_blocks()
+            
+            if not translatable_blocks:
+                self.logger.warning("No translatable blocks found in Digital Twin document")
+                return digital_twin_doc
+            
+            self.logger.info(f"📝 Translating {len(translatable_blocks)} text blocks...")
+            
+            # Convert Digital Twin blocks to format expected by direct text processor
+            text_elements = []
+            for block in translatable_blocks:
+                text_elements.append({
+                    'text': block.original_text,
+                    'bbox': block.bbox,
+                    'label': block.block_type.value,
+                    'confidence': block.confidence or 1.0,
+                    'block_id': block.block_id,
+                    'structural_role': block.structural_role.value
+                })
+            
+            # Apply robust translation using existing DirectTextProcessor
+            translated_blocks = await self.direct_text_processor.translate_direct_text(
+                text_elements, target_language
+            )
+            
+            # Map translations back to Digital Twin blocks
+            translated_count = 0
+            for i, translated_block in enumerate(translated_blocks):
+                if i < len(translatable_blocks):
+                    original_block = translatable_blocks[i]
+                    original_block.translated_text = translated_block.get('text', original_block.original_text)
+                    
+                    # Add translation metadata
+                    original_block.processing_notes.append(
+                        f"Translated to {target_language} using robust tag-based method"
+                    )
+                    
+                    translated_count += 1
+            
+            # Translate TOC entries
+            if digital_twin_doc.toc_entries:
+                await self._translate_toc_entries(digital_twin_doc.toc_entries, target_language)
+            
+            # Update document metadata
+            digital_twin_doc.target_language = target_language
+            digital_twin_doc.translation_status = 'completed'
+            
+            self.logger.info(f"✅ Translation completed: {translated_count} blocks translated")
+            
+            return digital_twin_doc
+            
+        except Exception as e:
+            self.logger.error(f"❌ Digital Twin document translation failed: {e}")
+            # Return original document with error noted
+            digital_twin_doc.translation_status = 'failed'
+            digital_twin_doc.document_metadata['translation_error'] = str(e)
+            return digital_twin_doc
+    
+    async def _translate_toc_entries(self, toc_entries: List, target_language: str) -> None:
+        """Translate TOC entries while preserving structure"""
+        try:
+            if not toc_entries:
+                return
+            
+            # Extract titles for translation
+            titles_to_translate = [entry.title for entry in toc_entries]
+            
+            # Create batch translation request
+            combined_text = '\n'.join([f'<seg id="{i}">{title}</seg>' for i, title in enumerate(titles_to_translate)])
+            
+            # Translate using Gemini service
+            translated_response = await self.gemini_service.translate_text(combined_text, target_language)
+            
+            # Parse translations
+            translated_segments = self.direct_text_processor._parse_and_reconstruct_translation(translated_response)
+            
+            # Map back to TOC entries
+            for i, entry in enumerate(toc_entries):
+                if str(i) in translated_segments:
+                    entry.translated_title = translated_segments[str(i)]
+                else:
+                    entry.translated_title = entry.title  # Fallback to original
+            
+            self.logger.info(f"✅ Translated {len(toc_entries)} TOC entries")
+            
+        except Exception as e:
+            self.logger.error(f"❌ TOC translation failed: {e}")
+            # Ensure all entries have fallback translations
+            for entry in toc_entries:
+                if not entry.translated_title:
+                    entry.translated_title = entry.title
+    
+    async def _process_digital_twin(self, processing_result: Dict[str, Any], 
+                                  target_language: str) -> ProcessingResult:
+        """
+        Process Digital Twin data when it's provided as part of the standard strategy pipeline.
+        
+        This method bridges the gap between the old pipeline format and the new Digital Twin approach.
+        """
+        try:
+            # Extract Digital Twin document if available
+            digital_twin_doc = processing_result.get('digital_twin_document')
+            
+            if not digital_twin_doc:
+                raise ValueError("No Digital Twin document found in processing result")
+            
+            # Apply translation if needed
+            if self.gemini_service and target_language != 'en':
+                translated_doc = await self._translate_digital_twin_document(digital_twin_doc, target_language)
+            else:
+                translated_doc = digital_twin_doc
+            
+            # Return in standard ProcessingResult format
+            doc_stats = translated_doc.get_statistics()
+            
+            return ProcessingResult(
+                success=True,
+                strategy='digital_twin',
+                processing_time=processing_result.get('processing_time', 0.0),
+                content={'digital_twin_document': translated_doc},
+                statistics=doc_stats
+            )
+            
+        except Exception as e:
+            self.logger.error(f"❌ Digital Twin processing failed: {e}")
+            
+            return ProcessingResult(
+                success=False,
+                strategy='digital_twin',
+                processing_time=0.0,
+                content={},
+                statistics={},
+                error=str(e)
+            )
 
 def _dict_to_layout_area(d):
     if isinstance(d, LayoutArea):

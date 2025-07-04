@@ -31,10 +31,47 @@ class GeminiService:
         model_name = self.settings.get('model_name', 'models/gemini-1.5-flash')
         self.model = genai.GenerativeModel(model_name)
         
+        # Track if cleanup has been called
+        self._cleaned_up = False
+        
         logger.info(f"🚀 Gemini service initialized with model: {model_name}")
+    
+    async def cleanup(self):
+        """Cleanup Gemini service and gRPC connections to prevent shutdown errors"""
+        if self._cleaned_up:
+            return
+            
+        try:
+            logger.debug("🧹 Cleaning up Gemini service...")
+            
+            # Clear the model reference
+            self.model = None
+            
+            # Give gRPC time to complete any pending operations
+            await asyncio.sleep(0.1)
+            
+            # Mark as cleaned up
+            self._cleaned_up = True
+            
+            logger.debug("✅ Gemini service cleanup completed")
+            
+        except Exception as e:
+            logger.debug(f"⚠️ Gemini cleanup warning (non-critical): {e}")
+    
+    def __del__(self):
+        """Destructor to ensure cleanup"""
+        if not self._cleaned_up:
+            # Can't call async cleanup from __del__, but we can at least clear references
+            self.model = None
+            self._cleaned_up = True
     
     async def translate_text(self, text: str, target_language: str, timeout: float = None) -> str:
         """Translate text using Gemini API with enhanced word boundary preservation, adaptive timeout, and exponential backoff."""
+        # Check if service has been cleaned up
+        if self._cleaned_up or self.model is None:
+            logger.warning("⚠️ Gemini service has been cleaned up, returning original text")
+            return text
+            
         max_retries = 3
         try:
             # Get timeout from config or use adaptive timeout based on text length
