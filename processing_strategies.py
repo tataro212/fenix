@@ -50,6 +50,208 @@ class ProcessingResult:
     error: Optional[str] = None
 
 
+class TableProcessor:
+    """Process and translate detected tables using structured approach"""
+    
+    def __init__(self, gemini_service=None):
+        self.logger = logging.getLogger(__name__)
+        self.gemini_service = gemini_service
+        self.logger.info("🔧 Table Processor initialized")
+    
+    def parse_table_structure(self, mapped_content_area: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Parse text blocks and coordinates to reconstruct table grid structure.
+        
+        This method analyzes the spatial distribution of text blocks to infer
+        the table's row and column structure.
+        """
+        try:
+            text_blocks = mapped_content_area.get('text_blocks', [])
+            if not text_blocks:
+                return {'rows': [], 'header_row': None, 'error': 'No text blocks found'}
+            
+            # Sort text blocks by vertical position (top to bottom)
+            sorted_blocks = sorted(text_blocks, key=lambda b: b.bbox[1] if hasattr(b, 'bbox') else 0)
+            
+            # Group blocks into rows based on Y-coordinate proximity
+            rows = []
+            current_row = []
+            current_y = None
+            y_tolerance = 10  # Points tolerance for same row
+            
+            for block in sorted_blocks:
+                block_y = block.bbox[1] if hasattr(block, 'bbox') else 0
+                
+                if current_y is None or abs(block_y - current_y) <= y_tolerance:
+                    # Same row
+                    current_row.append(block)
+                    current_y = block_y
+                else:
+                    # New row
+                    if current_row:
+                        rows.append(current_row)
+                    current_row = [block]
+                    current_y = block_y
+            
+            # Don't forget the last row
+            if current_row:
+                rows.append(current_row)
+            
+            # Sort blocks within each row by X-coordinate (left to right)
+            for row in rows:
+                row.sort(key=lambda b: b.bbox[0] if hasattr(b, 'bbox') else 0)
+            
+            # Extract text content for each cell
+            table_grid = []
+            header_row = None
+            
+            for i, row in enumerate(rows):
+                row_cells = []
+                for block in row:
+                    cell_text = block.text if hasattr(block, 'text') else str(block)
+                    row_cells.append(cell_text.strip())
+                
+                if i == 0 and len(rows) > 1:
+                    # First row might be header
+                    header_row = row_cells
+                
+                table_grid.append(row_cells)
+            
+            self.logger.info(f"📊 Parsed table structure: {len(table_grid)} rows, {len(table_grid[0]) if table_grid else 0} columns")
+            
+            return {
+                'rows': table_grid,
+                'header_row': header_row,
+                'num_rows': len(table_grid),
+                'num_cols': len(table_grid[0]) if table_grid else 0
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to parse table structure: {e}")
+            return {'rows': [], 'header_row': None, 'error': str(e)}
+    
+    async def translate_table(self, table_structure: Dict[str, Any], target_language: str) -> Dict[str, Any]:
+        """
+        Translate table by serializing to Markdown format and using robust translation.
+        
+        As per Directive: Uses single string to leverage existing robust translation logic,
+        rather than translating cell by cell.
+        """
+        try:
+            rows = table_structure.get('rows', [])
+            if not rows:
+                return {'translated_rows': [], 'error': 'No table rows to translate'}
+            
+            # Serialize table to Markdown format
+            markdown_table = self._serialize_table_to_markdown(rows)
+            
+            if not markdown_table.strip():
+                return {'translated_rows': [], 'error': 'Empty table content'}
+            
+            self.logger.info(f"📝 Serialized table to Markdown ({len(markdown_table)} chars)")
+            
+            # Translate the entire table as a single string
+            if self.gemini_service:
+                translated_markdown = await self.gemini_service.translate_text(
+                    markdown_table, target_language
+                )
+            else:
+                # Mock translation for testing
+                translated_markdown = f"[TRANSLATED_TO_{target_language.upper()}] {markdown_table}"
+            
+            # Parse translated Markdown back to table structure
+            translated_rows = self._parse_markdown_to_table(translated_markdown)
+            
+            self.logger.info(f"✅ Table translation completed: {len(translated_rows)} rows")
+            
+            return {
+                'translated_rows': translated_rows,
+                'original_markdown': markdown_table,
+                'translated_markdown': translated_markdown
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Table translation failed: {e}")
+            return {'translated_rows': [], 'error': str(e)}
+    
+    def _serialize_table_to_markdown(self, rows: List[List[str]]) -> str:
+        """Convert table rows to Markdown table format"""
+        if not rows:
+            return ""
+        
+        markdown_lines = []
+        
+        for i, row in enumerate(rows):
+            # Clean and escape cell content
+            cleaned_cells = [cell.replace('|', '\\|').replace('\n', ' ').strip() for cell in row]
+            
+            # Create table row
+            row_markdown = "| " + " | ".join(cleaned_cells) + " |"
+            markdown_lines.append(row_markdown)
+            
+            # Add header separator after first row
+            if i == 0 and len(rows) > 1:
+                separator = "| " + " | ".join(["---"] * len(cleaned_cells)) + " |"
+                markdown_lines.append(separator)
+        
+        return "\n".join(markdown_lines)
+    
+    def _parse_markdown_to_table(self, markdown_text: str) -> List[List[str]]:
+        """Parse translated Markdown back to table structure"""
+        try:
+            # Extract table lines from the markdown text (handle LLM chatter)
+            lines = [line.strip() for line in markdown_text.split('\n') if line.strip()]
+            table_lines = []
+            
+            # Find lines that look like table rows
+            for line in lines:
+                if line.startswith('|') and line.endswith('|') and line.count('|') >= 2:
+                    table_lines.append(line)
+            
+            if not table_lines:
+                self.logger.warning("No table lines found in markdown text")
+                return []
+            
+            table_rows = []
+            
+            for line in table_lines:
+                # Skip header separator lines (contains only |, -, :, and spaces)
+                if all(c in '|-: ' for c in line):
+                    continue
+                
+                # Parse table row - remove leading/trailing pipes and split
+                cells = [cell.strip() for cell in line[1:-1].split('|')]
+                
+                # Clean translation artifacts from cells
+                cleaned_cells = []
+                for cell in cells:
+                    cleaned_cell = cell.replace('\\|', '|')  # Unescape pipes
+                    
+                    # Remove translation markers for cleaner output
+                    if '[TRANSLATED_TO_' in cleaned_cell:
+                        # Extract the actual content after the marker
+                        parts = cleaned_cell.split('] ', 1)
+                        if len(parts) > 1:
+                            cleaned_cell = parts[1]
+                        else:
+                            # Fallback: remove the marker completely
+                            import re
+                            cleaned_cell = re.sub(r'\[TRANSLATED_TO_[^\]]*\]\s*', '', cleaned_cell)
+                    
+                    cleaned_cells.append(cleaned_cell.strip())
+                
+                # Only add non-empty rows
+                if cleaned_cells and any(cell.strip() for cell in cleaned_cells):
+                    table_rows.append(cleaned_cells)
+            
+            self.logger.info(f"📋 Parsed {len(table_rows)} rows from translated markdown")
+            return table_rows
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to parse Markdown table: {e}")
+            return []
+
+
 class DirectTextProcessor:
     """Process pure text content directly without any graph overhead"""
     
@@ -60,9 +262,14 @@ class DirectTextProcessor:
     
     def _sanitize_text_for_translation(self, text: str) -> str:
         """
-        Removes known instructional artifacts and system prompts from the text
-        before sending it to the translation API.
+        Enhanced sanitization method as per Sub-Directive B.
+        
+        Aggressively removes academic metadata, system prompts, and common artifacts
+        to ensure clean text is sent for translation.
         """
+        import re
+        
+        # Original instruction artifacts
         instructions_to_remove = [
             "ΣΗΜΑΝΤΙΚΕΣ ΟΔΗΓΙΕΣ:",
             "Κείμενο προς μετάφραση:",
@@ -76,9 +283,54 @@ class DirectTextProcessor:
         for instruction in instructions_to_remove:
             sanitized_text = sanitized_text.replace(instruction, "")
 
-        # Rebuild the text from non-empty lines to collapse whitespace and remove artifact lines.
+        # Enhanced aggressive sanitization patterns (Sub-Directive B)
+        # Note: These patterns are more conservative to avoid removing legitimate content
+        sanitization_patterns = [
+            # Page numbers (specific formats only)
+            (r'\bPage\s+\d+\s+of\s+\d+\b', ''),
+            (r'^-\s*\d+\s*-$', ''),  # Only full line page numbers
+            
+            # In-line citations (more specific)
+            (r'\([A-Za-z]+\s*,?\s*\d{4}\)', ''),  # (Author, 2021) style
+            (r'\[\d{1,3}\]', ''),  # [23] style (numeric only)
+            (r'\b\w+\s+et\s+al\.?\s*\(\d{4}\)', ''),  # Smith et al. (2021)
+            
+            # DOI and URL patterns
+            (r'doi:\s*10\.\d+\/[^\s]+', ''),  # More specific DOI pattern
+            (r'https?://[^\s]+', ''),
+            (r'www\.[^\s]+', ''),
+            
+            # Journal headers/footers patterns (more specific)
+            (r'^Vol\.\s*\d+,?\s*(No\.\s*\d+)?\s*$', ''),  # Volume information (full line only)
+            (r'^ISSN\s+[\d\-]+\s*$', ''),  # ISSN numbers (full line only)
+            (r'^Published\s+by.*$', ''),  # Publisher info (full line only)
+            (r'^Copyright.*\d{4}.*$', ''),  # Copyright notices (full line only)
+            
+            # Academic artifacts (full line only)
+            (r'^Abstract\s*$', ''),
+            (r'^Keywords:\s*.*$', ''),
+            (r'^Received\s+\d+.*$', ''),
+            (r'^Accepted\s+\d+.*$', ''),
+            (r'^Published\s+\d+.*$', ''),
+            
+            # Footer patterns (very specific)
+            (r'^\s*-\s*\d+\s*-\s*$', ''),  # - 19 - style page numbers (full line)
+            (r'^\s*\|\s*\d+\s*\|\s*$', ''),  # | 19 | style page numbers (full line)
+        ]
+        
+        # Apply regex patterns
+        for pattern, replacement in sanitization_patterns:
+            sanitized_text = re.sub(pattern, replacement, sanitized_text, flags=re.MULTILINE | re.IGNORECASE)
+        
+        # Rebuild the text from non-empty lines to collapse whitespace and remove artifact lines
         lines = [line.strip() for line in sanitized_text.split('\n') if line.strip()]
-        return "\n".join(lines)
+        cleaned_text = "\n".join(lines)
+        
+        # Log sanitization if significant content was removed
+        if len(cleaned_text) < len(text) * 0.8:
+            self.logger.info(f"Aggressive sanitization removed {len(text) - len(cleaned_text)} characters")
+        
+        return cleaned_text
     
     def _convert_mapped_content_to_page_content(self, mapped_content: Dict[str, Any], page_number: int = 1) -> PageContent:
         """Convert mapped_content dictionary to structured PageContent object"""
@@ -203,14 +455,50 @@ class DirectTextProcessor:
                 error=str(e)
             )
     
+    def _apply_semantic_filtering(self, text_elements: list[dict]) -> tuple[list[dict], list[dict]]:
+        """
+        Apply semantic filtering as per Sub-Directive B.
+        
+        Separates elements by semantic labels: headers/footers are excluded from translation,
+        while content elements are included.
+        
+        Returns:
+            tuple: (elements_to_translate, excluded_elements)
+        """
+        elements_to_translate = []
+        excluded_elements = []
+        
+        for element in text_elements:
+            semantic_label = element.get('semantic_label') or element.get('label', '')
+            
+            # Exclude headers and footers from translation (Sub-Directive B)
+            if semantic_label.lower() in ['header', 'footer']:
+                excluded_elements.append(element)
+                self.logger.info(f"Excluding {semantic_label} from translation: '{element.get('text', '')[:50]}...'")
+            else:
+                elements_to_translate.append(element)
+        
+        self.logger.info(f"Semantic filtering: {len(elements_to_translate)} elements to translate, {len(excluded_elements)} excluded")
+        return elements_to_translate, excluded_elements
+    
     async def translate_direct_text(self, text_elements: list[dict], target_language: str) -> list[dict]:
         """
         Translates a list of text elements using a robust, tag-based
         reconstruction method to ensure perfect data integrity.
+        
+        Enhanced with semantic filtering as per Sub-Directive B.
         """
         import re
         
-        batches = self._create_batches(text_elements) # Assumes self._create_batches exists
+        # Apply semantic filtering (Sub-Directive B)
+        elements_to_translate, excluded_elements = self._apply_semantic_filtering(text_elements)
+        
+        # If no elements to translate, return original elements
+        if not elements_to_translate:
+            self.logger.warning("No elements to translate after semantic filtering")
+            return text_elements
+        
+        batches = self._create_batches(elements_to_translate)
         all_translated_blocks = []
 
         for i, batch_of_elements in enumerate(batches):
@@ -234,17 +522,45 @@ class DirectTextProcessor:
             # Step 2: Call the translation service.
             translated_blob = await self.gemini_service.translate_text(source_text_for_api, target_language)
 
-            # Step 3: Use a robust regex to parse the translated tags, ignoring LLM chatter.
+            # Step 3: Use hardened response parsing (Sub-Directive A)
             translated_segments = {}
-            pattern = re.compile(r'<p id="(\d+)"\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE)
-            for match in pattern.finditer(translated_blob):
-                p_id = int(match.group(1))
-                content = match.group(2).strip()
-                translated_segments[p_id] = content
+            
+            # Enhanced regex pattern that's more tolerant of LLM variations
+            patterns = [
+                # Standard pattern
+                re.compile(r'<p\s+id\s*=\s*["\'](\d+)["\'](?:\s+[^>]*)?\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE),
+                # Fallback pattern for variations
+                re.compile(r'<p\s+id\s*=\s*(\d+)(?:\s+[^>]*)?\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE),
+                # Basic pattern as last resort
+                re.compile(r'<p id="(\d+)"\s*>\s*(.*?)\s*</p>', re.DOTALL | re.IGNORECASE)
+            ]
+            
+            # Try each pattern until we get matches
+            for pattern in patterns:
+                matches = list(pattern.finditer(translated_blob))
+                if matches:
+                    for match in matches:
+                        try:
+                            p_id = int(match.group(1))
+                            content = match.group(2).strip()
+                            translated_segments[p_id] = content
+                        except (ValueError, IndexError) as e:
+                            self.logger.warning(f"Failed to parse segment from match: {e}")
+                            continue
+                    break
+                    
+            self.logger.info(f"Parsed {len(translated_segments)} segments from {len(original_elements_map)} original elements")
 
-            # Step 4: Reconstruct the final block list, matching by ID.
+            # Step 4: Reconstruct the final block list with graceful fallback (Sub-Directive A)
             for j, original_element in original_elements_map.items():
-                translated_text = translated_segments.get(j, f"[TRANSLATION_ERROR: ID {j} NOT FOUND]")
+                if j in translated_segments:
+                    # Successfully translated
+                    translated_text = translated_segments[j]
+                else:
+                    # Graceful fallback: use original text instead of error marker
+                    self.logger.warning(f"Translation missing for segment ID {j}, using original text")
+                    translated_text = original_element.get('text', '')
+                
                 all_translated_blocks.append({
                     'type': 'text',
                     'text': translated_text,
@@ -252,40 +568,62 @@ class DirectTextProcessor:
                     'bbox': original_element.get('bbox')
                 })
 
-        self.logger.info(f"Tag-based translation completed. Created {len(all_translated_blocks)} blocks.")
-        return all_translated_blocks
+        # Merge translated elements with excluded elements in original order
+        final_blocks = []
+        translated_index = 0
+        
+        for original_element in text_elements:
+            semantic_label = original_element.get('semantic_label') or original_element.get('label', '')
+            
+            if semantic_label.lower() in ['header', 'footer']:
+                # Keep excluded elements as-is (untranslated)
+                final_blocks.append({
+                    'type': 'text',
+                    'text': original_element.get('text', ''),
+                    'label': original_element.get('label', 'paragraph'),
+                    'bbox': original_element.get('bbox'),
+                    'excluded_from_translation': True
+                })
+            else:
+                # Use translated element
+                if translated_index < len(all_translated_blocks):
+                    final_blocks.append(all_translated_blocks[translated_index])
+                    translated_index += 1
+                else:
+                    # Fallback to original if translation missing
+                    final_blocks.append({
+                        'type': 'text',
+                        'text': original_element.get('text', ''),
+                        'label': original_element.get('label', 'paragraph'),
+                        'bbox': original_element.get('bbox')
+                    })
+        
+        self.logger.info(f"Tag-based translation completed. Created {len(final_blocks)} blocks ({len(all_translated_blocks)} translated, {len(excluded_elements)} excluded).")
+        return final_blocks
     
-    def _create_batches(self, text_elements: list[dict], max_chars_per_batch: int = 4500) -> list[list[dict]]:
+    def _create_batches(self, text_elements: list[dict], max_chars_per_batch: int = 4000, max_elements_per_batch: int = 25, max_colon_paragraphs: int = 5) -> list[list[dict]]:
         """
-        Creates semantically coherent batches of text elements based on paragraphs.
-
-        This logic prioritizes keeping paragraphs intact. It creates a few large,
-        context-rich batches instead of many small, fragmented ones.
-        The character limit is set high (4500) to maximize context per API call.
+        Create batches for translation, closing a batch if it exceeds 4000 characters, 25 elements, or 5 paragraphs ending with a colon (:).
         """
-        if not text_elements:
-            return []
-
         batches = []
-        current_batch_elements = []
-        current_batch_char_count = 0
-
-        for element in text_elements:
-            element_text = element.get('text', '')
-            element_char_count = len(element_text)
-
-            if current_batch_elements and (current_batch_char_count + element_char_count > max_chars_per_batch):
-                batches.append(current_batch_elements)
-                current_batch_elements = []
-                current_batch_char_count = 0
-            
-            current_batch_elements.append(element)
-            current_batch_char_count += element_char_count
-
-        if current_batch_elements:
-            batches.append(current_batch_elements)
-            
-        self.logger.info(f"📦 Created {len(batches)} semantically coherent batches from {len(text_elements)} text elements.")
+        current_batch = []
+        current_chars = 0
+        colon_paragraphs = 0
+        for elem in text_elements:
+            elem_text = elem.get('text', '')
+            elem_len = len(elem_text)
+            if elem_text.strip().endswith(':'):
+                colon_paragraphs += 1
+            if (current_chars + elem_len > max_chars_per_batch) or (len(current_batch) >= max_elements_per_batch) or (colon_paragraphs > max_colon_paragraphs):
+                if current_batch:
+                    batches.append(current_batch)
+                current_batch = []
+                current_chars = 0
+                colon_paragraphs = 0
+            current_batch.append(elem)
+            current_chars += elem_len
+        if current_batch:
+            batches.append(current_batch)
         return batches
 
 
@@ -442,6 +780,7 @@ class ProcessingStrategyExecutor:
         self.logger = logging.getLogger(__name__)
         self.gemini_service = gemini_service
         self.direct_text_processor = DirectTextProcessor(gemini_service)
+        self.table_processor = TableProcessor(gemini_service)  # Add table processor
         self.minimal_graph_builder = MinimalGraphBuilder(gemini_service)
         self.comprehensive_graph_builder = ComprehensiveGraphBuilder(gemini_service)
         
@@ -593,18 +932,37 @@ class ProcessingStrategyExecutor:
         self.logger.info(f"[DEBUG] _process_coordinate_based_extraction received type: {type(processing_result)}")
         if not processing_result:
             self.logger.error("[ERROR] processing_result is empty or None in _process_coordinate_based_extraction")
-            return {'translated_text': '', 'blocks': []}
+            return ProcessingResult(
+                success=False,
+                strategy='coordinate_based_extraction',
+                processing_time=0.0,
+                content={},
+                statistics={},
+                error='processing_result is empty or None'
+            )
         processing_result = self._ensure_dict_of_areas(processing_result)
         if not processing_result:
             self.logger.error(f"[ERROR] processing_result could not be converted to dict in _process_coordinate_based_extraction: {processing_result}")
-            return {'translated_text': '', 'blocks': []}
+            return ProcessingResult(
+                success=False,
+                strategy='coordinate_based_extraction',
+                processing_time=0.0,
+                content={},
+                statistics={},
+                error='processing_result could not be converted to dict'
+            )
         start_time = time.time()
         try:
             mapped_content = processing_result.get('mapped_content', {})
             text_areas = []
+            table_areas = []
             non_text_areas = []
+            
             for area_id, area_data in mapped_content.items():
-                if hasattr(area_data, 'combined_text') and area_data.combined_text:
+                # Check if this is a table area
+                if hasattr(area_data, 'layout_info') and area_data.layout_info.label == 'table':
+                    table_areas.append((area_id, area_data))
+                elif hasattr(area_data, 'combined_text') and area_data.combined_text:
                     text_areas.append(area_data)
                 else:
                     non_text_areas.append(area_data)
@@ -632,6 +990,59 @@ class ProcessingStrategyExecutor:
             else:
                 self.logger.warning("⚠️ Gemini service not available for coordinate-based extraction.")
                 translated_texts = [area.combined_text for area in text_areas]
+            
+            # Process table areas using TableProcessor (Sub-task 2.3)
+            processed_tables = []
+            for area_id, table_area in table_areas:
+                self.logger.info(f"📊 Processing table area: {area_id}")
+                
+                # Parse table structure from text blocks and coordinates
+                table_structure = self.table_processor.parse_table_structure({
+                    'text_blocks': table_area.text_blocks if hasattr(table_area, 'text_blocks') else [],
+                    'layout_info': table_area.layout_info if hasattr(table_area, 'layout_info') else None
+                })
+                
+                if table_structure.get('error'):
+                    self.logger.warning(f"❌ Table parsing failed for {area_id}: {table_structure['error']}")
+                    # Add as fallback text content
+                    processed_tables.append({
+                        'type': 'table',
+                        'area_id': area_id,
+                        'content': table_area.combined_text if hasattr(table_area, 'combined_text') else 'Table content unavailable',
+                        'error': table_structure['error'],
+                        'layout_info': table_area.layout_info if hasattr(table_area, 'layout_info') else {}
+                    })
+                    continue
+                
+                # Translate the table structure
+                translation_result = await self.table_processor.translate_table(table_structure, target_language)
+                
+                if translation_result.get('error'):
+                    self.logger.warning(f"❌ Table translation failed for {area_id}: {translation_result['error']}")
+                    # Use original table structure
+                    translated_rows = table_structure.get('rows', [])
+                else:
+                    translated_rows = translation_result.get('translated_rows', [])
+                
+                # Create TableModel-compatible structure
+                processed_table = {
+                    'type': 'table',
+                    'area_id': area_id,
+                    'content': translated_rows,  # List[List[str]] as required by TableModel
+                    'header_row': table_structure.get('header_row'),
+                    'caption': None,  # Could be enhanced to detect captions
+                    'num_rows': len(translated_rows),
+                    'num_cols': len(translated_rows[0]) if translated_rows else 0,
+                    'layout_info': table_area.layout_info if hasattr(table_area, 'layout_info') else {},
+                    'original_markdown': translation_result.get('original_markdown', ''),
+                    'translated_markdown': translation_result.get('translated_markdown', '')
+                }
+                
+                processed_tables.append(processed_table)
+                self.logger.info(f"✅ Table {area_id} processed: {processed_table['num_rows']}x{processed_table['num_cols']}")
+            
+            if processed_tables:
+                self.logger.info(f"📊 Processed {len(processed_tables)} tables successfully")
             final_content = []
             for i, area in enumerate(text_areas):
                 final_content.append({
@@ -640,6 +1051,10 @@ class ProcessingStrategyExecutor:
                     'translated_text': translated_texts[i] if i < len(translated_texts) else area.combined_text,
                     'layout_info': area.layout_info if hasattr(area, 'layout_info') else {'bbox': getattr(area, 'bbox', [0, 0, 0, 0])}
                 })
+            # Add processed tables to final content
+            for table in processed_tables:
+                final_content.append(table)
+            
             for area in non_text_areas:
                 final_content.append({
                     'type': 'visual_element',
@@ -664,28 +1079,19 @@ class ProcessingStrategyExecutor:
             self.logger.info(f"🎯 Coordinate-based extraction completed in {processing_time:.3f}s")
             self.logger.info(f"   Total areas processed: {len(mapped_content)}")
             self.logger.info(f"   Text areas: {len(text_areas)}")
+            self.logger.info(f"   Table areas: {len(table_areas)}")
             self.logger.info(f"   Non-text areas: {len(non_text_areas)}")
-            self.logger.info(f"   API calls reduced from {len(text_areas)} to {len(batches) if 'batches' in locals() else 0}")
+            
             return ProcessingResult(
                 success=True,
                 strategy='coordinate_based_extraction',
                 processing_time=processing_time,
-                content={
-                    'text_areas': [{'label': getattr(area.layout_info, 'label', 'text') if hasattr(area, 'layout_info') else 'text', 
-                                   'text_content': area.combined_text, 
-                                   'translated_content': translated_texts[i] if i < len(translated_texts) else area.combined_text} for i, area in enumerate(text_areas)],
-                    'non_text_areas': [{'label': getattr(area.layout_info, 'label', 'visual') if hasattr(area, 'layout_info') else 'visual', 
-                                       'bbox': getattr(area.layout_info, 'bbox', [0, 0, 0, 0]) if hasattr(area, 'layout_info') else getattr(area, 'bbox', [0, 0, 0, 0])} for area in non_text_areas],
-                    'coordinate_mapping': mapped_content,
-                    'page_num': processing_result.get('page_num', 0)
-                },
+                content={'final_content': final_content},
                 statistics={
-                    'total_areas': len(mapped_content),
-                    'text_areas_count': len(text_areas),
-                    'non_text_areas_count': len(non_text_areas),
-                    'api_calls_reduction': len(text_areas) - (len(batches) if 'batches' in locals() else 0),
-                    'coordinate_precision': 'high',
-                    'processing_efficiency': 'batched'
+                    'text_areas': len(text_areas),
+                    'table_areas': len(table_areas),
+                    'non_text_areas': len(non_text_areas),
+                    'total_areas': len(mapped_content)
                 }
             )
         except Exception as e:

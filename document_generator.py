@@ -181,14 +181,112 @@ class WordDocumentGenerator:
             logger.debug("Skipping empty list item block.")
             
     def _add_table_block(self, doc, block_item):
-        # Placeholder - actual table creation is complex
-        logger.warning(f"Table block handling is a placeholder for type: {type(block_item)}. Content: {str(block_item)[:100]}")
-        if isinstance(block_item, dict) and (block_item.get('content') or block_item.get('text')):
-             doc.add_paragraph(f"[Placeholder for Table: {sanitize_for_xml(block_item.get('content') or block_item.get('text'))}]")
-        elif STRUCTURED_MODEL_AVAILABLE and isinstance(block_item, Table) and hasattr(block_item, 'rows'):
-             doc.add_paragraph(f"[Placeholder for Table with {len(block_item.rows)} rows]")
-        else:
-             doc.add_paragraph("[Placeholder for Table]")
+        """
+        Fully implement table reconstruction as required by Sub-task 2.4.
+        
+        Creates a properly formatted table in the Word document using python-docx,
+        with "Table Grid" style for professional formatting.
+        """
+        try:
+            # Import TableModel for type checking
+            from models import TableModel
+            
+            table_data = None
+            header_row = None
+            caption = None
+            
+            # Handle TableModel objects
+            if isinstance(block_item, TableModel):
+                table_data = block_item.content  # List[List[str]]
+                header_row = block_item.header_row
+                caption = block_item.caption
+                self.logger.info(f"Processing TableModel with {len(table_data)} rows")
+            
+            # Handle dictionary format (for compatibility)
+            elif isinstance(block_item, dict):
+                # Extract table data from various possible formats
+                if 'content' in block_item and isinstance(block_item['content'], list):
+                    table_data = block_item['content']
+                elif 'rows' in block_item:
+                    table_data = block_item['rows']
+                elif 'translated_rows' in block_item:
+                    table_data = block_item['translated_rows']
+                else:
+                    # Fallback: try to create single-cell table with text content
+                    text_content = block_item.get('content') or block_item.get('text', '')
+                    if text_content:
+                        table_data = [[text_content]]
+                
+                header_row = block_item.get('header_row')
+                caption = block_item.get('caption')
+            
+            # Handle structured model Table objects
+            elif STRUCTURED_MODEL_AVAILABLE and isinstance(block_item, Table):
+                if hasattr(block_item, 'rows'):
+                    table_data = block_item.rows
+                    caption = getattr(block_item, 'caption', None)
+            
+            # Validate table data
+            if not table_data or not isinstance(table_data, list) or len(table_data) == 0:
+                self.logger.warning("No valid table data found, creating placeholder")
+                doc.add_paragraph("[Table: No data available]")
+                return
+            
+            # Ensure all rows have the same number of columns
+            max_cols = max(len(row) if isinstance(row, list) else 1 for row in table_data)
+            normalized_data = []
+            
+            for row in table_data:
+                if isinstance(row, list):
+                    # Pad row to max_cols length
+                    normalized_row = row + [''] * (max_cols - len(row))
+                    normalized_data.append(normalized_row[:max_cols])  # Truncate if too long
+                else:
+                    # Single value, convert to list
+                    normalized_data.append([str(row)] + [''] * (max_cols - 1))
+            
+            # Create the Word table
+            word_table = doc.add_table(rows=len(normalized_data), cols=max_cols)
+            
+            # Apply "Table Grid" style for professional formatting
+            try:
+                word_table.style = 'Table Grid'
+            except KeyError:
+                # Fallback if Table Grid style not available
+                self.logger.warning("Table Grid style not available, using default table style")
+            
+            # Populate table cells with data
+            for row_idx, row_data in enumerate(normalized_data):
+                table_row = word_table.rows[row_idx]
+                
+                for col_idx, cell_data in enumerate(row_data):
+                    cell = table_row.cells[col_idx]
+                    
+                    # Clean and sanitize cell content
+                    cell_text = sanitize_for_xml(str(cell_data).strip())
+                    cell.text = cell_text
+                    
+                    # Apply header formatting to first row if it's identified as header
+                    if row_idx == 0 and (header_row or len(normalized_data) > 1):
+                        # Make header row bold
+                        for paragraph in cell.paragraphs:
+                            for run in paragraph.runs:
+                                run.font.bold = True
+            
+            # Add caption if available
+            if caption:
+                caption_p = doc.add_paragraph()
+                caption_run = caption_p.add_run(f"Table: {sanitize_for_xml(caption)}")
+                caption_run.font.italic = True
+                caption_run.font.size = Pt(10)
+                caption_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            self.logger.info(f"✅ Successfully created table with {len(normalized_data)} rows and {max_cols} columns")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error creating table block: {e}")
+            # Fallback to simple paragraph
+            doc.add_paragraph(f"[Table processing error: {str(e)[:100]}]")
 
 
     def _add_code_block(self, doc, block_item):
@@ -302,86 +400,42 @@ class WordDocumentGenerator:
         # Add spacing after TOC
         toc_doc.add_paragraph()
         
-        # Insert TOC at the beginning of the document
-        for element in toc_doc.element.body:
+        # Insert TOC at the beginning of the document (Directive I requirement)
+        # Insert elements in reverse order to maintain proper sequence
+        toc_elements = list(toc_doc.element.body)
+        for i, element in enumerate(reversed(toc_elements)):
             doc.element.body.insert(0, element)
         
         logger.info(f"Successfully generated TOC with {len(sorted_entries)} entries")
 
-    def create_word_document_with_structure(self, structured_content: List[Dict[str, Any]], output_path: str, images_dir: str):
+    def create_word_document_from_structured_document(self, structured_document_or_list, output_filepath,
+                                                    image_folder_path=None, cover_page_data=None):
         """
-        Generates a Word document from a list of structured content DICTIONARIES.
-        This is the final, architecturally sound version that correctly handles
-        the data passed by the pipeline's generate_output method.
-        """
-        self.logger.info(f"--- Creating FINAL Word Document: {os.path.basename(output_path)} ---")
+        UNIFIED Document Generation Method - handles both StructuredDocument objects and list[dict] structures.
         
-        try:
-            doc = Document()
-            style = doc.styles['Normal']
-            font = style.font
-            font.name = 'Arial'  # Use a font that supports a wide range of characters
-            font.size = Pt(11)
-
-            all_text_sections = structured_content
-            self.logger.info(f"Correctly received {len(all_text_sections)} text sections for document generation.")
-
-            if not all_text_sections:
-                self.logger.warning("No text sections were found to generate the document. The output will be empty.")
-                doc.save(output_path)
-                return True # Success, even if empty
-
-            # Sort by reading order: top-to-bottom, then left-to-right
-            all_text_sections.sort(key=lambda x: (x.get('bbox', [0, 0, 0, 0])[1], x.get('bbox', [0, 0, 0, 0])[0]))
-
-            for section in all_text_sections:
-                text = section.get('text', '')
-                label = section.get('label', 'paragraph')
-
-                if label == 'title':
-                    p = doc.add_paragraph()
-                    run = p.add_run(text)
-                    run.font.bold = True
-                    run.font.size = Pt(16)
-                    p.paragraph_format.space_after = Pt(12)
-                elif label in ('header', 'footer'):
-                    p = doc.add_paragraph()
-                    run = p.add_run(text)
-                    run.font.italic = True
-                    run.font.size = Pt(9)
-                else:
-                    doc.add_paragraph(text)
-
-            doc.save(output_path)
-            self.logger.info(f"Word document saved successfully: {output_path}")
-            
-            # --- THE FINAL FIX ---
-            return True  # Explicitly report success to the pipeline
-            # --- END OF FIX ---
-
-        except Exception as e:
-            self.logger.error(f"Failed to save Word document: {e}", exc_info=True)
-            return False # Explicitly report failure
-
-    def create_word_document_from_structured_document(self, structured_document, output_filepath,
-                                                    image_folder_path, cover_page_data=None):
+        This is now the sole, authoritative method for generating final documents as per Directive I.
+        Implements strict two-pass reconstruction:
+        - Pass 1: Content and Bookmark Generation
+        - Pass 2: TOC Insertion
         """
-        Create Word document from a structured Document object.
-        This is the new method that works with the refactored structured document model.
-        """
+        
+        # Handle both StructuredDocument objects and list[dict] data structures
+        if isinstance(structured_document_or_list, list):
+            # Handle list[dict] structure from pipeline
+            return self._create_from_list_structure(structured_document_or_list, output_filepath, image_folder_path)
+        
+        # Handle StructuredDocument objects (original functionality)
         if not STRUCTURED_MODEL_AVAILABLE:
             raise Exception("Structured document model not available")
 
-        if not isinstance(structured_document, StructuredDocument):
-            raise ValueError(f"Expected StructuredDocument, got {type(structured_document)}")
+        if not isinstance(structured_document_or_list, StructuredDocument):
+            raise ValueError(f"Expected StructuredDocument or list[dict], got {type(structured_document_or_list)}")
 
-        # global bookmark_id_counter # Related to old system, review if still needed elsewhere
-        # bookmark_id_counter = 0     # Related to old system
+        structured_document = structured_document_or_list
 
-        # --- Initialize for new ToC system (Step 1) ---
+        # --- PASS 1 INITIALIZATION: Initialize TOC system ---
         self.toc_entries = []
         self.bookmark_id = 0
-        # --- End of Step 1 initialization ---
 
         # Normalize paths to handle mixed separators
         output_filepath = os.path.normpath(output_filepath)
@@ -391,6 +445,7 @@ class WordDocumentGenerator:
         logger.info(f"--- Creating Word Document from Structured Document: {structured_document.title} ---")
         logger.info(f"📊 Processing {len(structured_document.content_blocks)} content blocks")
 
+        # --- PASS 1: Content and Bookmark Generation ---
         doc = Document()
 
         # Add document title as first heading
@@ -405,26 +460,12 @@ class WordDocumentGenerator:
             self._add_cover_page(doc, cover_page_data, image_folder_path)
             doc.add_page_break()
 
-        # --- Remove existing ToC generation logic ---
-        # if self.word_settings['generate_toc']:
-        #     # Pass 1: Generate content and collect heading page numbers
-        #     heading_page_map = self._generate_content_with_page_tracking(
-        #         doc, structured_document, image_folder_path
-        #     )
-        #     # Pass 2: Generate accurate TOC with real page numbers
-        #     self._generate_accurate_toc(doc, structured_document, heading_page_map)
-        # else:
-        #     # Single pass if TOC is disabled
-        #     for block in structured_document.content_blocks:
-        #         self._add_content_block(doc, block, image_folder_path)
-        
-        # --- New main content processing loop (Implicit Pass 1 for ToC) ---
+        # Main content processing loop - populates toc_entries and adds bookmarks
         for block in structured_document.content_blocks:
-            self._add_content_block(doc, block, image_folder_path) # This will call _add_heading_block for headings
+            self._add_content_block(doc, block, image_folder_path)
 
-        # --- PASS 2: All content is added, now insert the ToC (Step 4) ---
+        # --- PASS 2: TOC Insertion (unconditional) ---
         self._insert_toc(doc)
-        # --- End of Step 4 ---
 
         # Save document
         try:
@@ -445,6 +486,69 @@ class WordDocumentGenerator:
             logger.error(f"Error saving Word document: {e}")
             logger.error(f"Attempted path: {output_filepath}")
             return None
+
+    def _create_from_list_structure(self, structured_content: List[Dict[str, Any]], output_path: str, images_dir: str = None):
+        """
+        Create Word document from list[dict] structure using unified two-pass approach.
+        This replaces the deprecated create_word_document_with_structure method.
+        """
+        self.logger.info(f"--- Creating Word Document from List Structure: {os.path.basename(output_path)} ---")
+        
+        try:
+            # --- PASS 1 INITIALIZATION: Initialize TOC system ---
+            self.toc_entries = []
+            self.bookmark_id = 0
+            
+            # --- PASS 1: Content and Bookmark Generation ---
+            doc = Document()
+            style = doc.styles['Normal']
+            font = style.font
+            font.name = 'Arial'  # Use a font that supports a wide range of characters
+            font.size = Pt(11)
+
+            all_text_sections = structured_content
+            self.logger.info(f"Processing {len(all_text_sections)} content sections for document generation.")
+
+            if not all_text_sections:
+                self.logger.warning("No content sections found. Creating empty document.")
+                doc.save(output_path)
+                return True
+
+            # Sort by reading order: top-to-bottom, then left-to-right
+            all_text_sections.sort(key=lambda x: (x.get('bbox', [0, 0, 0, 0])[1], x.get('bbox', [0, 0, 0, 0])[0]))
+
+            # Process each section and populate TOC entries if headings are found
+            for section in all_text_sections:
+                text = section.get('text', '')
+                label = section.get('label', 'paragraph')
+
+                if label in ['title', 'heading', 'header'] or (label == 'text' and len(text) < 100 and text.endswith(':')):
+                    # Treat as heading - this will populate toc_entries
+                    block_item = {
+                        'content': text,
+                        'type': 'heading',
+                        'level': 1 if label == 'title' else 2
+                    }
+                    self._add_heading_block(doc, block_item)
+                elif label in ('header', 'footer'):
+                    p = doc.add_paragraph()
+                    run = p.add_run(text)
+                    run.font.italic = True
+                    run.font.size = Pt(9)
+                else:
+                    doc.add_paragraph(text)
+
+            # --- PASS 2: TOC Insertion (unconditional) ---
+            self._insert_toc(doc)
+
+            doc.save(output_path)
+            self.logger.info(f"Word document saved successfully: {output_path}")
+            
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to save Word document: {e}", exc_info=True)
+            return False
 
     def _add_table_of_contents_from_document(self, doc, structured_document):
         """Add table of contents from structured document headings"""
@@ -1051,6 +1155,25 @@ class WordDocumentGenerator:
         except Exception as e:
             logger.error(f"Error checking translation status: {e}")
             return False
+
+    def create_word_document_with_structure(self, structured_content: List[Dict[str, Any]], output_path: str, images_dir: str = None):
+        """
+        DEPRECATED: This method is deprecated as per Directive I.
+        Use create_word_document_from_structured_document instead.
+        
+        This wrapper ensures backward compatibility while routing all calls through the unified method.
+        """
+        import warnings
+        warnings.warn(
+            "create_word_document_with_structure is deprecated. Use create_word_document_from_structured_document instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
+        self.logger.warning("⚠️ Using deprecated create_word_document_with_structure method. Please update to use create_word_document_from_structured_document.")
+        
+        # Route through the unified method
+        return self.create_word_document_from_structured_document(structured_content, output_path, images_dir)
 
 # Enhanced PDF conversion function with proper font embedding
 def convert_word_to_pdf(docx_filepath, pdf_filepath):

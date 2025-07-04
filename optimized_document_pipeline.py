@@ -194,7 +194,7 @@ class OptimizedDocumentPipeline:
                 error=str(e)
             )
     
-    async def process_document(self, pdf_path: str, target_language: str = 'en') -> List[Dict[str, Any]]:
+    async def process_document(self, pdf_path: str, target_language: str = 'en') -> list:
         """
         Processes a PDF using the architecturally sound, unified pipeline.
         This is the new, correct implementation.
@@ -216,9 +216,8 @@ class OptimizedDocumentPipeline:
         # Step 2: Determine strategy and execute translation using our validated executor.
         # This is where the single source of truth for translation is enforced.
         self.logger.info("🎯 Step 2: Executing processing and translation strategies...")
-        tasks = []
+        results = []
         for page_model in page_models:
-            # Convert page_model elements to the format expected by DirectTextProcessor
             text_elements = []
             for element in page_model.elements:
                 if element.type == 'text':
@@ -227,46 +226,49 @@ class OptimizedDocumentPipeline:
                         'bbox': list(element.bbox),
                         'label': 'paragraph'
                     })
-            
-            # Use DirectTextProcessor for translation (single source of truth)
-            from processing_strategies import DirectTextProcessor
+            from processing_strategies import DirectTextProcessor, ProcessingResult
             processor = DirectTextProcessor(self.gemini_service)
-            task = processor.translate_direct_text(text_elements, target_language)
-            tasks.append(task)
-
-        page_results = await asyncio.gather(*tasks)
-        self.logger.info(f"✅ Strategy execution complete for {len(page_results)} pages.")
-        return page_results
+            translated_blocks = await processor.translate_direct_text(text_elements, target_language)
+            # Always wrap in ProcessingResult
+            result = ProcessingResult(
+                success=True,
+                strategy='pure_text_fast',
+                processing_time=0.0,
+                content={'final_content': translated_blocks},
+                statistics={'text_elements_processed': len(text_elements)},
+                error=None
+            )
+            results.append(result)
+        self.logger.info(f"✅ Strategy execution complete for {len(results)} pages.")
+        return results
     
-    def generate_output(self, page_results: List[List[Dict]], pdf_path: str, output_dir: str):
-        """Generate final Word/PDF output from page results"""
+    def generate_output(self, page_results: list, pdf_path: str, output_dir: str):
+        """Generate final Word/PDF output from page results (list of ProcessingResult)"""
         try:
             base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-            
-            # Convert page results to document generator format
+            # Build structured_content from ProcessingResult objects
             structured_content = []
-            for page_blocks in page_results:
-                for block in page_blocks:
-                    structured_content.append({
-                        'type': 'text',
-                        'text': block.get('text', ''),
-                        'page_num': block.get('page_num', 1),
-                        'bbox': block.get('bbox', [0, 0, 0, 0])
-                    })
-            
-            self.logger.info(f"📝 Generating document with {len(structured_content)} text sections")
-            
+            for i, result in enumerate(page_results):
+                if hasattr(result, 'success') and result.success:
+                    content = getattr(result, 'content', None)
+                    if isinstance(content, dict):
+                        # Prefer 'final_content' if present
+                        blocks = content.get('final_content') or content.get('text_areas') or []
+                        if isinstance(blocks, list):
+                            structured_content.extend(blocks)
+                    elif isinstance(content, list):
+                        structured_content.extend(content)
+                else:
+                    self.logger.error(f"Skipping failed page {i+1}: {getattr(result, 'error', 'Unknown error')}")
+            self.logger.info(f"📝 Generating document with {len(structured_content)} content sections")
             # Generate Word document
             doc_generator = WordDocumentGenerator()
             docx_path = os.path.join(output_dir, f"{base_name}_translated.docx")
-            
-            success = doc_generator.create_word_document_with_structure(
+            success = doc_generator.create_word_document_from_structured_document(
                 structured_content, docx_path, os.path.join(output_dir, "images")
             )
-            
             if success:
                 self.logger.info(f"✅ Word document generated: {docx_path}")
-                
                 # Convert to PDF
                 try:
                     pdf_path = os.path.join(output_dir, f"{base_name}_translated.pdf")
@@ -279,7 +281,6 @@ class OptimizedDocumentPipeline:
                     self.logger.warning(f"⚠️ PDF conversion failed: {e}")
             else:
                 self.logger.error("❌ Word document generation failed")
-            
         except Exception as e:
             self.logger.error(f"❌ Error generating output: {e}")
     
@@ -323,66 +324,40 @@ class OptimizedDocumentPipeline:
             # --- Generate Word document ---
             doc_generator = WordDocumentGenerator()
             docx_path = os.path.join(output_dir, f'{base_name}.docx')
-            # Collect all translated content from successful processing results
+            # === BEGIN FINAL REQUIRED IMPLEMENTATION ===
             structured_content = []
-            for page_result in processing_results:
-                if page_result.success:
-                    if hasattr(page_result, 'content') and page_result.content:
-                        content = page_result.content
-                        
-                        # SIMPLIFIED: All strategies now return standardized structured content blocks
-                        if isinstance(content, list):
-                            # Standard case: content is a list of structured blocks
-                            for block in content:
-                                if isinstance(block, dict) and block.get('type') == 'text':
-                                    structured_content.append({
-                                        'type': 'text',
-                                        'text': block.get('text', ''),
-                                        'bbox': block.get('bbox'),
-                                        'label': block.get('label', 'paragraph'),
-                                    })
-                                elif isinstance(block, dict) and block.get('type') == 'image':
-                                    structured_content.append({
-                                        'type': 'image',
-                                        'bbox': block.get('bbox'),
-                                        'label': block.get('label', 'figure'),
-                                        'filename': block.get('filename')
-                                    })
-                        elif isinstance(content, dict):
-                            # Fallback for legacy strategies that still return dict structure
-                            text_areas = content.get('text_areas', [])
-                            for area in text_areas:
+            self.logger.info(f"Aggregating content from {len(processing_results)} page results...")
+            for i, page_result in enumerate(processing_results):
+                # 1. Assert we are handling the correct object type.
+                if not isinstance(page_result, ProcessingResult):
+                    self.logger.error(f"FATAL: Page {i+1} result is not a ProcessingResult object, but a {type(page_result)}. Aborting.")
+                    continue
+
+                # 2. Check for success AND the existence of the .data payload.
+                if page_result.success and page_result.data:
+                    page_model = page_result.data
+                    # 3. Extract the actual content elements from the PageModel's .elements attribute.
+                    if hasattr(page_model, 'elements') and isinstance(page_model.elements, list):
+                        # 4. Convert ElementModel objects to the simple dict format the generator expects.
+                        for element in page_model.elements:
+                            if element.type == 'text': # We only care about text for now.
                                 structured_content.append({
                                     'type': 'text',
-                                    'text': area.get('translated_content', area.get('text_content', '')),
-                                    'bbox': area.get('bbox'),
-                                    'label': area.get('label', 'paragraph'),
+                                    'text': element.content,
+                                    'label': element.formatting.get('block_type', 'paragraph'), # Extract label from formatting
+                                    'bbox': list(element.bbox)
                                 })
-                            # Add non-text areas as image placeholders
-                            for area in content.get('non_text_areas', []):
-                                structured_content.append({
-                                    'type': 'image',
-                                    'bbox': area.get('bbox'),
-                                    'label': area.get('label', 'figure'),
-                                    'filename': None
-                                })
-                        else:
-                            # Emergency fallback for unexpected formats
-                            self.logger.warning(f"Unexpected content format for strategy {page_result.strategy}: {type(content)}")
-                            if isinstance(content, str) and content.strip():
-                                structured_content.append({
-                                    'type': 'text',
-                                    'text': content.strip(),
-                                    'bbox': None,
-                                    'label': 'paragraph',
-                                })
+                    else:
+                         self.logger.warning(f"Skipping page {page_model.page_number}: Successful result has no 'elements' list.")
+                elif not page_result.success:
+                    self.logger.error(f"Skipping page {i+1} due to processing failure: {page_result.error}")
                 else:
-                    self.logger.warning(f"Skipping page in document generation due to processing failure: {page_result.error}")
+                    self.logger.warning(f"Skipping page {i+1}: Result was successful but contained no data payload.")
 
-            self.logger.info(f"📝 Total text sections collected: {len([item for item in structured_content if item['type'] == 'text'])}")
-
-            # Generate the Word document
-            success = doc_generator.create_word_document_with_structure(
+            self.logger.info(f"✅ Aggregation complete. Total text sections collected: {len(structured_content)}")
+            # === END FINAL REQUIRED IMPLEMENTATION ===
+            # Generate the Word document using the unified method (Directive I compliance)
+            success = doc_generator.create_word_document_from_structured_document(
                 structured_content, docx_path, images_dir
             )
             if success:

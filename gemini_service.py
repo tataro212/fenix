@@ -9,6 +9,7 @@ import logging
 import google.generativeai as genai
 from config_manager import config_manager
 import asyncio
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +34,12 @@ class GeminiService:
         logger.info(f"🚀 Gemini service initialized with model: {model_name}")
     
     async def translate_text(self, text: str, target_language: str, timeout: float = None) -> str:
-        """Translate text using Gemini API with enhanced word boundary preservation and adaptive timeout protection"""
+        """Translate text using Gemini API with enhanced word boundary preservation, adaptive timeout, and exponential backoff."""
+        max_retries = 3
         try:
             # Get timeout from config or use adaptive timeout based on text length
             if timeout is None:
-                # Get timeout from config
                 config_timeout = self.settings.get('api_call_timeout_seconds', 600)
-                
-                # Calculate adaptive timeout based on text length
-                # Base timeout: 30s for small text, up to config_timeout for large text
                 text_length = len(text)
                 if text_length <= 1000:
                     timeout = 30.0
@@ -50,19 +48,14 @@ class GeminiService:
                 elif text_length <= 10000:
                     timeout = 300.0
                 else:
-                    timeout = min(config_timeout, 600.0)  # Cap at 600s
-                
+                    timeout = min(config_timeout, 600.0)
                 logger.debug(f"📊 Adaptive timeout: {timeout}s for {text_length} chars")
-            
-            # Split text into sentences to preserve word boundaries
             sentences = self._split_into_sentences(text)
             translated_sentences = []
-            
             for sentence in sentences:
                 if not sentence.strip():
                     translated_sentences.append(sentence)
                     continue
-                    
                 prompt = f"""Translate the following text to {target_language}. 
                 IMPORTANT INSTRUCTIONS:
                 1. Preserve word boundaries exactly as in the original
@@ -73,27 +66,41 @@ class GeminiService:
                 
                 Text to translate:
                 {sentence}"""
-                
-                # Add timeout protection with adaptive timeout
-                try:
-                    response = await asyncio.wait_for(
-                        self.model.generate_content_async(prompt),
-                        timeout=timeout
-                    )
-                    translated_text = response.text.strip()
-                    translated_sentences.append(translated_text)
-                except asyncio.TimeoutError:
-                    logger.warning(f"⚠️ Translation timeout after {timeout}s, using original text")
-                    translated_sentences.append(sentence)
-                except Exception as e:
-                    logger.error(f"❌ Translation error: {e}, using original text")
-                    translated_sentences.append(sentence)
-            
-            # Recombine sentences with proper spacing
+                attempt = 0
+                while attempt <= max_retries:
+                    try:
+                        response = await asyncio.wait_for(
+                            self.model.generate_content_async(prompt),
+                            timeout=timeout
+                        )
+                        translated_text = response.text.strip()
+                        translated_sentences.append(translated_text)
+                        break
+                    except asyncio.TimeoutError as e:
+                        if attempt == 0:
+                            logger.warning(f"⚠️ Translation timeout after {timeout}s, using original text. Payload: {repr(sentence)[:500]}")
+                        else:
+                            logger.warning(f"⚠️ Retry {attempt}: Translation timeout after {timeout}s. Payload: {repr(sentence)[:500]}")
+                        if attempt >= max_retries:
+                            logger.error(f"❌ Max retries reached for timeout. Returning original text. Payload: {repr(sentence)[:500]}")
+                            translated_sentences.append(sentence)
+                            break
+                        time.sleep(2 ** attempt)
+                        attempt += 1
+                    except Exception as e:
+                        if attempt == 0:
+                            logger.error(f"❌ Translation error: {e}, using original text. Payload: {repr(sentence)[:500]}")
+                        else:
+                            logger.error(f"❌ Retry {attempt}: Translation error: {e}. Payload: {repr(sentence)[:500]}")
+                        if attempt >= max_retries:
+                            logger.error(f"❌ Max retries reached for error. Returning original text. Payload: {repr(sentence)[:500]}")
+                            translated_sentences.append(sentence)
+                            break
+                        time.sleep(2 ** attempt)
+                        attempt += 1
             return self._recombine_sentences(translated_sentences)
-            
         except Exception as e:
-            logger.error(f"Error translating text with Gemini: {e}")
+            logger.error(f"Error translating text with Gemini: {e}. Full payload: {repr(text)[:2000]}")
             raise
     
     def _split_into_sentences(self, text: str) -> list:

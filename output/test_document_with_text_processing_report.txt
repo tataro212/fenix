@@ -1,0 +1,30 @@
+=== ENHANCED PYMUPDF-YOLO PIPELINE PROCESSING REPORT ===
+
+Strategic Vision Implementation:
+• Pure Text: Fast PyMuPDF-only processing (no YOLO overhead)
+• Mixed Content: Coordinate-based PyMuPDF+YOLO extraction
+• No Graph Logic: Direct processing with preserved formatting
+
+Total pages processed: 1
+Successful pages: 1
+Success rate: 100.0%
+
+Strategy Distribution (User's Strategic Vision):
+  📝 Pure Text Fast: 1 pages (YOLO overhead avoided)
+
+Performance Statistics:
+  Total processing time: 0.000s
+  Average page time: 0.000s
+  Pure text average time: 0.000s (optimized)
+  Total YOLO overhead avoided: 1 pages
+  Graph overhead: 0.0s (eliminated per strategic vision)
+
+Detailed Results:
+Page 1:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+

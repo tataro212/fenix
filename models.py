@@ -60,6 +60,21 @@ class ElementModel(BaseModel):
     
     formatting: Dict[str, Any] = Field(default_factory=dict, description="A dictionary of formatting attributes.")
     confidence: Optional[float] = Field(None, description="The confidence score from the detection model.")
+    
+    # Enhanced for Sub-Directive B: Semantic filtering support
+    semantic_label: Optional[str] = Field(None, description="Semantic label detected by YOLO model (e.g., 'header', 'footer', 'paragraph') for filtering.")
+
+class TableModel(ElementModel):
+    """
+    Canonical data structure for a table, inheriting from ElementModel.
+    
+    This model represents the structured representation of a table with 
+    grid-based content, optional header row, and caption support.
+    """
+    type: Literal["table"] = Field(default="table", description="Element type fixed as 'table'.")
+    content: List[List[str]] = Field(..., description="Grid structure representing table cells as rows x columns.")
+    header_row: Optional[List[str]] = Field(None, description="Optional header row for the table.")
+    caption: Optional[str] = Field(None, description="Optional caption text for the table.")
 
 class PageModel(BaseModel):
     """

@@ -1,0 +1,174 @@
+=== ENHANCED PYMUPDF-YOLO PIPELINE PROCESSING REPORT ===
+
+Strategic Vision Implementation:
+• Pure Text: Fast PyMuPDF-only processing (no YOLO overhead)
+• Mixed Content: Coordinate-based PyMuPDF+YOLO extraction
+• No Graph Logic: Direct processing with preserved formatting
+
+Total pages processed: 19
+Successful pages: 19
+Success rate: 100.0%
+
+Strategy Distribution (User's Strategic Vision):
+  📝 Pure Text Fast: 19 pages (YOLO overhead avoided)
+
+Performance Statistics:
+  Total processing time: 0.000s
+  Average page time: 0.000s
+  Pure text average time: 0.000s (optimized)
+  Total YOLO overhead avoided: 19 pages
+  Graph overhead: 0.0s (eliminated per strategic vision)
+
+Detailed Results:
+Page 1:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 2:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 3:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 4:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 5:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 6:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 7:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 8:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 9:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 10:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 11:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 12:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 13:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 14:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 15:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 16:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 17:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 18:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+
+Page 19:
+  Strategy: pure_text_fast
+  Success: True
+  Processing time: 0.000s
+  Text sections: 0
+  YOLO overhead: 0.000s (avoided)
+  Processing efficiency: N/A
+

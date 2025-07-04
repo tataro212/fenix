@@ -525,9 +525,79 @@ class PyMuPDFYOLOProcessor:
         self.content_mapper = ContentLayoutMapper()
         self.classifier = ContentTypeClassifier()
         
+        # Configuration for layout analysis refinement (Directive III)
+        self.yolo_pruning_threshold = 0.2  # Confidence threshold for pruning
+        
         self.logger = logging.getLogger(__name__)
         self.logger.info("🚀 PyMuPDF-YOLO Processor initialized")
     
+    def _prune_and_merge_layout_areas(self, layout_areas: List[LayoutArea]) -> List[LayoutArea]:
+        """
+        Prune and merge layout areas to reduce noise and improve accuracy.
+        
+        Directive III Implementation:
+        1. Pruning: Remove areas with confidence below threshold
+        2. Merging: Merge contained areas unless they are captions within figures/tables
+        """
+        if not layout_areas:
+            return []
+        
+        # Step 1: Prune low-confidence detections
+        pruned_areas = []
+        for area in layout_areas:
+            if area.confidence >= self.yolo_pruning_threshold:
+                pruned_areas.append(area)
+            else:
+                self.logger.debug(f"Pruned low-confidence area: {area.label} (conf: {area.confidence:.3f})")
+        
+        self.logger.info(f"🔧 Pruned {len(layout_areas) - len(pruned_areas)} low-confidence areas")
+        
+        # Step 2: Merge contained areas of same type (with caption exception)
+        merged_areas = []
+        areas_to_skip = set()
+        
+        for i, area in enumerate(pruned_areas):
+            if i in areas_to_skip:
+                continue
+                
+            # Check if this area is contained within another area
+            is_contained = False
+            containing_area = None
+            
+            for j, other_area in enumerate(pruned_areas):
+                if i != j and j not in areas_to_skip:
+                    if self._is_fully_contained(area.bbox, other_area.bbox):
+                        # Special exception: don't merge captions within figures/tables
+                        if area.label == 'caption' and other_area.label in ['figure', 'table']:
+                            is_contained = False
+                            break
+                        # Only merge if same type
+                        elif area.label == other_area.label:
+                            is_contained = True
+                            containing_area = other_area
+                            break
+            
+            if is_contained and containing_area:
+                # Skip this area (it will be merged into the containing area)
+                areas_to_skip.add(i)
+                self.logger.debug(f"Merged contained area: {area.label} into larger {containing_area.label}")
+            else:
+                # Keep this area
+                merged_areas.append(area)
+        
+        self.logger.info(f"🔧 Merged {len(pruned_areas) - len(merged_areas)} contained areas")
+        
+        return merged_areas
+    
+    def _is_fully_contained(self, inner_bbox: Tuple[float, float, float, float], 
+                           outer_bbox: Tuple[float, float, float, float]) -> bool:
+        """Check if inner bounding box is fully contained within outer bounding box"""
+        x1_inner, y1_inner, x2_inner, y2_inner = inner_bbox
+        x1_outer, y1_outer, x2_outer, y2_outer = outer_bbox
+        
+        return (x1_inner >= x1_outer and y1_inner >= y1_outer and 
+                x2_inner <= x2_outer and y2_inner <= y2_outer)
+
     def _quick_content_scan(self, page: fitz.Page) -> bool:
         """Quick scan to determine if page is pure text (avoids YOLO overhead)"""
         try:
@@ -621,6 +691,9 @@ class PyMuPDFYOLOProcessor:
                 
                 # Analyze layout with YOLO
                 layout_areas = self.layout_analyzer.analyze_layout(page_image)
+                
+                # Apply pruning and merging (Directive III)
+                layout_areas = self._prune_and_merge_layout_areas(layout_areas)
                 
                 # Convert text blocks to ElementModel objects
                 for text_block in text_blocks:
