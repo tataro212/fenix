@@ -1187,8 +1187,12 @@ def convert_word_to_pdf(docx_filepath, pdf_filepath):
         logger.info(f"Successfully converted {docx_filepath} to {pdf_filepath}")
         return True
         
-    except ImportError:
-        logger.warning("docx2pdf library not available. Trying alternative method...")
+    except ImportError as e:
+        logger.error("❌ MISSING DEPENDENCY: docx2pdf library not available")
+        logger.error("📋 To fix this issue, install missing dependencies by running:")
+        logger.error("   pip install -r requirements.txt")
+        logger.error("   OR manually: pip install docx2pdf docx2txt")
+        logger.warning("🔄 Trying alternative method with reportlab...")
         
         try:
             # Alternative: Use python-docx2txt + reportlab for better font control
@@ -1242,12 +1246,20 @@ def convert_word_to_pdf(docx_filepath, pdf_filepath):
             logger.info(f"Successfully converted {docx_filepath} to {pdf_filepath} with Unicode support")
             return True
             
+        except ImportError as alt_import_error:
+            logger.error("❌ MISSING DEPENDENCIES: Alternative PDF conversion libraries not available")
+            logger.error("📋 To fix this issue, install all required dependencies:")
+            logger.error("   pip install -r requirements.txt")
+            logger.error("📋 Required packages: docx2pdf, docx2txt, reportlab")
+            logger.error(f"💡 Import error details: {alt_import_error}")
+            return False
         except Exception as e:
-            logger.error(f"Alternative PDF conversion failed: {e}")
+            logger.error(f"❌ Alternative PDF conversion failed: {e}")
             return False
             
     except Exception as e:
-        logger.error(f"Error converting Word to PDF: {e}")
+        logger.error(f"❌ Error converting Word to PDF: {e}")
+        logger.error("📋 If this is a dependency issue, try: pip install -r requirements.txt")
         return False
 
 # Create a class to hold the PDF conversion function

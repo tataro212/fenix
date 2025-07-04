@@ -409,32 +409,100 @@ class DirectTextProcessor:
         self.logger.info(f"Semantic filtering: {len(elements_to_translate)} elements to translate, {len(excluded_elements)} excluded")
         return elements_to_translate, excluded_elements
     
+    def _sanitize_gemini_response(self, raw_response: str) -> str:
+        """
+        Pre-processes malformed Gemini API responses to extract clean XML content.
+        
+        The Gemini API often returns responses wrapped in markdown code blocks like:
+        ```xml
+        <seg id="0">Hello</seg>
+        ``` ```xml
+        <seg id="1">World</seg>
+        ```
+        
+        This function extracts only the <seg> tags and creates valid XML.
+        """
+        import re
+        
+        # Extract all <seg> tags and their content from the raw response
+        # This handles both single and multi-line seg tags
+        seg_pattern = re.compile(r'<seg\s+id=["\'](\d+)["\']>(.*?)</seg>', re.DOTALL | re.IGNORECASE)
+        matches = seg_pattern.findall(raw_response)
+        
+        if not matches:
+            self.logger.warning("No <seg> tags found in Gemini response during sanitization")
+            return f"<root></root>"
+        
+        # Reconstruct clean XML from extracted segments
+        cleaned_segments = []
+        for seg_id, content in matches:
+            # Clean up the content (remove excess whitespace, but preserve structure)
+            clean_content = content.strip()
+            cleaned_segments.append(f'<seg id="{seg_id}">{clean_content}</seg>')
+        
+        # Wrap in root element to create valid XML
+        sanitized_xml = f"<root>{''.join(cleaned_segments)}</root>"
+        
+        self.logger.info(f"Sanitized Gemini response: extracted {len(matches)} segments")
+        self.logger.debug(f"Sanitized XML: {sanitized_xml[:200]}{'...' if len(sanitized_xml) > 200 else ''}")
+        
+        return sanitized_xml
+
     def _parse_and_reconstruct_translation(self, translated_text: str) -> dict:
         """
         Parses the XML-like response from Gemini and reconstructs the translated segments.
-        Uses a robust regex parser to handle malformed API responses.
+        Uses robust XML parser with pre-processing to handle malformed API responses.
         """
-        # CRITICAL FIX: Initialize the dictionary before the try block.
-        translated_segments = {} 
-        import re
+        translated_segments = {}
+        import xml.etree.ElementTree as ET
+        
         try:
-            # Use regex to find all <seg id="...">...</seg> blocks.
-            # This is more robust to malformed XML or injected text from the API.
-            # re.DOTALL ensures that '.' matches newlines as well.
-            seg_pattern = re.compile(r'<seg id="(\d+?)">(.*?)</seg>', re.DOTALL)
-            matches = seg_pattern.findall(translated_text)
-            if not matches:
-                self.logger.warning(f"Regex could not find any <seg> tags in the response.")
-            for seg_id, seg_text in matches:
+            # CRITICAL: Pre-process the raw response to handle malformed API responses
+            sanitized_xml = self._sanitize_gemini_response(translated_text)
+            
+            # Parse the sanitized XML using ElementTree
+            root = ET.fromstring(sanitized_xml)
+            
+            # Find all <seg> tags and extract their content
+            seg_elements = root.findall('.//seg')
+            
+            if not seg_elements:
+                self.logger.warning(f"XML parser could not find any <seg> tags in the response.")
+            
+            for seg_element in seg_elements:
+                seg_id = seg_element.get('id')
+                seg_text = seg_element.text or ''  # Handle empty elements
+                
                 if seg_id:
-                    # Clean up the text just in case there's leading/trailing whitespace
+                    # Clean up the text and store
                     translated_segments[seg_id] = seg_text.strip()
+                else:
+                    self.logger.warning(f"Found <seg> element without 'id' attribute")
+            
             if not translated_segments:
-                 self.logger.warning(f"Regex parsed 0 segments from Gemini response. Raw response: {translated_text}")
-        except Exception as e:
-            # Catch any other unexpected errors during regex processing.
-            self.logger.error(f"An unexpected error occurred during regex parsing of Gemini response: {e}")
+                self.logger.warning(f"XML parser extracted 0 segments from Gemini response. Raw response: {translated_text}")
+                
+        except ET.ParseError as e:
+            self.logger.error(f"XML parsing failed - malformed response from Gemini: {e}")
             self.logger.error(f"Problematic Gemini response: {translated_text}")
+            
+            # Fallback to regex for malformed XML (last resort)
+            self.logger.info("Attempting fallback regex parsing...")
+            try:
+                import re
+                seg_pattern = re.compile(r'<seg id="(\d+?)">(.*?)</seg>', re.DOTALL)
+                matches = seg_pattern.findall(translated_text)
+                for seg_id, seg_text in matches:
+                    if seg_id:
+                        translated_segments[seg_id] = seg_text.strip()
+                self.logger.info(f"Fallback regex extracted {len(translated_segments)} segments")
+            except Exception as fallback_error:
+                self.logger.error(f"Fallback regex parsing also failed: {fallback_error}")
+                
+        except Exception as e:
+            self.logger.error(f"Unexpected error during XML parsing of Gemini response: {e}")
+            self.logger.error(f"Problematic Gemini response: {translated_text}")
+            
         return translated_segments
     
     async def translate_direct_text(self, text_elements: list[dict], target_language: str) -> list[dict]:
@@ -442,6 +510,7 @@ class DirectTextProcessor:
         Translates a list of text elements using a robust, tag-based
         reconstruction method to ensure perfect data integrity.
         Enhanced with semantic filtering as per Sub-Directive B.
+        SIMPLIFIED: Single API call for true smart batching.
         """
         # Apply semantic filtering (Sub-Directive B)
         elements_to_translate, excluded_elements = self._apply_semantic_filtering(text_elements)
@@ -449,39 +518,72 @@ class DirectTextProcessor:
         if not elements_to_translate:
             self.logger.warning("No elements to translate after semantic filtering")
             return text_elements
-        batches = self._create_batches(elements_to_translate)
+        
+        # Create intelligent chunks with coherence preservation
+        chunks = self._create_intelligent_chunks(elements_to_translate, max_chars=13000)
+        self.logger.info(f"📦 Created {len(chunks)} intelligent chunks for coherent translation")
+        
+        # Process each chunk while maintaining order and coherence
         all_translated_blocks = []
-        for i, batch_of_elements in enumerate(batches):
-            self.logger.info(f"Translating batch {i+1}/{len(batches)} using tag-based reconstruction...")
+        global_element_id = 0
+        
+        for chunk_idx, chunk_elements in enumerate(chunks):
+            self.logger.info(f"Translating chunk {chunk_idx+1}/{len(chunks)} using tag-based reconstruction...")
+            
             # Step 1: Wrap each element in a unique, numbered tag (no sanitization)
             tagged_payload_parts = []
-            original_elements_map = {}
-            for j, element in enumerate(batch_of_elements):
+            chunk_elements_map = {}
+            
+            for j, element in enumerate(chunk_elements):
                 text = element.get('text', '')
                 if text:
-                    tagged_payload_parts.append(f'<seg id="{j}">{text}</seg>')
-                    original_elements_map[j] = element
+                    tagged_payload_parts.append(f'<seg id="{global_element_id}">{text}</seg>')
+                    chunk_elements_map[global_element_id] = element
+                    global_element_id += 1
+            
             if not tagged_payload_parts:
+                self.logger.warning(f"No text content to translate in chunk {chunk_idx+1}")
                 continue
+            
             source_text_for_api = "\n".join(tagged_payload_parts)
-            # Step 2: Call the translation service.
-            translated_blob = await self.gemini_service.translate_text(source_text_for_api, target_language)
-            # Step 3: Use the new robust parser
-            translated_segments = self._parse_and_reconstruct_translation(translated_blob)
-            self.logger.info(f"Parsed {len(translated_segments)} segments from {len(original_elements_map)} original elements")
-            # Step 4: Reconstruct the final block list with graceful fallback
-            for j, original_element in original_elements_map.items():
-                if str(j) in translated_segments:
-                    translated_text = translated_segments[str(j)]
-                else:
-                    self.logger.warning(f"Translation missing for segment ID {j}, using original text")
-                    translated_text = original_element.get('text', '')
-                all_translated_blocks.append({
-                    'type': 'text',
-                    'text': translated_text,
-                    'label': original_element.get('label', 'paragraph'),
-                    'bbox': original_element.get('bbox')
-                })
+            
+            # Step 2: API call for this chunk
+            try:
+                translated_blob = await self.gemini_service.translate_text(source_text_for_api, target_language)
+                
+                # Step 3: Use the robust parser with sanitization
+                sanitized_response = self._sanitize_gemini_response(translated_blob)
+                self.logger.info(f"Sanitized Gemini response: extracted {sanitized_response.count('<seg')} segments")
+                translated_segments = self._parse_and_reconstruct_translation(sanitized_response)
+                self.logger.info(f"Parsed {len(translated_segments)} segments from {len(chunk_elements_map)} original elements")
+                
+                # Step 4: Reconstruct blocks for this chunk
+                for elem_id, original_element in chunk_elements_map.items():
+                    if str(elem_id) in translated_segments:
+                        translated_text = translated_segments[str(elem_id)]
+                    else:
+                        original_text = original_element.get('text', '')
+                        self.logger.warning(f"Translation missing for segment ID {elem_id}. Original content: '{original_text}'. Using original text.")
+                        translated_text = original_text
+                    
+                    all_translated_blocks.append({
+                        'type': 'text',
+                        'text': translated_text,
+                        'label': original_element.get('label', 'paragraph'),
+                        'bbox': original_element.get('bbox')
+                    })
+                    
+            except Exception as e:
+                self.logger.error(f"❌ Chunk {chunk_idx+1} translation failed: {e}")
+                # Add original elements as fallback
+                for element in chunk_elements:
+                    all_translated_blocks.append({
+                        'type': 'text',
+                        'text': element.get('text', ''),
+                        'label': element.get('label', 'paragraph'),
+                        'bbox': element.get('bbox')
+                    })
+        
         # Merge translated elements with excluded elements in original order
         final_blocks = []
         translated_index = 0
@@ -506,33 +608,233 @@ class DirectTextProcessor:
                         'label': original_element.get('label', 'paragraph'),
                         'bbox': original_element.get('bbox')
                     })
+        
         self.logger.info(f"Tag-based translation completed. Created {len(final_blocks)} blocks ({len(all_translated_blocks)} translated, {len(excluded_elements)} excluded).")
         return final_blocks
     
-    def _create_batches(self, text_elements: list[dict], max_chars_per_batch: int = 4000, max_elements_per_batch: int = 25, max_colon_paragraphs: int = 5) -> list[list[dict]]:
+    def _create_intelligent_chunks(self, text_elements: list[dict], max_chars: int = 13000) -> list[list[dict]]:
         """
-        Create batches for translation, closing a batch if it exceeds 4000 characters, 25 elements, or 5 paragraphs ending with a colon (:).
+        Create intelligent chunks that preserve text coherence while respecting character limits.
+        
+        Strategy:
+        1. Prioritize semantic breaks (sentences ending with ., !, ?)
+        2. Respect paragraph boundaries 
+        3. Avoid breaking within headings/titles
+        4. Keep related content together (e.g., list items)
+        5. Never exceed max_chars limit
         """
-        batches = []
-        current_batch = []
+        if not text_elements:
+            return []
+        
+        chunks = []
+        current_chunk = []
         current_chars = 0
-        colon_paragraphs = 0
-        for elem in text_elements:
-            elem_text = elem.get('text', '')
-            elem_len = len(elem_text)
-            if elem_text.strip().endswith(':'):
-                colon_paragraphs += 1
-            if (current_chars + elem_len > max_chars_per_batch) or (len(current_batch) >= max_elements_per_batch) or (colon_paragraphs > max_colon_paragraphs):
-                if current_batch:
-                    batches.append(current_batch)
-                current_batch = []
+        
+        for i, element in enumerate(text_elements):
+            element_text = element.get('text', '')
+            element_chars = len(element_text)
+            
+            # Calculate overhead for XML tags: <seg id="X">...</seg>
+            xml_overhead = len(f'<seg id="{i}"></seg>')
+            total_element_size = element_chars + xml_overhead
+            
+            # Check if adding this element would exceed the limit
+            would_exceed = (current_chars + total_element_size) > max_chars
+            
+            # Special handling for different content types
+            element_label = element.get('label', 'paragraph').lower()
+            
+            # If this element alone exceeds the limit, we need to handle it specially
+            if total_element_size > max_chars:
+                # Close current chunk if it has content
+                if current_chunk:
+                    chunks.append(current_chunk)
+                    current_chunk = []
+                    current_chars = 0
+                
+                # Split large element into smaller parts while preserving sentence boundaries
+                split_elements = self._split_large_element(element, max_chars)
+                for split_elem in split_elements:
+                    chunks.append([split_elem])
+                continue
+            
+            # Decision logic for chunk boundaries
+            should_break_chunk = False
+            
+            if would_exceed:
+                # Check if we can make a coherent break
+                if current_chunk:
+                    # Look at the previous element to determine if this is a good break point
+                    prev_element = current_chunk[-1] if current_chunk else None
+                    should_break_chunk = self._is_good_break_point(prev_element, element)
+                else:
+                    # First element in chunk is too big - should not happen due to check above
+                    should_break_chunk = True
+            
+            # Handle chunk break
+            if should_break_chunk and current_chunk:
+                chunks.append(current_chunk)
+                current_chunk = []
                 current_chars = 0
-                colon_paragraphs = 0
-            current_batch.append(elem)
-            current_chars += elem_len
-        if current_batch:
-            batches.append(current_batch)
-        return batches
+            
+            # Add element to current chunk
+            current_chunk.append(element)
+            current_chars += total_element_size
+        
+        # Add the last chunk if it has content
+        if current_chunk:
+            chunks.append(current_chunk)
+        
+        # Log chunk statistics
+        chunk_stats = []
+        for i, chunk in enumerate(chunks):
+            chunk_chars = sum(len(elem.get('text', '')) for elem in chunk)
+            chunk_stats.append(f"Chunk {i+1}: {len(chunk)} elements, {chunk_chars} chars")
+        
+        self.logger.info(f"📊 Intelligent chunking statistics:")
+        for stat in chunk_stats:
+            self.logger.info(f"   {stat}")
+        
+        return chunks
+    
+    def _split_large_element(self, element: dict, max_chars: int) -> list[dict]:
+        """Split a large element into smaller coherent parts"""
+        text = element.get('text', '')
+        if not text:
+            return [element]
+        
+        # Try to split on sentence boundaries first
+        sentences = self._split_on_sentence_boundaries(text)
+        
+        parts = []
+        current_part = ""
+        
+        for sentence in sentences:
+            # Account for XML overhead
+            xml_overhead = len('<seg id="0"></seg>')
+            sentence_with_overhead = len(sentence) + xml_overhead
+            
+            if len(current_part) + len(sentence) + xml_overhead <= max_chars:
+                current_part += sentence
+            else:
+                # Save current part if it has content
+                if current_part.strip():
+                    part_element = element.copy()
+                    part_element['text'] = current_part.strip()
+                    parts.append(part_element)
+                
+                # Start new part
+                if sentence_with_overhead <= max_chars:
+                    current_part = sentence
+                else:
+                    # Even a single sentence is too long - split it arbitrarily
+                    word_parts = self._split_by_words(sentence, max_chars - xml_overhead)
+                    for word_part in word_parts:
+                        part_element = element.copy()
+                        part_element['text'] = word_part
+                        parts.append(part_element)
+                    current_part = ""
+        
+        # Add the last part
+        if current_part.strip():
+            part_element = element.copy()
+            part_element['text'] = current_part.strip()
+            parts.append(part_element)
+        
+        return parts if parts else [element]
+    
+    def _split_on_sentence_boundaries(self, text: str) -> list[str]:
+        """Split text on sentence boundaries while preserving structure"""
+        import re
+        
+        # Split on sentence endings but preserve the punctuation
+        sentence_pattern = r'([.!?]+\s+)'
+        parts = re.split(sentence_pattern, text)
+        
+        sentences = []
+        current_sentence = ""
+        
+        for part in parts:
+            current_sentence += part
+            if re.match(sentence_pattern, part):
+                sentences.append(current_sentence)
+                current_sentence = ""
+        
+        # Add any remaining text
+        if current_sentence.strip():
+            sentences.append(current_sentence)
+        
+        return sentences if sentences else [text]
+    
+    def _split_by_words(self, text: str, max_chars: int) -> list[str]:
+        """Split text by words when sentence splitting isn't enough"""
+        words = text.split()
+        parts = []
+        current_part = ""
+        
+        for word in words:
+            if len(current_part) + len(word) + 1 <= max_chars:
+                if current_part:
+                    current_part += " " + word
+                else:
+                    current_part = word
+            else:
+                if current_part:
+                    parts.append(current_part)
+                current_part = word
+                
+                # If a single word is too long, truncate it
+                if len(word) > max_chars:
+                    parts.append(word[:max_chars-3] + "...")
+                    current_part = ""
+        
+        if current_part:
+            parts.append(current_part)
+        
+        return parts if parts else [text]
+    
+    def _is_good_break_point(self, prev_element: dict, next_element: dict) -> bool:
+        """Determine if this is a good place to break a chunk for coherence"""
+        if not prev_element or not next_element:
+            return True
+        
+        prev_text = prev_element.get('text', '').strip()
+        next_text = next_element.get('text', '').strip()
+        prev_label = prev_element.get('label', '').lower()
+        next_label = next_element.get('label', '').lower()
+        
+        # Good break points:
+        # 1. After paragraphs that end with sentence punctuation
+        if prev_text.endswith(('.', '!', '?')) and prev_label == 'paragraph':
+            return True
+        
+        # 2. Between different content types
+        if prev_label != next_label:
+            return True
+        
+        # 3. Before headings/titles
+        if next_label in ['heading', 'title']:
+            return True
+        
+        # 4. After headings/titles (but not between related headings)
+        if prev_label in ['heading', 'title'] and next_label not in ['heading', 'title']:
+            return True
+        
+        # 5. Between list items (less ideal but acceptable)
+        if prev_label == 'list' and next_label != 'list':
+            return True
+        
+        # Bad break points:
+        # 1. In the middle of a list
+        if prev_label == 'list' and next_label == 'list':
+            return False
+        
+        # 2. Between closely related paragraphs (those that don't end with sentence punctuation)
+        if prev_label == 'paragraph' and next_label == 'paragraph' and not prev_text.endswith(('.', '!', '?')):
+            return False
+        
+        # Default: it's an acceptable break point
+        return True
 
     def execute(self, page_model: PageModel, **kwargs) -> ProcessingResult:
         # ... (the start of the method remains the same)

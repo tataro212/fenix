@@ -213,33 +213,90 @@ class OptimizedDocumentPipeline:
             page_models.append(page_model)
         self.logger.info(f"✅ Content extraction complete. {len(page_models)} page models created.")
 
-        # Step 2: Determine strategy and execute translation using our validated executor.
-        # This is where the single source of truth for translation is enforced.
-        self.logger.info("🎯 Step 2: Executing processing and translation strategies...")
-        results = []
-        for page_model in page_models:
-            text_elements = []
-            for element in page_model.elements:
+        # Step 2: SMART BATCHING - Collect all text elements from entire document
+        self.logger.info("🎯 Step 2: Collecting all text elements for smart batching...")
+        all_text_elements_with_metadata = []
+        element_index = 0
+        
+        for page_idx, page_model in enumerate(page_models):
+            for element_idx, element in enumerate(page_model.elements):
                 if element.type == 'text':
-                    text_elements.append({
+                    all_text_elements_with_metadata.append({
                         'text': element.content,
                         'bbox': list(element.bbox),
-                        'label': 'paragraph'
+                        'label': 'paragraph',
+                        # CRITICAL: Add metadata for reconstruction
+                        'page_number': page_idx + 1,  # 1-based
+                        'element_index': element_idx,  # Position within page
+                        'global_index': element_index,  # Global position
+                        'y_coordinate': element.bbox[1] if len(element.bbox) >= 2 else 0
                     })
-            from processing_strategies import DirectTextProcessor, ProcessingResult
-            processor = DirectTextProcessor(self.gemini_service)
-            translated_blocks = await processor.translate_direct_text(text_elements, target_language)
-            # Always wrap in ProcessingResult
+                    element_index += 1
+        
+        self.logger.info(f"📦 Collected {len(all_text_elements_with_metadata)} text elements from {len(page_models)} pages")
+        
+        # Step 3: SINGLE API CALL - Translate all elements in one batch
+        self.logger.info("🚀 Step 3: Executing smart batched translation (single API call)...")
+        from processing_strategies import DirectTextProcessor, ProcessingResult
+        processor = DirectTextProcessor(self.gemini_service)
+        
+        # Extract just the text elements for translation (without metadata)
+        text_elements_for_translation = [
+            {
+                'text': elem['text'],
+                'bbox': elem['bbox'],
+                'label': elem['label']
+            }
+            for elem in all_text_elements_with_metadata
+        ]
+        
+        # Perform batched translation
+        start_time = time.time()
+        try:
+            translated_blocks = await processor.translate_direct_text(text_elements_for_translation, target_language)
+            processing_time = time.time() - start_time
+            
+            self.logger.info(f"✅ Smart batched translation completed in {processing_time:.3f}s")
+            self.logger.info(f"📊 Translation efficiency: {len(translated_blocks)/processing_time:.1f} elements/second")
+            
+            # Step 4: Reconstruct results with preserved ordering metadata
+            self.logger.info("🔄 Step 4: Reconstructing results with preserved ordering...")
+            
+            # CRITICAL: Add back ALL original metadata to each translated block
+            for i, translated_block in enumerate(translated_blocks):
+                if i < len(all_text_elements_with_metadata):
+                    original_metadata = all_text_elements_with_metadata[i]
+                    translated_block.update({
+                        'page_number': original_metadata['page_number'],
+                        'element_index': original_metadata['element_index'], 
+                        'global_index': original_metadata['global_index'],
+                        'y_coordinate': original_metadata['y_coordinate']
+                    })
+            
+            # Create a single ProcessingResult with all translated content
+            # This preserves the global ordering and eliminates page-wise confusion
             result = ProcessingResult(
                 success=True,
-                strategy='pure_text_fast',
-                processing_time=0.0,
-                content={'final_content': translated_blocks},
-                statistics={'text_elements_processed': len(text_elements)},
+                strategy='smart_batched_translation',
+                processing_time=processing_time,
+                content={'final_content': translated_blocks},  # All blocks with preserved metadata
+                statistics={
+                    'text_elements_processed': len(translated_blocks),
+                    'batch_efficiency': len(translated_blocks)/processing_time,
+                    'api_calls_saved': len(page_models) - 1,  # We made 1 call instead of N
+                    'ordering_preserved': True
+                },
                 error=None
             )
-            results.append(result)
-        self.logger.info(f"✅ Strategy execution complete for {len(results)} pages.")
+            results = [result]  # Single result with all content
+            
+        except Exception as e:
+            self.logger.error(f"❌ Smart batched translation failed: {e}")
+            # Fallback to individual page processing
+            self.logger.info("🔄 Falling back to individual page processing...")
+            results = await self._fallback_individual_processing(page_models, target_language)
+        
+        self.logger.info(f"✅ Processing complete for {len(results)} pages with smart batching")
         self.logger.info("📄 Step 3: Generating final output...")
         self.logger.info("Aggregating content from %d page results...", len(results))
         all_blocks = []
@@ -255,6 +312,66 @@ class OptimizedDocumentPipeline:
                 all_blocks.extend(blocks)
         # The rest of the logic can now proceed with a valid 'all_blocks' list
         # ... (rest of the function remains unchanged)
+        return results
+    
+    async def _fallback_individual_processing(self, page_models: list, target_language: str) -> list:
+        """
+        Fallback method for individual page processing when smart batching fails.
+        """
+        from processing_strategies import DirectTextProcessor, ProcessingResult
+        
+        results = []
+        processor = DirectTextProcessor(self.gemini_service)
+        
+        for page_idx, page_model in enumerate(page_models):
+            try:
+                text_elements = []
+                for element in page_model.elements:
+                    if element.type == 'text':
+                        text_elements.append({
+                            'text': element.content,
+                            'bbox': list(element.bbox),
+                            'label': 'paragraph'
+                        })
+                
+                if text_elements:
+                    start_time = time.time()
+                    translated_blocks = await processor.translate_direct_text(text_elements, target_language)
+                    processing_time = time.time() - start_time
+                    
+                    result = ProcessingResult(
+                        success=True,
+                        strategy='individual_fallback',
+                        processing_time=processing_time,
+                        content={'final_content': translated_blocks},
+                        statistics={'text_elements_processed': len(text_elements)},
+                        error=None
+                    )
+                else:
+                    result = ProcessingResult(
+                        success=True,
+                        strategy='individual_fallback',
+                        processing_time=0.0,
+                        content={'final_content': []},
+                        statistics={'text_elements_processed': 0},
+                        error=None
+                    )
+                    
+                results.append(result)
+                self.logger.info(f"✅ Fallback processing completed for page {page_idx + 1}")
+                
+            except Exception as e:
+                self.logger.error(f"❌ Fallback processing failed for page {page_idx + 1}: {e}")
+                result = ProcessingResult(
+                    success=False,
+                    strategy='individual_fallback',
+                    processing_time=0.0,
+                    content={},
+                    statistics={},
+                    error=str(e)
+                )
+                results.append(result)
+        
         return results
     
     def generate_output(self, page_results: list, pdf_path: str, output_dir: str):
@@ -340,36 +457,67 @@ class OptimizedDocumentPipeline:
             doc_generator = WordDocumentGenerator()
             docx_path = os.path.join(output_dir, f'{base_name}.docx')
             # === BEGIN FINAL REQUIRED IMPLEMENTATION ===
-            structured_content = []
+            structured_content_with_position = []
             self.logger.info(f"Aggregating content from {len(processing_results)} page results...")
+            
             for i, page_result in enumerate(processing_results):
                 # 1. Assert we are handling the correct object type.
                 if not isinstance(page_result, ProcessingResult):
                     self.logger.error(f"FATAL: Page {i+1} result is not a ProcessingResult object, but a {type(page_result)}. Aborting.")
                     continue
 
-                # 2. Check for success AND the existence of the .data payload.
-                if page_result.success and page_result.data:
-                    page_model = page_result.data
-                    # 3. Extract the actual content elements from the PageModel's .elements attribute.
-                    if hasattr(page_model, 'elements') and isinstance(page_model.elements, list):
-                        # 4. Convert ElementModel objects to the simple dict format the generator expects.
-                        for element in page_model.elements:
-                            if element.type == 'text': # We only care about text for now.
-                                structured_content.append({
+                # 2. Check for success AND the existence of content payload.
+                if page_result.success and page_result.content:
+                    # Extract text blocks from content (using 'final_content' or 'text_areas')
+                    blocks = page_result.content.get('final_content') or page_result.content.get('text_areas') or []
+                    
+                    if isinstance(blocks, list):
+                        # Use the preserved metadata from smart batching
+                        for block in blocks:
+                            if isinstance(block, dict) and block.get('text'):
+                                # Extract all preserved metadata
+                                bbox = block.get('bbox', [0, 0, 0, 0])
+                                
+                                structured_content_with_position.append({
                                     'type': 'text',
-                                    'text': element.content,
-                                    'label': element.formatting.get('block_type', 'paragraph'), # Extract label from formatting
-                                    'bbox': list(element.bbox)
+                                    'text': block.get('text', ''),
+                                    'label': block.get('label', 'paragraph'),
+                                    'bbox': bbox,
+                                    # CRITICAL: Use the preserved original metadata for correct ordering
+                                    'page_number': block.get('page_number', i + 1),  # Use preserved or fallback
+                                    'element_index': block.get('element_index', 0),   # Use preserved position within page
+                                    'global_index': block.get('global_index', 0),    # Use preserved global position
+                                    'y_coordinate': block.get('y_coordinate', bbox[1] if len(bbox) >= 2 else 0)  # Use preserved y-coord
                                 })
                     else:
-                         self.logger.warning(f"Skipping page {page_model.page_number}: Successful result has no 'elements' list.")
+                        self.logger.warning(f"Result {i+1}: Content blocks are not in expected list format")
+                        
                 elif not page_result.success:
-                    self.logger.error(f"Skipping page {i+1} due to processing failure: {page_result.error}")
+                    self.logger.error(f"Skipping result {i+1} due to processing failure: {page_result.error}")
                 else:
-                    self.logger.warning(f"Skipping page {i+1}: Result was successful but contained no data payload.")
+                    self.logger.warning(f"Skipping result {i+1}: Result was successful but contained no content payload.")
 
-            self.logger.info(f"✅ Aggregation complete. Total text sections collected: {len(structured_content)}")
+            self.logger.info(f"🔄 Sorting content blocks by preserved document order...")
+            
+            # CRITICAL: Sort using the preserved metadata for perfect document order
+            structured_content_with_position.sort(key=lambda block: (
+                block['page_number'],     # Primary: page number
+                block['y_coordinate'],    # Secondary: vertical position (top to bottom)  
+                block['element_index'],   # Tertiary: original position within page
+                block['global_index']     # Quaternary: global position (fallback)
+            ))
+            
+            # Extract final sorted content (remove positional metadata for document generator)
+            structured_content = []
+            for block in structured_content_with_position:
+                structured_content.append({
+                    'type': block['type'],
+                    'text': block['text'],
+                    'label': block['label'],
+                    'bbox': block['bbox']
+                })
+
+            self.logger.info(f"✅ Aggregation complete. Total text sections collected: {len(structured_content)} (sorted by document order)")
             # === END FINAL REQUIRED IMPLEMENTATION ===
             # Generate the Word document using the unified method (Directive I compliance)
             success = doc_generator.create_word_document_from_structured_document(
@@ -526,10 +674,14 @@ class OptimizedDocumentPipeline:
                     strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
                 
                 for strategy, count in strategy_counts.items():
-                    if strategy == 'pure_text_fast':
+                    if strategy == 'smart_batched_translation':
+                        f.write(f"  🚀 Smart Batched Translation: {count} pages (Single API call, optimized)\n")
+                    elif strategy == 'pure_text_fast':
                         f.write(f"  📝 Pure Text Fast: {count} pages (YOLO overhead avoided)\n")
                     elif strategy == 'coordinate_based_extraction':
                         f.write(f"  🎯 Coordinate-Based Extraction: {count} pages (PyMuPDF+YOLO)\n")
+                    elif strategy == 'individual_fallback':
+                        f.write(f"  🔄 Individual Fallback: {count} pages (Fallback processing)\n")
                     else:
                         f.write(f"  {strategy}: {count} pages\n")
                 f.write("\n")

@@ -50,18 +50,18 @@ class GeminiService:
                 else:
                     timeout = min(config_timeout, 600.0)
                 logger.debug(f"📊 Adaptive timeout: {timeout}s for {text_length} chars")
-            sentences = self._split_into_sentences(text)
-            translated_sentences = []
-            for sentence in sentences:
-                if not sentence.strip():
-                    translated_sentences.append(sentence)
-                    continue
+            
+            # SMART BATCHING FIX: Check if text contains XML segments - if so, treat as single unit
+            if '<seg id=' in text and '</seg>' in text:
+                logger.debug("🎯 XML segments detected - processing as single unit for smart batching")
+                # Process the entire XML payload as one unit
                 prompt = (
                     f"Translate the following XML content to {target_language}. "
                     "Preserve the <seg> tags and their id attributes exactly. "
                     "Do not add any text or explanation outside of the <seg> tags. "
-                    f"TEXT TO TRANSLATE:\n{sentence}"
+                    f"TEXT TO TRANSLATE:\n{text}"
                 )
+                
                 attempt = 0
                 while attempt <= max_retries:
                     try:
@@ -83,28 +83,82 @@ class GeminiService:
                             logger.error("Gemini response is empty or invalid.")
                             return ""
                         logger.info("Successfully received and parsed response from Gemini.")
-                        translated_sentences.append(translated_text)
-                        break
+                        return translated_text
                     except asyncio.TimeoutError as e:
                         if attempt == 0:
-                            logger.warning(f"⚠️ Translation timeout after {timeout}s, using original text. Payload: {repr(sentence)[:500]}")
+                            logger.warning(f"⚠️ Translation timeout after {timeout}s, using original text. Payload: {repr(text)[:500]}")
                         else:
-                            logger.warning(f"⚠️ Retry {attempt}: Translation timeout after {timeout}s. Payload: {repr(sentence)[:500]}")
+                            logger.warning(f"⚠️ Retry {attempt}: Translation timeout after {timeout}s. Payload: {repr(text)[:500]}")
                         if attempt >= max_retries:
-                            logger.error(f"❌ Max retries reached for timeout. Returning original text. Payload: {repr(sentence)[:500]}")
-                            translated_sentences.append(sentence)
-                            break
+                            logger.error(f"❌ Max retries reached for timeout. Returning original text. Payload: {repr(text)[:500]}")
+                            return text
                         time.sleep(2 ** attempt)
                         attempt += 1
                     except Exception as e:
                         logger.critical(f"FATAL: An unhandled exception occurred during Gemini API call: {e}")
                         if attempt >= max_retries:
-                            logger.error(f"❌ Max retries reached for error. Returning original text. Payload: {repr(sentence)[:500]}")
-                            translated_sentences.append("")
-                            break
+                            logger.error(f"❌ Max retries reached for error. Returning original text. Payload: {repr(text)[:500]}")
+                            return ""
                         time.sleep(2 ** attempt)
                         attempt += 1
-            return self._recombine_sentences(translated_sentences)
+            else:
+                # LEGACY: For non-XML content, use original sentence-splitting logic
+                logger.debug("📝 Non-XML content detected - using sentence-splitting logic")
+                sentences = self._split_into_sentences(text)
+                translated_sentences = []
+                for sentence in sentences:
+                    if not sentence.strip():
+                        translated_sentences.append(sentence)
+                        continue
+                    prompt = (
+                        f"Translate the following XML content to {target_language}. "
+                        "Preserve the <seg> tags and their id attributes exactly. "
+                        "Do not add any text or explanation outside of the <seg> tags. "
+                        f"TEXT TO TRANSLATE:\n{sentence}"
+                    )
+                    attempt = 0
+                    while attempt <= max_retries:
+                        try:
+                            # --- BEGIN LOGGING ADDITIONS (Directive 1.3) ---
+                            logger.info(f"Sending request to Gemini for prompt: {prompt[:200]}...")
+                            logger.debug(f"Full prompt for Gemini: {prompt}")
+                            response = await asyncio.wait_for(
+                                self.model.generate_content_async(prompt),
+                                timeout=timeout
+                            )
+                            logger.debug(f"Received raw response from Gemini: {response}")
+                            # --- END LOGGING ADDITIONS ---
+                            # Defensive: check for .text or .parts
+                            if hasattr(response, 'text') and response.text:
+                                translated_text = response.text.strip()
+                            elif hasattr(response, 'parts') and response.parts and hasattr(response.parts[0], 'text'):
+                                translated_text = response.parts[0].text.strip()
+                            else:
+                                logger.error("Gemini response is empty or invalid.")
+                                return ""
+                            logger.info("Successfully received and parsed response from Gemini.")
+                            translated_sentences.append(translated_text)
+                            break
+                        except asyncio.TimeoutError as e:
+                            if attempt == 0:
+                                logger.warning(f"⚠️ Translation timeout after {timeout}s, using original text. Payload: {repr(sentence)[:500]}")
+                            else:
+                                logger.warning(f"⚠️ Retry {attempt}: Translation timeout after {timeout}s. Payload: {repr(sentence)[:500]}")
+                            if attempt >= max_retries:
+                                logger.error(f"❌ Max retries reached for timeout. Returning original text. Payload: {repr(sentence)[:500]}")
+                                translated_sentences.append(sentence)
+                                break
+                            time.sleep(2 ** attempt)
+                            attempt += 1
+                        except Exception as e:
+                            logger.critical(f"FATAL: An unhandled exception occurred during Gemini API call: {e}")
+                            if attempt >= max_retries:
+                                logger.error(f"❌ Max retries reached for error. Returning original text. Payload: {repr(sentence)[:500]}")
+                                translated_sentences.append("")
+                                break
+                            time.sleep(2 ** attempt)
+                            attempt += 1
+                return self._recombine_sentences(translated_sentences)
         except Exception as e:
             logger.error(f"Error translating text with Gemini: {e}. Full payload: {repr(text)[:2000]}")
             return ""

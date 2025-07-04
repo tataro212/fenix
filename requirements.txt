@@ -1,11 +1,33 @@
-# requirements.txt
-google-generativeai
-python-dotenv
-pymupdf
-torch
-torchvision
-ultralytics
-fastapi
-uvicorn
-numpy
-Pillow 
+# FENIX Document Translation Pipeline Dependencies
+# Core translation and PDF processing
+google-generativeai>=0.3.0
+pymupdf>=1.23.0
+python-dotenv>=1.0.0
+
+# Document generation and conversion
+python-docx>=0.8.11
+docx2pdf>=0.1.8
+docx2txt>=0.8
+
+# Computer vision and layout analysis  
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+
+# Data processing and validation
+numpy>=1.24.0
+Pillow>=10.0.0
+pydantic>=2.0.0
+
+# Optional web interface
+fastapi>=0.100.0
+uvicorn>=0.20.0
+
+# Async and parallel processing
+asyncio
+concurrent.futures
+
+# Additional utilities
+networkx>=3.0
+pandas>=2.0.0
+tqdm>=4.65.0 

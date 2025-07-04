@@ -10,21 +10,17 @@ Successful pages: 1
 Success rate: 100.0%
 
 Strategy Distribution (User's Strategic Vision):
-  📝 Pure Text Fast: 1 pages (YOLO overhead avoided)
+  🚀 Smart Batched Translation: 1 pages (Single API call, optimized)
 
 Performance Statistics:
-  Total processing time: 0.000s
-  Average page time: 0.000s
-  Pure text average time: 0.000s (optimized)
-  Total YOLO overhead avoided: 1 pages
+  Total processing time: 3.800s
+  Average page time: 3.800s
+  Total YOLO overhead avoided: 0 pages
   Graph overhead: 0.0s (eliminated per strategic vision)
 
 Detailed Results:
 Page 1:
-  Strategy: pure_text_fast
+  Strategy: smart_batched_translation
   Success: True
-  Processing time: 0.000s
-  Text sections: 0
-  YOLO overhead: 0.000s (avoided)
-  Processing efficiency: N/A
+  Processing time: 3.800s
 
