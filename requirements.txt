@@ -27,6 +27,9 @@ uvicorn>=0.20.0
 asyncio
 concurrent.futures
 
+# Retry and resilience
+tenacity>=8.0.0
+
 # Additional utilities
 networkx>=3.0
 pandas>=2.0.0

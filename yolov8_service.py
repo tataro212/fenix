@@ -19,6 +19,11 @@ import json
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import configparser
+try:
+    from config_manager import config_manager
+    CONFIG_AVAILABLE = True
+except ImportError:
+    CONFIG_AVAILABLE = False
 
 # FastAPI imports
 try:
