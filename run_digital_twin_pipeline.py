@@ -94,12 +94,10 @@ async def main():
         
         print(f"📁 Output directory: {output_dir}")
         
-        # Set target language
-        target_language = input("🌍 Target language (default: el for Greek): ").strip()
-        if not target_language:
-            target_language = "el"
-        
-        print(f"🌍 Target language: {target_language}")
+        # Set target language to Greek (bypassing user input)
+        target_language = "el"
+        print(f"🌍 Target language: {target_language} (Greek - default)")
+        print("✅ Language set to Greek by default")
         
         # Initialize services
         print("\n🔧 Initializing Digital Twin services...")
@@ -162,6 +160,25 @@ async def main():
                         if os.path.exists(word_doc_path):
                             word_size = os.path.getsize(word_doc_path)
                             print(f"📄 Word file size: {word_size / 1024:.1f} KB")
+                        
+                        # Convert to PDF
+                        print(f"\n📄 Converting Word document to PDF...")
+                        try:
+                            from document_generator import convert_word_to_pdf
+                            pdf_doc_path = os.path.join(output_dir, f"{file_name}_translated.pdf")
+                            pdf_success = convert_word_to_pdf(word_doc_path, pdf_doc_path)
+                            
+                            if pdf_success:
+                                print(f"✅ PDF document generated: {pdf_doc_path}")
+                                
+                                # Show PDF file size
+                                if os.path.exists(pdf_doc_path):
+                                    pdf_size = os.path.getsize(pdf_doc_path)
+                                    print(f"📄 PDF file size: {pdf_size / 1024:.1f} KB")
+                            else:
+                                print("❌ PDF conversion failed")
+                        except Exception as pdf_error:
+                            print(f"❌ PDF conversion error: {pdf_error}")
                     else:
                         print("❌ Failed to generate Word document")
                         

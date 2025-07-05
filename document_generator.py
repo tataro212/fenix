@@ -1305,26 +1305,69 @@ class WordDocumentGenerator:
             indent_size = Inches(0.25 * (toc_entry.level - 1))
             toc_paragraph.paragraph_format.left_indent = indent_size
             
-            # Add title with appropriate formatting
-            title_run = toc_paragraph.add_run(safe_title)
+            # Generate bookmark name for this entry
+            bookmark_name = f"_Toc_{toc_entry.entry_id.replace('toc_', '')}"
             
-            if toc_entry.level == 1:
-                title_run.bold = True
-                title_run.font.size = Pt(12)
-            elif toc_entry.level == 2:
-                title_run.font.size = Pt(11)
-            else:
-                title_run.font.size = Pt(10)
-                title_run.italic = True
+            # Add title with hyperlink formatting
+            try:
+                hyperlink_run = self._add_hyperlink(toc_paragraph, bookmark_name, safe_title)
+                if toc_entry.level == 1:
+                    # For hyperlinks, we need to access the run through the hyperlink element
+                    toc_paragraph.add_run()  # Add formatting to last run
+                    if toc_paragraph.runs:
+                        toc_paragraph.runs[-1].bold = True
+                        toc_paragraph.runs[-1].font.size = Pt(12)
+                elif toc_entry.level == 2:
+                    if toc_paragraph.runs:
+                        toc_paragraph.runs[-1].font.size = Pt(11)
+                else:
+                    if toc_paragraph.runs:
+                        toc_paragraph.runs[-1].font.size = Pt(10)
+                        toc_paragraph.runs[-1].italic = True
+            except Exception as e:
+                self.logger.debug(f"Could not create hyperlink for {safe_title}: {e}")
+                # Fallback to regular text
+                title_run = toc_paragraph.add_run(safe_title)
+                if toc_entry.level == 1:
+                    title_run.bold = True
+                    title_run.font.size = Pt(12)
+                elif toc_entry.level == 2:
+                    title_run.font.size = Pt(11)
+                else:
+                    title_run.font.size = Pt(10)
+                    title_run.italic = True
             
-            # Add dots and page number
+            # Add dots for leader
             dots_needed = max(3, 60 - len(safe_title))
             dots_run = toc_paragraph.add_run(" " + "." * dots_needed + " ")
             dots_run.font.color.rgb = RGBColor(128, 128, 128)
             
-            # Add page number
-            page_run = toc_paragraph.add_run(str(toc_entry.page_number))
-            page_run.bold = (toc_entry.level == 1)
+            # Add dynamic page reference field instead of static page number
+            try:
+                # Create a page reference field that will update automatically
+                fldSimple = OxmlElement('w:fldSimple')
+                fldSimple.set(qn('w:instr'), f'PAGEREF {bookmark_name} \\h')
+                
+                run_in_field = OxmlElement('w:r')
+                text_in_field = OxmlElement('w:t')
+                text_in_field.text = str(toc_entry.page_number)  # Placeholder text
+                run_in_field.append(text_in_field)
+                fldSimple.append(run_in_field)
+                
+                # Make page number bold for level 1 entries
+                if toc_entry.level == 1:
+                    rPr = OxmlElement('w:rPr')
+                    bold_elem = OxmlElement('w:b')
+                    rPr.append(bold_elem)
+                    run_in_field.insert(0, rPr)
+                
+                toc_paragraph._p.append(fldSimple)
+                
+            except Exception as e:
+                self.logger.debug(f"Could not create page reference field: {e}")
+                # Fallback to static page number
+                page_run = toc_paragraph.add_run(str(toc_entry.page_number))
+                page_run.bold = (toc_entry.level == 1)
             
         except Exception as e:
             self.logger.warning(f"Failed to add TOC entry '{toc_entry.title}': {e}")
@@ -1423,9 +1466,13 @@ class WordDocumentGenerator:
                 level = text_block.heading_level or 1
                 p = doc.add_heading(safe_text, level=level)
                 
+                # Create bookmark name that matches TOC expectation
+                # Use the block_id to ensure consistency with TOC entries
+                block_id_num = text_block.block_id.split('_')[-1] if '_' in text_block.block_id else str(self.bookmark_id)
+                bookmark_name = f"_Toc_{block_id_num}"
+                
                 # Add bookmark for TOC linking
                 self.bookmark_id += 1
-                bookmark_name = f"_Toc_Bookmark_{self.bookmark_id}"
                 
                 # Create bookmark elements
                 tag_start = OxmlElement('w:bookmarkStart')

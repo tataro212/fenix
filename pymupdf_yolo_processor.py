@@ -182,35 +182,132 @@ class PyMuPDFContentExtractor:
         return result_blocks
     
     def extract_images(self, page: fitz.Page) -> List[ImageBlock]:
-        """Extract native images with coordinates (patched for full image list)"""
+        """Extract native images with coordinates (enhanced detection)"""
         image_blocks = []
         try:
+            # Method 1: Standard image extraction
             images = page.get_images(full=True)
+            self.logger.debug(f"🔍 Found {len(images)} images using standard extraction")
+            
             for img_index, img in enumerate(images):
                 try:
                     xref = img[0]
                     bbox = None
+                    
                     # Try to get image bbox using get_image_rects
                     img_rects = page.get_image_rects(xref)
                     if img_rects:
                         bbox = (img_rects[0].x0, img_rects[0].y0, img_rects[0].x1, img_rects[0].y1)
+                        self.logger.debug(f"📍 Image {img_index} found at bbox: {bbox}")
                     else:
-                        # Fallback: use (0,0,0,0) if bbox not found
-                        bbox = (0, 0, 0, 0)
-                    image_block = ImageBlock(
-                        image_index=img_index,
-                        bbox=tuple(bbox),
-                        block_type='image'
-                    )
-                    image_blocks.append(image_block)
+                        # Try alternative method to get image position
+                        bbox = self._find_image_bbox_alternative(page, xref)
+                        if bbox == (0, 0, 0, 0):
+                            self.logger.debug(f"⚠️ Could not determine bbox for image {img_index}, using fallback")
+                    
+                    # Check if image has meaningful dimensions
+                    width = bbox[2] - bbox[0]
+                    height = bbox[3] - bbox[1]
+                    if width > 5 and height > 5:  # Filter out very small images
+                        image_block = ImageBlock(
+                            image_index=img_index,
+                            bbox=tuple(bbox),
+                            block_type='image'
+                        )
+                        image_blocks.append(image_block)
+                        self.logger.debug(f"✅ Added image {img_index} with dimensions {width}x{height}")
+                    else:
+                        self.logger.debug(f"🚫 Skipped tiny image {img_index} ({width}x{height})")
+                        
                 except Exception as e:
                     self.logger.warning(f"Could not extract bbox for image {img_index}: {e}")
                     continue
-            self.logger.info(f"🖼️ Extracted {len(image_blocks)} image blocks from page (patched)")
+            
+            # Method 2: Look for embedded graphics objects (drawings, vector graphics)
+            try:
+                drawings = page.get_drawings()
+                self.logger.debug(f"🎨 Found {len(drawings)} drawing objects")
+                
+                for draw_index, drawing in enumerate(drawings):
+                    if drawing.get('rect'):
+                        rect = drawing['rect']
+                        width = rect.width
+                        height = rect.height
+                        if width > 10 and height > 10:  # Filter meaningful graphics
+                            bbox = (rect.x0, rect.y0, rect.x1, rect.y1)
+                            image_block = ImageBlock(
+                                image_index=len(images) + draw_index,
+                                bbox=bbox,
+                                block_type='drawing'
+                            )
+                            image_blocks.append(image_block)
+                            self.logger.debug(f"✅ Added drawing {draw_index} with dimensions {width}x{height}")
+            except Exception as e:
+                self.logger.debug(f"Could not extract drawings: {e}")
+            
+            # Method 3: Scan for image-like content in text dict
+            try:
+                text_dict = page.get_text("dict")
+                for block_idx, block in enumerate(text_dict.get("blocks", [])):
+                    if block.get("type") == 1:  # Image block type
+                        bbox = block.get("bbox", (0, 0, 0, 0))
+                        width = bbox[2] - bbox[0]
+                        height = bbox[3] - bbox[1]
+                        if width > 5 and height > 5:
+                            # Check if we already have this image
+                            is_duplicate = any(
+                                abs(existing.bbox[0] - bbox[0]) < 5 and 
+                                abs(existing.bbox[1] - bbox[1]) < 5
+                                for existing in image_blocks
+                            )
+                            if not is_duplicate:
+                                image_block = ImageBlock(
+                                    image_index=len(images) + len(image_blocks),
+                                    bbox=bbox,
+                                    block_type='image_dict'
+                                )
+                                image_blocks.append(image_block)
+                                self.logger.debug(f"✅ Added image from text dict with dimensions {width}x{height}")
+            except Exception as e:
+                self.logger.debug(f"Could not scan text dict for images: {e}")
+            
+            self.logger.info(f"🖼️ Extracted {len(image_blocks)} image blocks from page (enhanced detection)")
+            if len(image_blocks) == 0:
+                self.logger.debug("🔍 No images found - this may be a text-only page")
+            
             return image_blocks
+            
         except Exception as e:
-            self.logger.error(f"❌ Error extracting images (patched): {e}")
+            self.logger.error(f"❌ Error extracting images (enhanced): {e}")
             return []
+    
+    def _find_image_bbox_alternative(self, page: fitz.Page, xref: int) -> Tuple[float, float, float, float]:
+        """Alternative method to find image bounding box when get_image_rects fails"""
+        try:
+            # Method 1: Search through text dict for image references
+            text_dict = page.get_text("dict")
+            for block in text_dict.get("blocks", []):
+                if block.get("type") == 1:  # Image block
+                    # Try to match by checking if this block contains our image
+                    # This is a heuristic approach
+                    bbox = block.get("bbox", (0, 0, 0, 0))
+                    if bbox != (0, 0, 0, 0):
+                        return bbox
+            
+            # Method 2: Use page annotations or links that might reference images
+            annotations = page.annots()
+            for annot in annotations:
+                if annot.type[1] in ['Text', 'FreeText', 'Image']:
+                    rect = annot.rect
+                    if rect.width > 5 and rect.height > 5:
+                        return (rect.x0, rect.y0, rect.x1, rect.y1)
+            
+            # Method 3: Fallback - return minimal bbox
+            return (0, 0, 0, 0)
+            
+        except Exception as e:
+            self.logger.debug(f"Alternative bbox search failed: {e}")
+            return (0, 0, 0, 0)
     
     def _extract_text_from_block(self, block: Dict) -> str:
         """Extract raw text from a PyMuPDF block (hyphenation will be handled at page level)"""
@@ -223,7 +320,9 @@ class PyMuPDFContentExtractor:
                     span_text = span.get("text", "")
                     line_text += span_text
                 if line_text.strip():
-                    lines.append(line_text.strip())
+                    # Filter out page numbers before adding to lines
+                    if not self._is_page_number(line_text.strip()):
+                        lines.append(line_text.strip())
             
             # Return raw text - hyphenation reconstruction happens at page level
             return "\n".join(lines).strip()
@@ -231,6 +330,49 @@ class PyMuPDFContentExtractor:
         except Exception as e:
             self.logger.warning(f"Error extracting text from block: {e}")
             return ""
+    
+    def _is_page_number(self, text: str) -> bool:
+        """
+        Detect if the text is likely a page number.
+        
+        Common page number patterns:
+        - Single numbers (e.g., "1", "23", "456")
+        - Numbers with formatting (e.g., "- 1 -", "Page 1", "1 of 10")
+        - Roman numerals (e.g., "i", "ii", "iii", "iv", "v")
+        - Numbers with punctuation (e.g., "1.", "1)", "(1)")
+        """
+        import re
+        
+        # Strip whitespace and convert to lowercase for pattern matching
+        cleaned_text = text.strip().lower()
+        
+        # Empty or very short text is unlikely to be meaningful content
+        if len(cleaned_text) <= 10:
+            # Pattern 1: Pure numbers
+            if re.match(r'^\d+$', cleaned_text):
+                return True
+            
+            # Pattern 2: Numbers with basic formatting
+            if re.match(r'^[\-\(\)\[\]\s]*\d+[\-\(\)\[\]\s]*$', cleaned_text):
+                return True
+            
+            # Pattern 3: "Page X" or similar
+            if re.match(r'^page\s+\d+$', cleaned_text):
+                return True
+            
+            # Pattern 4: "X of Y" format
+            if re.match(r'^\d+\s+of\s+\d+$', cleaned_text):
+                return True
+            
+            # Pattern 5: Roman numerals (common in academic papers)
+            if re.match(r'^[ivxlcdm]+$', cleaned_text):
+                return True
+            
+            # Pattern 6: Numbers with punctuation
+            if re.match(r'^[\-\(\)\[\]\s]*\d+[\.\)\]\-\s]*$', cleaned_text):
+                return True
+        
+        return False
     
     def _reconstruct_hyphenated_text(self, blocks: list) -> list:
         """
