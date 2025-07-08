@@ -1,0 +1,74 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      99.21299743652344,
+      64.13349914550781,
+      383.08123779296875,
+      80.48816680908203
+    ],
+    "text_snippet": "Preface by Black Rose Anarchist Federation"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      98.68900299072266,
+      91.51927185058594,
+      526.2607421875,
+      320.7425842285156
+    ],
+    "text_snippet": "The FAU (Federación Anarquista Uruguaya), founded in 1956, w"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      99.21299743652344,
+      339.5465087890625,
+      452.57415771484375,
+      355.90118408203125
+    ],
+    "text_snippet": "COPEI: Internal Document of the FAU, 1972 (Excerpts)"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      98.01300048828125,
+      366.9322509765625,
+      526.249755859375,
+      569.0577392578125
+    ],
+    "text_snippet": "Important events have occurred. Events that introduce signif"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      99.21299743652344,
+      587.8615112304688,
+      455.7014465332031,
+      604.2161865234375
+    ],
+    "text_snippet": "The more salient points of the conceptions of foquismo"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      117.20199584960938,
+      615.2472534179688,
+      524.4061279296875,
+      654.7816772460938
+    ],
+    "text_snippet": "• The necessity to initiate armed activity as soon as possib"
+  }
+]

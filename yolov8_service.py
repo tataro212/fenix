@@ -59,12 +59,23 @@ class YOLOv8DocumentAnalyzer:
     document layout elements including figures, tables, text blocks, etc.
     """
     
-    def __init__(self, model_path: str = "yolov8m.pt"):
+    def __init__(self, model_path: str = "C:\\Users\\30694\\gemini_translator_env\\runs\\two_stage_training\\stage2_doclaynet\\weights\\best.pt"):
         self.logger = logging.getLogger(__name__)
         
-        # Model configuration
+        # Model configuration - read from config.ini for fallback path
+        try:
+            import configparser
+            config = configparser.ConfigParser()
+            # Use UTF-8 encoding to handle special characters in paths
+            config.read('config.ini', encoding='utf-8')
+            fallback_model_path = config.get('YOLOv8', 'fallback_model_path', fallback='yolov8m.pt')
+        except Exception as e:
+            self.logger.warning(f"Failed to read config.ini: {e}")
+            fallback_model_path = 'yolov8m.pt'
+            
         self.config = {
             'model_path': model_path,
+            'fallback_model_path': fallback_model_path,
             'confidence_threshold': 0.5,
             'iou_threshold': 0.4,
             'max_detections': 100,
@@ -114,10 +125,11 @@ class YOLOv8DocumentAnalyzer:
                 self.logger.info(f"📥 Loading custom model: {self.config['model_path']}")
                 model = YOLO(self.config['model_path'])
             else:
-                # Fallback to pre-trained model
+                # Fallback to fallback model path from config
+                fallback_path = self.config.get('fallback_model_path', 'yolov8m.pt')
                 self.logger.warning(f"Custom model not found: {self.config['model_path']}")
-                self.logger.info("📥 Loading pre-trained YOLOv8 model...")
-                model = YOLO('yolov8m.pt')  # Medium model for balance of speed/accuracy
+                self.logger.info(f"📥 Loading fallback model: {fallback_path}")
+                model = YOLO(fallback_path)
             
             # Move to appropriate device
             model.to(self.config['device'])
@@ -143,9 +155,18 @@ class YOLOv8DocumentAnalyzer:
             import time
             start_time = time.time()
             
+            # Enhanced diagnostic logging
+            self.logger.debug(f"🔍 Starting YOLO detection:")
+            self.logger.debug(f"   Image size: {image.size}")
+            self.logger.debug(f"   Image mode: {image.mode}")
+            self.logger.debug(f"   Confidence threshold: {self.config['confidence_threshold']}")
+            self.logger.debug(f"   IoU threshold: {self.config['iou_threshold']}")
+            self.logger.debug(f"   Max detections: {self.config['max_detections']}")
+            
             # Ensure image is RGB
             if image.mode != 'RGB':
                 image = image.convert('RGB')
+                self.logger.debug(f"   Converted image to RGB")
             
             # Run YOLOv8 inference
             results = self.model(
@@ -157,12 +178,16 @@ class YOLOv8DocumentAnalyzer:
                 verbose=False
             )
             
-            # Parse results
+            # Enhanced results parsing with diagnostics
             detections = []
+            total_raw_detections = 0
             
             for result in results:
                 if result.boxes is not None:
-                    for box in result.boxes:
+                    total_raw_detections += len(result.boxes)
+                    self.logger.debug(f"   Raw boxes found: {len(result.boxes)}")
+                    
+                    for i, box in enumerate(result.boxes):
                         # Extract detection data
                         class_id = int(box.cls.cpu().numpy()[0])
                         confidence = float(box.conf.cpu().numpy()[0])
@@ -170,6 +195,9 @@ class YOLOv8DocumentAnalyzer:
                         
                         # Map class ID to label
                         label = self.config['publaynet_classes'].get(class_id, 'unknown')
+                        
+                        # Log each detection for debugging
+                        self.logger.debug(f"   Detection {i}: {label} (class_id={class_id}, conf={confidence:.3f})")
                         
                         detection = {
                             'label': label,
@@ -179,6 +207,8 @@ class YOLOv8DocumentAnalyzer:
                         }
                         
                         detections.append(detection)
+                else:
+                    self.logger.debug(f"   No boxes found in result")
             
             # Update statistics
             inference_time = time.time() - start_time
@@ -189,7 +219,17 @@ class YOLOv8DocumentAnalyzer:
             total_time = self.stats['average_inference_time'] * (self.stats['images_processed'] - 1) + inference_time
             self.stats['average_inference_time'] = total_time / self.stats['images_processed']
             
-            self.logger.debug(f"🎯 Detected {len(detections)} elements in {inference_time:.3f}s")
+            # Enhanced final logging
+            self.logger.info(f"🎯 YOLO Detection Summary:")
+            self.logger.info(f"   ⏱️ Processing time: {inference_time:.3f}s")
+            self.logger.info(f"   📊 Raw detections: {total_raw_detections}")
+            self.logger.info(f"   ✅ Final detections: {len(detections)}")
+            self.logger.info(f"   🎯 Confidence threshold: {self.config['confidence_threshold']}")
+            
+            if len(detections) == 0 and total_raw_detections > 0:
+                self.logger.warning(f"⚠️  All {total_raw_detections} raw detections filtered out by confidence threshold!")
+            elif len(detections) == 0:
+                self.logger.warning(f"⚠️  Zero detections found - model may need different confidence or input preprocessing")
             
             return detections
             
@@ -221,10 +261,10 @@ class YOLOv8Service:
     """
     def __init__(self, config_path='config.ini'):
         config = configparser.ConfigParser()
-        with open(config_path, encoding='utf-8') as f:
-            config.read_file(f)
+        # Use UTF-8 encoding to handle special characters in paths
+        config.read(config_path, encoding='utf-8')
         yolo_cfg = config['YOLOv8']
-        model_path = yolo_cfg.get('model_path', 'yolov8n.pt')
+        model_path = yolo_cfg.get('model_path', 'C:\\Users\\30694\\gemini_translator_env\\runs\\two_stage_training\\stage2_doclaynet\\weights\\best.pt')
         self.conf_thres = float(yolo_cfg.get('confidence_threshold', 0.5))
         self.iou_thres = float(yolo_cfg.get('iou_threshold', 0.4))
         self.analyzer = YOLOv8DocumentAnalyzer(model_path)
@@ -243,14 +283,21 @@ class YOLOv8Service:
 
 # Initialize the analyzer
 try:
-    # Try to load custom fine-tuned model first
-    custom_model_path = "models/yolov8_publaynet_finetuned.pt"
-    if os.path.exists(custom_model_path):
-        analyzer = YOLOv8DocumentAnalyzer(custom_model_path)
-        logger.info("🎯 Using fine-tuned PubLayNet model for supreme accuracy")
+    # Load model from config.ini
+    import configparser
+    config = configparser.ConfigParser()
+    # Use UTF-8 encoding to handle special characters in paths
+    config.read('config.ini', encoding='utf-8')
+    model_path = config.get('YOLOv8', 'model_path', fallback='C:\\Users\\30694\\gemini_translator_env\\runs\\two_stage_training\\stage2_doclaynet\\weights\\best.pt')
+    
+    if os.path.exists(model_path):
+        analyzer = YOLOv8DocumentAnalyzer(model_path)
+        logger.info(f"🎯 Using fine-tuned model from config: {model_path}")
     else:
-        analyzer = YOLOv8DocumentAnalyzer()
-        logger.warning("⚠️ Using pre-trained model - consider fine-tuning on PubLayNet for best results")
+        # Try fallback path
+        fallback_path = config.get('YOLOv8', 'fallback_model_path', fallback='yolov8m.pt')
+        analyzer = YOLOv8DocumentAnalyzer(fallback_path)
+        logger.warning(f"⚠️ Primary model not found, using fallback: {fallback_path}")
         
 except Exception as e:
     logger.error(f"❌ Failed to initialize YOLOv8 analyzer: {e}")

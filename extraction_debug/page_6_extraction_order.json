@@ -1,0 +1,50 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      113.55799865722656,
+      67.20626831054688,
+      524.4057006835938,
+      93.19163513183594
+    ],
+    "text_snippet": "1. The active participation of important sectors of the mass"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      113.55799865722656,
+      103.27127075195312,
+      526.2494506835938,
+      142.80563354492188
+    ],
+    "text_snippet": "2. The previous existence of a clandestine military apparatu"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      113.55799865722656,
+      152.88526916503906,
+      524.4057006835938,
+      205.9686279296875
+    ],
+    "text_snippet": "3. These three requirements presuppose, as obvious, the exis"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      98.80900573730469,
+      219.03726196289062,
+      526.249755859375,
+      394.0636291503906
+    ],
+    "text_snippet": "This conception of armed struggle, culminating with the insu"
+  }
+]

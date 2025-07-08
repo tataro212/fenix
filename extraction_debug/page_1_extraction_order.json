@@ -1,0 +1,38 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      102.15899658203125,
+      105.21172332763672,
+      521.4630737304688,
+      153.6729736328125
+    ],
+    "text_snippet": "COPEI: Commentary on Armed Struggle and Foquismo in Latin Am"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      214.85899353027344,
+      186.42449951171875,
+      408.7622375488281,
+      202.77915954589844
+    ],
+    "text_snippet": "Federación Anarquista Uruguaya"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      255.60299682617188,
+      648.3424682617188,
+      368.0054931640625,
+      664.6971435546875
+    ],
+    "text_snippet": "September 17, 2018"
+  }
+]

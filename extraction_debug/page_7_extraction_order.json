@@ -1,0 +1,146 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      262.75799560546875,
+      67.20626831054688,
+      361.1471862792969,
+      79.64263916015625
+    ],
+    "text_snippet": "The Anarchist Library"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      277.05999755859375,
+      83.7442626953125,
+      346.1909484863281,
+      96.1806411743164
+    ],
+    "text_snippet": "Anti-Copyright"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      149.38601684570312,
+      559.7592163085938,
+      474.2372131347656,
+      599.2936401367188
+    ],
+    "text_snippet": "Federación Anarquista Uruguaya COPEI: Commentary on Armed St"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      208.08200073242188,
+      612.3622436523438,
+      415.539794921875,
+      624.7986450195312
+    ],
+    "text_snippet": "Retrieved on 2020-04-12 from blackrosefed.org"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      216.62899780273438,
+      625.9112548828125,
+      408.6727294921875,
+      638.34765625
+    ],
+    "text_snippet": "English Translation by Gabriel Ascui, 2018."
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      254.51100158691406,
+      651.415283203125,
+      369.1220703125,
+      663.8516845703125
+    ],
+    "text_snippet": "theanarchistlibrary.org"
+  },
+  {
+    "order": 0,
+    "block_type": "image",
+    "page_number": 7,
+    "bbox": [
+      257.2974548339844,
+      109.95819854736328,
+      320.33209228515625,
+      206.4665985107422
+    ],
+    "image_index": 0
+  },
+  {
+    "order": 1,
+    "block_type": "image",
+    "page_number": 7,
+    "bbox": [
+      282.90203857421875,
+      109.15177154541016,
+      296.092041015625,
+      120.9248046875
+    ],
+    "image_index": 1
+  },
+  {
+    "order": 2,
+    "block_type": "image",
+    "page_number": 7,
+    "bbox": [
+      321.69677734375,
+      109.95819854736328,
+      338.76629638671875,
+      145.05210876464844
+    ],
+    "image_index": 2
+  },
+  {
+    "order": 3,
+    "block_type": "image",
+    "page_number": 7,
+    "bbox": [
+      327.90216064453125,
+      109.95819854736328,
+      363.5948791503906,
+      206.4665985107422
+    ],
+    "image_index": 3
+  },
+  {
+    "order": 4,
+    "block_type": "image",
+    "page_number": 7,
+    "bbox": [
+      284.45391845703125,
+      170.64141845703125,
+      346.9627380371094,
+      206.4665985107422
+    ],
+    "image_index": 7
+  },
+  {
+    "order": 5,
+    "block_type": "image",
+    "page_number": 7,
+    "bbox": [
+      257.2974548339844,
+      108.74004364013672,
+      363.5948791503906,
+      208.03836059570312
+    ],
+    "image_index": 9
+  }
+]

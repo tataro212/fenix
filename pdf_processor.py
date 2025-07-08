@@ -21,6 +21,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
 from enum import Enum
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,22 @@ class StructuredPDFProcessor:
             for page_num in range(len(doc)):
                 page = doc[page_num]
                 page_blocks = self._extract_page_blocks(page, page_num)
+                # --- Extraction Order Debug Export ---
+                extraction_order_debug = []
+                for idx, block in enumerate(page_blocks):
+                    extraction_order_debug.append({
+                        'order': idx,
+                        'block_type': getattr(block, 'block_type', None),
+                        'page_number': page_num + 1,
+                        'bbox': getattr(block, 'bbox', None),
+                        'text_snippet': getattr(block, 'text', '')[:60] if hasattr(block, 'text') else None
+                    })
+                debug_dir = os.path.join('output', 'extraction_debug')
+                os.makedirs(debug_dir, exist_ok=True)
+                debug_path = os.path.join(debug_dir, f"structured_page_{page_num+1}_extraction_order.json")
+                with open(debug_path, 'w', encoding='utf-8') as f:
+                    json.dump(extraction_order_debug, f, ensure_ascii=False, indent=2)
+                # --- End Extraction Order Debug Export ---
                 
                 # Sort blocks to establish correct reading order
                 sorted_blocks = self._sort_blocks_by_reading_order(page_blocks)

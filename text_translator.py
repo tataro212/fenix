@@ -90,6 +90,11 @@ class StructuredTextTranslator:
         """
         Translate page blocks in parallel while maintaining sequence integrity.
         
+        IMPORTANT: This method automatically excludes non-text items from translation:
+        - Image blocks (content_type.value == "image") are preserved unchanged
+        - Only text content is sent to the translation API
+        - Non-text items maintain their original position and formatting
+        
         Each translation task carries the sequence_id of the TextBlock it is translating.
         As translations return, we use the sequence_id to update the correct block
         in our master data structure.
@@ -100,10 +105,11 @@ class StructuredTextTranslator:
             
             for block in page_blocks:
                 if block.content_type.value == "image":
-                    # Skip translation for image blocks
+                    # CRITICAL: Skip translation for image blocks - preserve as-is
+                    self.logger.debug(f"Preserving image block {block.sequence_id} - no translation needed")
                     translation_tasks.append(self._create_identity_task(block))
                 else:
-                    # Create translation task with sequence_id
+                    # Create translation task with sequence_id for text content only
                     task = self._create_translation_task(block, target_language, style_guide)
                     translation_tasks.append(task)
             
@@ -249,7 +255,13 @@ class StructuredTextTranslator:
                                               page_blocks: List[TextBlock], 
                                               target_language: str,
                                               style_guide: str) -> List[TextBlock]:
-        """Sequential translation fallback when parallel processing fails"""
+        """
+        Sequential translation fallback when parallel processing fails.
+        
+        IMPORTANT: This method also excludes non-text items from translation:
+        - Image blocks (content_type.value == "image") are kept unchanged
+        - Only text content is processed through the translation API
+        """
         try:
             self.logger.info("Using sequential translation fallback")
             
@@ -257,7 +269,8 @@ class StructuredTextTranslator:
             
             for block in page_blocks:
                 if block.content_type.value == "image":
-                    # Keep image blocks unchanged
+                    # CRITICAL: Keep image blocks unchanged - no translation needed
+                    self.logger.debug(f"Preserving image block {block.sequence_id} in sequential mode")
                     translated_blocks.append(block)
                     continue
                 

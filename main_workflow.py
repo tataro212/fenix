@@ -876,7 +876,7 @@ class UltimatePDFTranslator:
                     if pdf_success and os.path.exists(pdf_output_path):
                         files_to_upload.append({
                             'filepath': pdf_output_path,
-                            'filename': f"{base_filename}_translated.pdf"
+                            'filename': f"{short_filename}.pdf"
                         })
 
                     drive_results = drive_uploader.upload_multiple_files(files_to_upload)
@@ -1033,8 +1033,16 @@ class UltimatePDFTranslator:
             # Generate documents from the translated structured document
             base_filename = os.path.splitext(os.path.basename(filepath))[0]
             output_dir_for_this_file = os.path.normpath(output_dir_for_this_file)
-            word_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{base_filename}_translated.docx"))
-            pdf_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{base_filename}_translated.pdf"))
+            
+            # STRATEGIC FIX: Use short-form naming to resolve Windows COM 255-character limitation
+            # Original: base_filename = federacion-anarquista-uruguaya-copei-commentary-on-armed-struggle-and-foquismo-in-latin-america
+            # New: doc_translated_{timestamp} - eliminates path length issues
+            import time
+            timestamp = int(time.time())
+            short_filename = f"doc_translated_{timestamp}"
+            
+            word_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{short_filename}.docx"))
+            pdf_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{short_filename}.pdf"))
 
             # Configuration for cover page extraction (using .get() for safety)
             extract_cover_setting = config_manager.pdf_processing_settings.get('extract_cover_page', False)
@@ -1095,13 +1103,13 @@ class UltimatePDFTranslator:
                 with span("upload_to_drive", SpanType.DOCUMENT_GENERATION):
                     logger.info("☁️ Uploading to Google Drive...")
                     files_to_upload = [
-                        {'filepath': word_output_path, 'filename': f"{base_filename}_translated.docx"}
+                        {'filepath': word_output_path, 'filename': f"{short_filename}.docx"}
                     ]
 
                     if pdf_success and os.path.exists(pdf_output_path):
                         files_to_upload.append({
                             'filepath': pdf_output_path,
-                            'filename': f"{base_filename}_translated.pdf"
+                            'filename': f"{short_filename}.pdf"
                         })
 
                     drive_results = drive_uploader.upload_multiple_files(files_to_upload)
@@ -1163,7 +1171,7 @@ class UltimatePDFTranslator:
             pdf_success = False
             if config_manager.word_output_settings.get('generate_pdf', False):
                 logger.info("📑 Step 7: Converting to PDF...")
-                pdf_output_path = os.path.join(output_dir_for_this_file, f"{base_filename}_translated.pdf")
+                pdf_output_path = os.path.join(output_dir_for_this_file, f"{short_filename}.pdf")
                 pdf_success = pdf_converter.convert_word_to_pdf(saved_word_filepath, pdf_output_path)
             else:
                 logger.info("📄 PDF generation skipped by configuration.")
@@ -1173,13 +1181,13 @@ class UltimatePDFTranslator:
             if drive_uploader.is_available():
                 logger.info("☁️ Step 8: Uploading to Google Drive...")
                 files_to_upload = [
-                    {'filepath': word_output_path, 'filename': f"{base_filename}_translated.docx"}
+                    {'filepath': word_output_path, 'filename': f"{short_filename}.docx"}
                 ]
 
                 if pdf_success and os.path.exists(pdf_output_path):
                     files_to_upload.append({
                         'filepath': pdf_output_path,
-                        'filename': f"{base_filename}_translated.pdf"
+                        'filename': f"{short_filename}.pdf"
                     })
 
                 drive_results = drive_uploader.upload_multiple_files(files_to_upload)
@@ -1227,8 +1235,14 @@ class UltimatePDFTranslator:
             base_filename = os.path.splitext(os.path.basename(filepath))[0]
             output_dir_for_this_file = os.path.normpath(output_dir_for_this_file)
             image_folder = os.path.join(output_dir_for_this_file, "images")
-            word_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{base_filename}_translated.docx"))
-            pdf_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{base_filename}_translated.pdf"))
+            
+            # STRATEGIC FIX: Use short-form naming to resolve Windows COM 255-character limitation
+            import time
+            timestamp = int(time.time())
+            short_filename = f"doc_translated_{timestamp}"
+            
+            word_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{short_filename}.docx"))
+            pdf_output_path = os.path.normpath(os.path.join(output_dir_for_this_file, f"{short_filename}.pdf"))
             
             # Step 1: Extract images and cover page
             logger.info("📷 Step 1: Extracting images and cover page...")
@@ -1323,13 +1337,13 @@ class UltimatePDFTranslator:
             if drive_uploader.is_available():
                 logger.info("☁️ Step 7: Uploading to Google Drive...")
                 files_to_upload = [
-                    {'filepath': word_output_path, 'filename': f"{base_filename}_translated.docx"}
+                    {'filepath': word_output_path, 'filename': f"{short_filename}.docx"}
                 ]
                 
                 if pdf_success and os.path.exists(pdf_output_path):
                     files_to_upload.append({
                         'filepath': pdf_output_path,
-                        'filename': f"{base_filename}_translated.pdf"
+                        'filename': f"{short_filename}.pdf"
                     })
                 
                 drive_results = drive_uploader.upload_multiple_files(files_to_upload)
@@ -1657,9 +1671,10 @@ Optimized pipeline processing completed successfully!
         """Generate final report for structured document translation"""
         duration = end_time - start_time
 
-        # Generate file status
-        word_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.docx')
-        pdf_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.pdf')
+        # Generate file status with short naming pattern to avoid COM limitations
+        timestamp = int(time.time())
+        word_filename = f"doc_translated_{timestamp}.docx"
+        pdf_filename = f"doc_translated_{timestamp}.pdf"
 
         files_section = f"📄 Generated Files:\n• Word Document: {word_filename} ✅"
 
@@ -2103,9 +2118,10 @@ Optimized pipeline processing completed successfully!
         """Generate comprehensive final report for advanced translation"""
         duration = end_time - start_time
 
-        # Generate file status
-        word_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.docx')
-        pdf_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.pdf')
+        # Generate file status with short naming pattern to avoid COM limitations
+        timestamp = int(time.time())
+        word_filename = f"doc_translated_{timestamp}.docx"
+        pdf_filename = f"doc_translated_{timestamp}.pdf"
 
         files_section = f"📄 Generated Files:\n• Word Document: {word_filename} ✅"
 
@@ -2159,9 +2175,10 @@ Optimized pipeline processing completed successfully!
         """Generate comprehensive final report for intelligent translation"""
         duration = end_time - start_time
 
-        # Generate file status
-        word_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.docx')
-        pdf_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.pdf')
+        # Generate file status with short naming pattern to avoid COM limitations
+        timestamp = int(time.time())
+        word_filename = f"doc_translated_{timestamp}.docx"
+        pdf_filename = f"doc_translated_{timestamp}.pdf"
 
         files_section = f"📄 Generated Files:\n• Word Document: {word_filename} ✅"
 
@@ -2240,9 +2257,10 @@ Optimized pipeline processing completed successfully!
         """Generate comprehensive final report"""
         duration = end_time - start_time
 
-        # Generate file status
-        word_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.docx')
-        pdf_filename = os.path.basename(input_filepath).replace('.pdf', '_translated.pdf')
+        # Generate file status with short naming pattern to avoid COM limitations
+        timestamp = int(time.time())
+        word_filename = f"doc_translated_{timestamp}.docx"
+        pdf_filename = f"doc_translated_{timestamp}.pdf"
 
         files_section = f"📄 Generated Files:\n• Word Document: {word_filename} ✅"
 

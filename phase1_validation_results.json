@@ -1,0 +1,46 @@
+{
+  "test_1_pipeline": {
+    "pipeline_executed": true,
+    "digital_twin_created": true,
+    "pages_processed": true,
+    "has_text_blocks": true,
+    "has_image_blocks": false,
+    "has_toc_entries": true
+  },
+  "test_2_image_extraction": {
+    "images_found_in_pdf": false,
+    "images_dir_created": true,
+    "images_extracted_to_filesystem": false,
+    "extraction_ratio": 0.0,
+    "total_images": 0,
+    "extracted_images": 0
+  },
+  "test_3_toc_extraction": {
+    "pdf_has_toc": false,
+    "toc_levels_detected": false,
+    "toc_titles_extracted": false,
+    "toc_page_numbers": false,
+    "toc_entries_count": 0
+  },
+  "test_4_document_generation": {
+    "word_document_generated": true,
+    "output_dir_created": true,
+    "processing_report_generated": false,
+    "pipeline_completed_successfully": true,
+    "output_files": [
+      "doc_translated_1751927017.docx",
+      "doc_translated_1751927024.docx",
+      "test_document_with_text_non_text_items"
+    ]
+  },
+  "test_5_word_validation": {
+    "word_file_exists": true,
+    "word_file_not_empty": true,
+    "word_file_size_reasonable": true,
+    "images_available_for_linking": false,
+    "word_file_size": 38265
+  },
+  "overall_status": "PARTIAL",
+  "passed_tests": 0,
+  "total_tests": 5
+}

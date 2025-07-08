@@ -1,0 +1,74 @@
+{
+  "summary": {
+    "total_tests": 6,
+    "critical_issues_found": 2,
+    "overall_status": "WARNING",
+    "test_timestamp": "2025-07-08 00:05:09"
+  },
+  "detailed_results": {
+    "batching_fragmentation": {
+      "issue_detected": true,
+      "competing_batchers": [
+        "async_translation_service.IntelligentBatcher",
+        "intelligent_content_batcher.IntelligentContentBatcher",
+        "intelligent_content_batcher_enhanced.IntelligentContentBatcher",
+        "parallel_translation_manager.ParallelTranslationManager"
+      ],
+      "translation_loss": 0,
+      "details": [
+        "CRITICAL: 4 competing batching implementations found"
+      ]
+    },
+    "yolo_classification_conflicts": {
+      "issue_detected": false,
+      "conflicting_functions": [
+        "_is_likely_heading",
+        "_classify_text_block_type"
+      ],
+      "misclassification_rate": 14.285714285714285,
+      "details": [
+        "Misclassification: 'Figure 1: Sample diagram...' expected caption, got heading"
+      ]
+    },
+    "sequence_preservation": {
+      "issue_detected": false,
+      "sequence_violations": [],
+      "ordering_consistency": 100,
+      "details": []
+    },
+    "pipeline_conflicts": {
+      "issue_detected": true,
+      "competing_pipelines": [
+        "main_workflow_enhanced.EnhancedPDFTranslator",
+        "optimized_document_pipeline.OptimizedDocumentPipeline",
+        "digital_twin_model.DocumentModel"
+      ],
+      "initialization_conflicts": [
+        "Both standard and optimized pipelines initialized simultaneously"
+      ],
+      "details": [
+        "Multiple pipeline implementations: ['main_workflow_enhanced.EnhancedPDFTranslator', 'optimized_document_pipeline.OptimizedDocumentPipeline', 'digital_twin_model.DocumentModel']"
+      ]
+    },
+    "translation_completeness": {
+      "issue_detected": false,
+      "translation_rate": 100.0,
+      "untranslated_blocks": 0,
+      "details": []
+    },
+    "document_generation": {
+      "issue_detected": false,
+      "generation_success": false,
+      "file_sizes": {},
+      "details": [
+        "Test error: 1 validation error for PageModel\ndimensions\n  Field required [type=missing, input_value={'page_number': 1}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.10/v/missing"
+      ]
+    }
+  },
+  "recommendations": [
+    "CRITICAL: Consolidate batching implementations - use single AsyncTranslationService",
+    "Remove competing batcher modules: intelligent_content_batcher.py and enhanced version",
+    "HIGH: Choose single pipeline approach - Digital Twin OR standard processing",
+    "Remove competing pipeline initializations in main_workflow_enhanced.py"
+  ]
+}

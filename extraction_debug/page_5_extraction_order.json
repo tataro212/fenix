@@ -1,0 +1,38 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      99.21299743652344,
+      67.20626831054688,
+      526.2498168945312,
+      106.74063873291016
+    ],
+    "text_snippet": "We conceive armed struggle as a fundamental aspect of the po"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      99.21299743652344,
+      125.54449462890625,
+      516.041748046875,
+      159.83216857910156
+    ],
+    "text_snippet": "The Question Is: Why Start a Guerrilla Organization? What is"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      97.99099731445312,
+      170.86326599121094,
+      526.2606201171875,
+      671.07080078125
+    ],
+    "text_snippet": "The objectives of a revolution condition all revolutionary p"
+  }
+]

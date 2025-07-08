@@ -1,0 +1,530 @@
+[
+  {
+    "page_number": 1,
+    "text_blocks": [
+      {
+        "order": 0,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: title",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          102.15899658203125,
+          105.21172332763672,
+          521.4630737304688,
+          153.6729736328125
+        ],
+        "font_size": 20.662500381469727,
+        "font_family": "LinLibertineOB"
+      },
+      {
+        "order": 1,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: heading",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          214.85899353027344,
+          186.42449951171875,
+          408.7622375488281,
+          202.77915954589844
+        ],
+        "font_size": 14.346199989318848,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 2,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: heading",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          255.60299682617188,
+          648.3424682617188,
+          368.0054931640625,
+          664.6971435546875
+        ],
+        "font_size": 14.346199989318848,
+        "font_family": "LinLibertineO"
+      }
+    ]
+  },
+  {
+    "page_number": 2,
+    "text_blocks": [
+      {
+        "order": 0,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: title",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          114.55671691894531,
+          184.36317443847656,
+          138.11196899414062
+        ],
+        "font_size": 20.662500381469727,
+        "font_family": "LinLibertineOB"
+      },
+      {
+        "order": 1,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: paragraph",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          115.57600402832031,
+          160.197265625,
+          524.4042358398438,
+          240.379638671875
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      }
+    ]
+  },
+  {
+    "page_number": 3,
+    "text_blocks": [
+      {
+        "order": 0,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: heading",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          64.13349914550781,
+          383.08123779296875,
+          80.48816680908203
+        ],
+        "font_size": 14.346199989318848,
+        "font_family": "LinLibertineOB"
+      },
+      {
+        "order": 1,
+        "block_type": "paragraph",
+        "processing_notes": [
+          "YOLO label: title (conf: 0.961), demoted to: paragraph, previous: bibliography (long or small font)",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          98.68900299072266,
+          91.51927185058594,
+          526.2607421875,
+          320.7425842285156
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 2,
+        "block_type": "paragraph",
+        "processing_notes": [
+          "YOLO label: title (conf: 0.961), demoted to: paragraph, previous: heading (long or small font)",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          339.5465087890625,
+          452.57415771484375,
+          355.90118408203125
+        ],
+        "font_size": 14.346199989318848,
+        "font_family": "LinLibertineOB"
+      },
+      {
+        "order": 3,
+        "block_type": "paragraph",
+        "processing_notes": [
+          "YOLO label: title (conf: 0.957), demoted to: paragraph, previous: paragraph (long or small font)",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          98.01300048828125,
+          366.9322509765625,
+          526.249755859375,
+          569.0577392578125
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 4,
+        "block_type": "paragraph",
+        "processing_notes": [
+          "YOLO label: title (conf: 0.957), demoted to: paragraph, previous: heading (long or small font)",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          587.8615112304688,
+          455.7014465332031,
+          604.2161865234375
+        ],
+        "font_size": 14.346199989318848,
+        "font_family": "LinLibertineOB"
+      },
+      {
+        "order": 5,
+        "block_type": "paragraph",
+        "processing_notes": [
+          "YOLO label: title (conf: 0.957), demoted to: paragraph, previous: list_item (long or small font)",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          117.20199584960938,
+          615.2472534179688,
+          524.4061279296875,
+          654.7816772460938
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      }
+    ]
+  },
+  {
+    "page_number": 4,
+    "text_blocks": [
+      {
+        "order": 0,
+        "block_type": "list_item",
+        "processing_notes": [
+          "YOLO label: list (conf: 0.966), assigned: list_item, previous: list_item",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          117.20199584960938,
+          67.20626831054688,
+          526.2606201171875,
+          188.03562927246094
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 1,
+        "block_type": "list_item",
+        "processing_notes": [
+          "YOLO label: list (conf: 0.966), assigned: list_item, previous: list_item",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          117.20199584960938,
+          198.11526489257812,
+          526.2489624023438,
+          332.4945983886719
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 2,
+        "block_type": "list_item",
+        "processing_notes": [
+          "YOLO label: list (conf: 0.956), assigned: list_item, previous: paragraph",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          98.80901336669922,
+          345.5622253417969,
+          526.2608032226562,
+          520.5896606445312
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 3,
+        "block_type": "list_item",
+        "processing_notes": [
+          "YOLO label: list (conf: 0.956), assigned: list_item, previous: heading",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          539.3925170898438,
+          326.1268005371094,
+          555.7471923828125
+        ],
+        "font_size": 14.346199989318848,
+        "font_family": "LinLibertineOB"
+      },
+      {
+        "order": 4,
+        "block_type": "list_item",
+        "processing_notes": [
+          "YOLO label: list (conf: 0.956), assigned: list_item, previous: paragraph",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          566.7792358398438,
+          526.2608032226562,
+          660.5106811523438
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      }
+    ]
+  },
+  {
+    "page_number": 5,
+    "text_blocks": [
+      {
+        "order": 0,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: paragraph",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          67.20626831054688,
+          526.2498168945312,
+          106.74063873291016
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 1,
+        "block_type": "paragraph",
+        "processing_notes": [
+          "YOLO label: title (conf: 0.942), demoted to: paragraph, previous: paragraph (long or small font)",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          99.21299743652344,
+          125.54449462890625,
+          516.041748046875,
+          159.83216857910156
+        ],
+        "font_size": 14.346199989318848,
+        "font_family": "LinLibertineOB"
+      },
+      {
+        "order": 2,
+        "block_type": "paragraph",
+        "processing_notes": [
+          "YOLO label: title (conf: 0.880), demoted to: paragraph, previous: paragraph (long or small font)",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          97.99099731445312,
+          170.86326599121094,
+          526.2606201171875,
+          671.07080078125
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      }
+    ]
+  },
+  {
+    "page_number": 6,
+    "text_blocks": [
+      {
+        "order": 0,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: footnote",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          113.55799865722656,
+          67.20626831054688,
+          524.4057006835938,
+          93.19163513183594
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 1,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: footnote",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          113.55799865722656,
+          103.27127075195312,
+          526.2494506835938,
+          142.80563354492188
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 2,
+        "block_type": "list_item",
+        "processing_notes": [
+          "YOLO label: list (conf: 0.880), assigned: list_item, previous: footnote",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          113.55799865722656,
+          152.88526916503906,
+          524.4057006835938,
+          205.9686279296875
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 3,
+        "block_type": "list_item",
+        "processing_notes": [
+          "YOLO label: list (conf: 0.921), assigned: list_item, previous: paragraph",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          98.80900573730469,
+          219.03726196289062,
+          526.249755859375,
+          394.0636291503906
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      }
+    ]
+  },
+  {
+    "page_number": 7,
+    "text_blocks": [
+      {
+        "order": 0,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: heading",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          262.75799560546875,
+          67.20626831054688,
+          361.1471862792969,
+          79.64263916015625
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 1,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: heading",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          277.05999755859375,
+          83.7442626953125,
+          346.1909484863281,
+          96.1806411743164
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 2,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: paragraph",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          149.38601684570312,
+          559.7592163085938,
+          474.2372131347656,
+          599.2936401367188
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 3,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: footnote",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          208.08200073242188,
+          612.3622436523438,
+          415.539794921875,
+          624.7986450195312
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 4,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: paragraph",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          216.62899780273438,
+          625.9112548828125,
+          408.6727294921875,
+          638.34765625
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineO"
+      },
+      {
+        "order": 5,
+        "block_type": "text",
+        "processing_notes": [
+          "No YOLO match, heuristic assigned: text, previous: text",
+          "Translated to el using optimized concurrent method"
+        ],
+        "text": null,
+        "bbox": [
+          254.51100158691406,
+          651.415283203125,
+          369.1220703125,
+          663.8516845703125
+        ],
+        "font_size": 10.909099578857422,
+        "font_family": "LinLibertineOB"
+      }
+    ]
+  }
+]

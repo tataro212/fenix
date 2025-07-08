@@ -43,6 +43,15 @@ except ImportError:
     MARKDOWN_AWARE_AVAILABLE = False
     logger.warning("Markdown-aware translator not available")
 
+# Add import for contextual priming
+try:
+    from contextual_priming_service import contextual_priming_service
+    CONTEXTUAL_PRIMING_AVAILABLE = True
+    logger.info("Contextual priming service available")
+except ImportError:
+    CONTEXTUAL_PRIMING_AVAILABLE = False
+    logger.info("Contextual priming service not available")
+
 class TranslationCache:
     """Manages translation caching functionality"""
     
@@ -251,7 +260,14 @@ class EnhancedTranslationPromptGenerator:
                                   style_guide="", glossary_terms=None,
                                   prev_context="", next_context="",
                                   item_type="text block"):
-        """Generate enhanced translation prompt with separator preservation instructions"""
+        """Generate enhanced translation prompt with contextual priming and separator preservation instructions"""
+
+        # Get contextual priming enhancement if available
+        contextual_enhancement = ""
+        if CONTEXTUAL_PRIMING_AVAILABLE:
+            contextual_enhancement = contextual_priming_service.get_contextual_prompt_enhancement(target_language)
+            if contextual_enhancement:
+                contextual_enhancement = f"\n{contextual_enhancement}\n"
 
         # Detect document type if no style guide provided
         if not style_guide:
@@ -263,6 +279,14 @@ class EnhancedTranslationPromptGenerator:
             f"Style guide: {style_guide}",
             ""
         ]
+
+        # Add contextual priming enhancement
+        if contextual_enhancement:
+            prompt_parts.extend([
+                contextual_enhancement,
+                "📌 Use the contextual guidance above to ensure domain-appropriate translation.",
+                ""
+            ])
 
         # Check if text contains item separators and add specific instructions
         if "%%%%ITEM_BREAK%%%%" in text_to_translate:
@@ -288,6 +312,16 @@ class EnhancedTranslationPromptGenerator:
                 "\n".join([f"- {source} → {target}" for source, target in glossary_terms.items()]),
                 ""
             ])
+
+        # Add terminology guidance from contextual priming
+        if CONTEXTUAL_PRIMING_AVAILABLE:
+            terminology_guidance = contextual_priming_service.get_terminology_guidance()
+            if terminology_guidance:
+                prompt_parts.extend([
+                    "🏷️ TERMINOLOGY CONSISTENCY (maintain these translations):",
+                    "\n".join([f"- {term} → {translation}" for term, translation in terminology_guidance.items()]),
+                    ""
+                ])
 
         # Add main content
         prompt_parts.extend([
@@ -344,6 +378,8 @@ class TranslationService:
         # Initialize Gemini model
         if self.gemini_settings['api_key']:
             self.model = genai.GenerativeModel(self.gemini_settings['model_name'])
+            logger.info(f"🤖 Translation service initialized with {self.gemini_settings['model_name']}")
+            logger.info(f"💰 Using Gemini 2.5 Flash for cost-effective English-Greek translation")
         else:
             self.model = None
             logger.warning("No API key available - translation will not work")
@@ -487,8 +523,28 @@ class TranslationService:
     async def translate_document(self, document, target_language=None, style_guide=""):
         """
         Translate a structured Document object.
-        Only translates content blocks that should be translated (headings, paragraphs, etc.)
-        Preserves non-translatable blocks (images, tables, code, etc.) unchanged.
+        
+        IMPORTANT: This method automatically excludes non-text items from translation:
+        - Images, figures, charts (ContentType.IMAGE_PLACEHOLDER)
+        - Tables and structured data (ContentType.TABLE) 
+        - Code blocks and programming content (ContentType.CODE_BLOCK)
+        - Mathematical equations (ContentType.EQUATION)
+        - Document metadata (ContentType.METADATA)
+        - Page breaks and formatting (ContentType.PAGE_BREAK)
+        
+        Only translates content that should be translated:
+        - Headings and titles (ContentType.HEADING)
+        - Paragraphs and main text (ContentType.PARAGRAPH) 
+        - List items and bullet points (ContentType.LIST_ITEM)
+        - Captions for figures/tables (ContentType.CAPTION)
+        
+        Args:
+            document: Document object with structured content blocks
+            target_language: Target language for translation (default from config)
+            style_guide: Translation style guidelines
+            
+        Returns:
+            Translated Document with non-text items preserved unchanged
         """
         if not STRUCTURED_MODEL_AVAILABLE:
             raise Exception("Structured document model not available for Document translation")
@@ -503,12 +559,15 @@ class TranslationService:
         logger.info(f"📊 Document has {len(document.content_blocks)} content blocks")
 
         # Get translatable and non-translatable blocks
+        # This automatically separates text content from images, tables, etc.
         translatable_blocks = document.get_translatable_blocks()
         non_translatable_blocks = document.get_non_translatable_blocks()
 
-        logger.info(f"📝 Translating {len(translatable_blocks)} blocks, preserving {len(non_translatable_blocks)} blocks")
+        logger.info(f"📝 Translating {len(translatable_blocks)} text blocks")
+        logger.info(f"🖼️ Preserving {len(non_translatable_blocks)} non-text items (images, tables, etc.)")
 
         # Translate blocks in parallel for much faster processing
+        # Only text blocks are sent to the translation API
         translated_blocks = await self._translate_blocks_parallel(
             translatable_blocks, target_language, style_guide
         )

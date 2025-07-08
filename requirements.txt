@@ -30,6 +30,9 @@ concurrent.futures
 # Retry and resilience
 tenacity>=8.0.0
 
+# System monitoring and optimization
+psutil>=5.9.0
+
 # Additional utilities
 networkx>=3.0
 pandas>=2.0.0

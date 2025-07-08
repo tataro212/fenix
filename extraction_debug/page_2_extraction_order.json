@@ -1,0 +1,26 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 2,
+    "bbox": [
+      99.21299743652344,
+      114.55671691894531,
+      184.36317443847656,
+      138.11196899414062
+    ],
+    "text_snippet": "Contents"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 2,
+    "bbox": [
+      115.57600402832031,
+      160.197265625,
+      524.4042358398438,
+      240.379638671875
+    ],
+    "text_snippet": "Preface by Black Rose Anarchist Federation . . . . . . . . ."
+  }
+]

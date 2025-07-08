@@ -1,0 +1,62 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 4,
+    "bbox": [
+      117.20199584960938,
+      67.20626831054688,
+      526.2606201171875,
+      188.03562927246094
+    ],
+    "text_snippet": "• Political conditions, and even ideological (also called “s"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 4,
+    "bbox": [
+      117.20199584960938,
+      198.11526489257812,
+      526.2489624023438,
+      332.4945983886719
+    ],
+    "text_snippet": "• The military activity of the focus, should inaugurate a pr"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 4,
+    "bbox": [
+      98.80901336669922,
+      345.5622253417969,
+      526.2608032226562,
+      520.5896606445312
+    ],
+    "text_snippet": "In this dynamic previously described – ultimately, the centr"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 4,
+    "bbox": [
+      99.21299743652344,
+      539.3925170898438,
+      326.1268005371094,
+      555.7471923828125
+    ],
+    "text_snippet": "Our Conception of Armed Struggle"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 4,
+    "bbox": [
+      99.21299743652344,
+      566.7792358398438,
+      526.2608032226562,
+      660.5106811523438
+    ],
+    "text_snippet": "Despite multiple failures, it is undeniable that a vast prax"
+  }
+]

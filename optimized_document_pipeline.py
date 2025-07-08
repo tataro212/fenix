@@ -219,19 +219,42 @@ class OptimizedDocumentPipeline:
         element_index = 0
         
         for page_idx, page_model in enumerate(page_models):
-            for element_idx, element in enumerate(page_model.elements):
-                if element.type == 'text':
-                    all_text_elements_with_metadata.append({
-                        'text': element.content,
-                        'bbox': list(element.bbox),
-                        'label': 'paragraph',
-                        # CRITICAL: Add metadata for reconstruction
-                        'page_number': page_idx + 1,  # 1-based
-                        'element_index': element_idx,  # Position within page
-                        'global_index': element_index,  # Global position
-                        'y_coordinate': element.bbox[1] if len(element.bbox) >= 2 else 0
-                    })
-                    element_index += 1
+            # COMPATIBILITY FIX: Handle both models.py and digital_twin_model.py PageModel formats
+            if hasattr(page_model, 'elements'):
+                # models.py format
+                for element_idx, element in enumerate(page_model.elements):
+                    if element.type == 'text':
+                        all_text_elements_with_metadata.append({
+                            'text': element.content,
+                            'bbox': list(element.bbox),
+                            'label': 'paragraph',
+                            # CRITICAL: Add metadata for reconstruction
+                            'page_number': page_idx + 1,  # 1-based
+                            'element_index': element_idx,  # Position within page
+                            'global_index': element_index,  # Global position
+                            'y_coordinate': element.bbox[1] if len(element.bbox) >= 2 else 0
+                        })
+                        element_index += 1
+            elif hasattr(page_model, 'get_all_blocks'):
+                # digital_twin_model.py format
+                blocks = page_model.get_all_blocks()
+                for element_idx, block in enumerate(blocks):
+                    if hasattr(block, 'get_display_text'):
+                        text_content = block.get_display_text()
+                        if text_content and text_content.strip():
+                            all_text_elements_with_metadata.append({
+                                'text': text_content,
+                                'bbox': list(block.bbox),
+                                'label': 'paragraph',
+                                # CRITICAL: Add metadata for reconstruction
+                                'page_number': page_idx + 1,  # 1-based
+                                'element_index': element_idx,  # Position within page
+                                'global_index': element_index,  # Global position
+                                'y_coordinate': block.bbox[1] if len(block.bbox) >= 2 else 0
+                            })
+                            element_index += 1
+            else:
+                self.logger.warning(f"Unknown PageModel format for page {page_idx + 1}, skipping text collection")
         
         self.logger.info(f"📦 Collected {len(all_text_elements_with_metadata)} text elements from {len(page_models)} pages")
         
@@ -326,13 +349,30 @@ class OptimizedDocumentPipeline:
         for page_idx, page_model in enumerate(page_models):
             try:
                 text_elements = []
-                for element in page_model.elements:
-                    if element.type == 'text':
-                        text_elements.append({
-                            'text': element.content,
-                            'bbox': list(element.bbox),
-                            'label': 'paragraph'
-                        })
+                
+                # COMPATIBILITY FIX: Handle both models.py and digital_twin_model.py PageModel formats
+                if hasattr(page_model, 'elements'):
+                    # models.py format
+                    for element in page_model.elements:
+                        if element.type == 'text':
+                            text_elements.append({
+                                'text': element.content,
+                                'bbox': list(element.bbox),
+                                'label': 'paragraph'
+                            })
+                elif hasattr(page_model, 'get_all_blocks'):
+                    # digital_twin_model.py format
+                    for block in page_model.get_all_blocks():
+                        if hasattr(block, 'get_display_text'):
+                            text_content = block.get_display_text()
+                            if text_content and text_content.strip():
+                                text_elements.append({
+                                    'text': text_content,
+                                    'bbox': list(block.bbox),
+                                    'label': 'paragraph'
+                                })
+                else:
+                    self.logger.warning(f"Unknown PageModel format for page {page_idx + 1}")
                 
                 if text_elements:
                     start_time = time.time()
@@ -395,7 +435,9 @@ class OptimizedDocumentPipeline:
             self.logger.info(f"📝 Generating document with {len(structured_content)} content sections")
             # Generate Word document
             doc_generator = WordDocumentGenerator()
-            docx_path = os.path.join(output_dir, f"{base_name}_translated.docx")
+            # STRATEGIC FIX: Use short filename to avoid Windows COM 255-character limitation
+            timestamp = int(time.time())
+            docx_path = os.path.join(output_dir, f"doc_translated_{timestamp}.docx")
             success = doc_generator.create_word_document_from_structured_document(
                 structured_content, docx_path, os.path.join(output_dir, "images")
             )
@@ -403,7 +445,7 @@ class OptimizedDocumentPipeline:
                 self.logger.info(f"✅ Word document generated: {docx_path}")
                 # Convert to PDF
                 try:
-                    pdf_path = os.path.join(output_dir, f"{base_name}_translated.pdf")
+                    pdf_path = os.path.join(output_dir, f"doc_translated_{timestamp}.pdf")
                     pdf_success = convert_word_to_pdf(docx_path, pdf_path)
                     if pdf_success:
                         self.logger.info(f"✅ PDF document generated: {pdf_path}")

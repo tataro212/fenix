@@ -59,16 +59,47 @@ class EnhancedPDFTranslator:
         
         logger.info("Enhanced PDF Translator initialized with unified structural logic")
     
+    async def _initialize_contextual_priming(self, input_path: str, document_name: str):
+        """Initialize contextual priming system for enhanced translation quality"""
+        try:
+            logger.info("🧠 Initializing Contextual Priming System...")
+            
+            from contextual_translation_initializer import initialize_contextual_translation_from_file
+            
+            # Initialize contextual priming from the input PDF
+            logger.info(f"📋 Analyzing document context from: {input_path}")
+            context = await initialize_contextual_translation_from_file(input_path)
+            
+            logger.info(f"✅ Contextual priming initialized successfully!")
+            logger.info(f"   📄 Document Type: {context.document_type}")
+            logger.info(f"   🎯 Domain: {context.domain}")
+            logger.info(f"   📝 Style: {context.writing_style}")
+            logger.info(f"   ⚡ Technical Level: {context.technical_level}")
+            logger.info(f"   📊 Confidence: {context.analysis_confidence:.2f}")
+            logger.info(f"   🏷️ Key Terms: {len(context.key_terminology)}")
+            
+            # Show context summary
+            from contextual_translation_initializer import get_contextual_translation_status
+            status = get_contextual_translation_status()
+            logger.info(f"🎯 Context Summary: {status['summary']}")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Contextual priming initialization failed: {e}")
+            logger.info("🔄 Continuing with standard translation (no contextual enhancement)")
+    
     async def translate_document_enhanced(self, input_path: str, output_dir: str, use_optimized_pipeline: bool = True) -> bool:
         """
         Enhanced document translation workflow with all fixes applied
-        Now includes PyMuPDF-YOLO optimized pipeline option
+        Now includes PyMuPDF-YOLO optimized pipeline option and contextual priming
         """
         try:
             start_time = time.time()
             base_name = os.path.splitext(os.path.basename(input_path))[0]
             
             logger.info(f"Starting enhanced translation: {base_name}")
+            
+            # Initialize Contextual Priming System
+            await self._initialize_contextual_priming(input_path, base_name)
             
             # Check if we should use the optimized pipeline
             if use_optimized_pipeline and self.optimized_pipeline:
@@ -231,8 +262,14 @@ class EnhancedPDFTranslator:
     
     async def _translate_page_blocks_structured(self, page_blocks):
         """
-        Translate page blocks while preserving sequence integrity
-        Each TextBlock maintains its sequence_id and coordinate relationships
+        Translate page blocks while preserving sequence integrity.
+        
+        IMPORTANT: This method automatically excludes non-text items from translation:
+        - Image blocks (ContentType.IMAGE) are preserved unchanged
+        - Only text content blocks are sent to Gemini 2.5 Flash for translation
+        - Non-text items maintain their exact position and formatting in the document
+        
+        Each TextBlock maintains its sequence_id and coordinate relationships.
         """
         try:
             # Create translation tasks with sequence preservation
@@ -240,10 +277,12 @@ class EnhancedPDFTranslator:
             
             for block in page_blocks:
                 if block.content_type == ContentType.IMAGE:
-                    # Skip translation for image blocks, preserve as-is
+                    # CRITICAL: Skip translation for image blocks, preserve as-is
+                    logger.debug(f"Preserving image block {block.sequence_id} - not sending to translation API")
                     translation_tasks.append(self._create_identity_task(block))
                 else:
-                    # Create translation task with sequence_id preservation
+                    # Create translation task with sequence_id preservation for text content only
+                    logger.debug(f"Creating translation task for text block {block.sequence_id}")
                     task = self._create_structured_translation_task(block)
                     translation_tasks.append(task)
             
@@ -290,10 +329,15 @@ class EnhancedPDFTranslator:
             }
     
     async def _create_identity_task(self, block):
-        """Create an identity task for non-translatable blocks (images, etc.)"""
+        """
+        Create an identity task for non-translatable blocks (images, etc.).
+        
+        This ensures that non-text content like images, figures, and diagrams
+        are preserved exactly as they are without being sent to the translation API.
+        """
         return {
             'sequence_id': block.sequence_id,
-            'translated_text': block.text,  # Keep original
+            'translated_text': block.text,  # Keep original content unchanged
             'success': True,
             'error': None
         }
