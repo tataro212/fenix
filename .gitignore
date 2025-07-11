@@ -75,3 +75,7 @@ temp/
 *.pth
 *.onnx
 *.h5 
+
+gemini_service.py
+contextual_priming_service.py
+config_manager.py 

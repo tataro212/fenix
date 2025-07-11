@@ -1,0 +1,350 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      74.66400146484375,
+      71.21995544433594,
+      279.4100036621094,
+      84.67195892333984
+    ],
+    "text_snippet": "3. How should we conduct the debate?"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      112.56794738769531,
+      541.5720825195312,
+      125.8519515991211
+    ],
+    "text_snippet": "One might be tempted to think that philosophical debates lik"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      133.2079620361328,
+      541.833984375,
+      146.49195861816406
+    ],
+    "text_snippet": "mathematical objects are unsolvable, in the sense that there"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      153.9679718017578,
+      454.6600036621094,
+      167.25196838378906
+    ],
+    "text_snippet": "someone to change opinion about such questions. Quine was of"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      84.98400115966797,
+      191.78561401367188,
+      481.66119384765625,
+      202.81134033203125
+    ],
+    "text_snippet": "Existence statements in this philosophical vein do admit of "
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      84.98400115966797,
+      209.06564331054688,
+      483.56695556640625,
+      220.09136962890625
+    ],
+    "text_snippet": "reasons, and essentially scientific reasons, for including n"
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      84.98400115966797,
+      226.22561645507812,
+      487.1294250488281,
+      237.2513427734375
+    ],
+    "text_snippet": "classes are favoured by the power and facility which they co"
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      84.98400115966797,
+      243.50564575195312,
+      323.55999755859375,
+      254.5313720703125
+    ],
+    "text_snippet": "systematic discourse about nature. (Quine 1969a, pp. 97-8)"
+  },
+  {
+    "order": 8,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      278.1979675292969,
+      542.0440063476562,
+      291.4819641113281
+    ],
+    "text_snippet": "A good part of the recent debate over the existence of abstr"
+  },
+  {
+    "order": 9,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      298.8379821777344,
+      541.9840087890625,
+      312.1219787597656
+    ],
+    "text_snippet": "as an attempt to figure out whether the passage from Quine j"
+  },
+  {
+    "order": 10,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      318.8899841308594,
+      541.9420776367188,
+      332.9539794921875
+    ],
+    "text_snippet": "“essentially scientific reasons” (Quine 1969a: 97-8) to beli"
+  },
+  {
+    "order": 11,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      339.2063293457031,
+      541.9960327148438,
+      353.5220031738281
+    ],
+    "text_snippet": "yes usually subscribe to what is called “the Quine-Putnam in"
+  },
+  {
+    "order": 12,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      360.99798583984375,
+      541.699951171875,
+      374.281982421875
+    ],
+    "text_snippet": "of the indispensability argument lies the remark that contem"
+  },
+  {
+    "order": 13,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      381.63800048828125,
+      541.8740844726562,
+      394.9219970703125
+    ],
+    "text_snippet": "mathematized: such theories make apparent reference not only"
+  },
+  {
+    "order": 14,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      402.3979797363281,
+      541.924072265625,
+      415.6819763183594
+    ],
+    "text_snippet": "magnetic fields, but also to abstract objects like functions"
+  },
+  {
+    "order": 15,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      423.0379943847656,
+      541.9960327148438,
+      436.3219909667969
+    ],
+    "text_snippet": "given that our best scientific theories entail the existence"
+  },
+  {
+    "order": 16,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      443.8179931640625,
+      542.0399780273438,
+      457.10198974609375
+    ],
+    "text_snippet": "accept those theories, we should believe that abstract objec"
+  },
+  {
+    "order": 17,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      463.8699951171875,
+      541.9719848632812,
+      477.9339904785156
+    ],
+    "text_snippet": "(henceforth IA) in its simplest form can be presented like t"
+  },
+  {
+    "order": 18,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      485.5780029296875,
+      115.33999633789062,
+      498.86199951171875
+    ],
+    "text_snippet": "2018: 255):"
+  },
+  {
+    "order": 19,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      99.26399993896484,
+      526.9779663085938,
+      513.4759521484375,
+      540.261962890625
+    ],
+    "text_snippet": "(1) Mathematics is indispensable to science: our best scient"
+  },
+  {
+    "order": 20,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      99.26399993896484,
+      547.617919921875,
+      307.8699951171875,
+      560.9019165039062
+    ],
+    "text_snippet": "existence of abstract mathematical objects."
+  },
+  {
+    "order": 21,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      99.26399993896484,
+      568.3779296875,
+      499.8999938964844,
+      581.6619262695312
+    ],
+    "text_snippet": "(2) If mathematics is indispensable to science, then there a"
+  },
+  {
+    "order": 22,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      99.26399993896484,
+      589.0179443359375,
+      308.2300109863281,
+      602.3019409179688
+    ],
+    "text_snippet": "Therefore: there are mathematical objects."
+  },
+  {
+    "order": 23,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      630.447998046875,
+      541.5700073242188,
+      643.7319946289062
+    ],
+    "text_snippet": "If one does not want to call into question the validity of m"
+  },
+  {
+    "order": 24,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      651.2079467773438,
+      541.6480712890625,
+      664.491943359375
+    ],
+    "text_snippet": "one must reject one of its two premises. Field’s defense of "
+  },
+  {
+    "order": 25,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      671.8479614257812,
+      541.248046875,
+      685.1319580078125
+    ],
+    "text_snippet": "attempt to reject premise (1) and provide a nominalistic ver"
+  },
+  {
+    "order": 26,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      692.6079711914062,
+      541.3560791015625,
+      705.8919677734375
+    ],
+    "text_snippet": "do not contain any reference to or quantification over any a"
+  },
+  {
+    "order": 27,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      713.2479858398438,
+      541.6600341796875,
+      726.531982421875
+    ],
+    "text_snippet": "or sets. Field’s project is to prove that there can be a Sci"
+  },
+  {
+    "order": 28,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      56.63999938964844,
+      748.2959594726562,
+      533.3917236328125,
+      785.00732421875
+    ],
+    "text_snippet": "7 Liggins (2008) argues that neither Quine nor Putnam actual"
+  }
+]

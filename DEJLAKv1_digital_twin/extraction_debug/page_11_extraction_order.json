@@ -1,0 +1,50 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      51.01365661621094,
+      57.99626541137695,
+      388.436767578125,
+      319.1061706542969
+    ],
+    "text_snippet": "abstract computational approach, nor by piling up explanatio"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      51.02360153198242,
+      344.04742431640625,
+      185.39190673828125,
+      355.00640869140625
+    ],
+    "text_snippet": "4 The problem of letting be"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      51.023590087890625,
+      368.8434753417969,
+      388.42694091796875,
+      617.9284057617188
+    ],
+    "text_snippet": "Philosopher Kym Maclaren puts her finger on a problem that i"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 11,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

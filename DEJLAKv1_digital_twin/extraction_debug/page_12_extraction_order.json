@@ -1,0 +1,26 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 12,
+    "bbox": [
+      51.024749755859375,
+      57.99626541137695,
+      388.4877014160156,
+      617.9942016601562
+    ],
+    "text_snippet": "We often tend to know things (and people) in an overly deter"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 12,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

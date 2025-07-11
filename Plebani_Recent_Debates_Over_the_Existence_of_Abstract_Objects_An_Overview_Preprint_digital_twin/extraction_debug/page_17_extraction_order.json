@@ -1,0 +1,374 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      71.14796447753906,
+      494.0199890136719,
+      84.43196868896484
+    ],
+    "text_snippet": "Melia, J. (2000). Weaseling away the indispensability argume"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      91.80799865722656,
+      541.5460205078125,
+      105.09200286865234
+    ],
+    "text_snippet": "Melia, Joseph (2008). 5. A World of Concrete Particulars. Ox"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      112.56794738769531,
+      93.02400207519531,
+      125.8519515991211
+    ],
+    "text_snippet": "4 4:99."
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      133.2079620361328,
+      541.6359252929688,
+      146.49195861816406
+    ],
+    "text_snippet": "Moltmann, Friederike (2013). Abstract Objects and the Semant"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      153.9679718017578,
+      141.6199951171875,
+      167.25196838378906
+    ],
+    "text_snippet": "University Press."
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      174.6079864501953,
+      519.9400024414062,
+      187.89198303222656
+    ],
+    "text_snippet": "Moltmann, Friederike (2017). Natural Language Ontology. Oxfo"
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      195.3679962158203,
+      541.6600341796875,
+      208.65199279785156
+    ],
+    "text_snippet": "Morrison, M. 2007. “Spin: All is Not What It Seems.” Studies"
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      216.00794982910156,
+      424.7799987792969,
+      229.2919464111328
+    ],
+    "text_snippet": "Part B: Studies in History and Philosophy of Modern Physics "
+  },
+  {
+    "order": 8,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      236.76795959472656,
+      541.3760375976562,
+      250.0519561767578
+    ],
+    "text_snippet": "Plebani, Matteo (2018). The indispensability argument and th"
+  },
+  {
+    "order": 9,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      257.4380187988281,
+      541.64794921875,
+      270.7220153808594
+    ],
+    "text_snippet": "objects. Theoria : An International Journal for Theory, Hist"
+  },
+  {
+    "order": 10,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      278.1979675292969,
+      120.0199966430664,
+      291.4819641113281
+    ],
+    "text_snippet": "(2):249-263."
+  },
+  {
+    "order": 11,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      298.8379821777344,
+      541.4400024414062,
+      312.1219787597656
+    ],
+    "text_snippet": "Plebani, M. (MS). “The Refutation of Nominalism!”,"
+  },
+  {
+    "order": 12,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      319.5979919433594,
+      425.260009765625,
+      332.8819885253906
+    ],
+    "text_snippet": "https://www.academia.edu/33566323/The_Refutation_of_Nominali"
+  },
+  {
+    "order": 13,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      340.2380065917969,
+      541.64794921875,
+      353.5220031738281
+    ],
+    "text_snippet": "Putnam, H. 2012. “Indispensability Arguments in the Philosop"
+  },
+  {
+    "order": 14,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      360.99798583984375,
+      541.4739990234375,
+      374.281982421875
+    ],
+    "text_snippet": "an Age of Science: Physics, Mathematics, and Skepticism, edi"
+  },
+  {
+    "order": 15,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      381.63800048828125,
+      280.6099853515625,
+      394.9219970703125
+    ],
+    "text_snippet": "181–201. Harvard: Harvard University Press."
+  },
+  {
+    "order": 16,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      402.3979797363281,
+      541.6600341796875,
+      415.6819763183594
+    ],
+    "text_snippet": "Quine, W. V. O. (1950) ‘Identity, Ostension, and Hypostasis’"
+  },
+  {
+    "order": 17,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      423.0379943847656,
+      148.33999633789062,
+      436.3219909667969
+    ],
+    "text_snippet": "repr. in Id. (1953)."
+  },
+  {
+    "order": 18,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      443.8179931640625,
+      492.5799865722656,
+      457.10198974609375
+    ],
+    "text_snippet": "—   (1953), From a Logical Point of View. Cambridge, MA: Har"
+  },
+  {
+    "order": 19,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      106.33999633789062,
+      464.28997802734375,
+      401.5899963378906,
+      477.7419738769531
+    ],
+    "text_snippet": "— (1960), Word and Object. Cambridge, MA: MIT Press."
+  },
+  {
+    "order": 20,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      485.2179870605469,
+      461.739990234375,
+      498.5019836425781
+    ],
+    "text_snippet": "—   (1969a), Ontological Relativity and Other Essays. New Yo"
+  },
+  {
+    "order": 21,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      505.8580017089844,
+      374.95001220703125,
+      519.1419677734375
+    ],
+    "text_snippet": "— (1969b), ‘Existence and quantification’, in Id. (1969): 91"
+  },
+  {
+    "order": 22,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      106.33999633789062,
+      526.449951171875,
+      541.612060546875,
+      539.9019165039062
+    ],
+    "text_snippet": "— (1981a): ‘Reply to Chihara’, in P.A. French and H.W.T. Ueh"
+  },
+  {
+    "order": 23,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      124.33999633789062,
+      547.2579345703125,
+      541.5139770507812,
+      560.5419311523438
+    ],
+    "text_snippet": "of Analytic Philosophy, pp. 453–454. Midwest Studies in Phil"
+  },
+  {
+    "order": 24,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      124.33999633789062,
+      567.89794921875,
+      276.04998779296875,
+      581.1819458007812
+    ],
+    "text_snippet": "University of Minnesota Press."
+  },
+  {
+    "order": 25,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      106.33999633789062,
+      588.489990234375,
+      441.82000732421875,
+      601.9419555664062
+    ],
+    "text_snippet": "— (1981b), Theories and Things. Cambridge, MA: Belknap Press"
+  },
+  {
+    "order": 26,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      609.2979736328125,
+      538.7159423828125,
+      622.5819702148438
+    ],
+    "text_snippet": "Rosen, Gideon (1994). Objectivity and modern idealism: What "
+  },
+  {
+    "order": 27,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      630.0879516601562,
+      538.4759521484375,
+      643.3719482421875
+    ],
+    "text_snippet": "Edition), Edward N. Zalta (ed.), forthcoming URL ="
+  },
+  {
+    "order": 28,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      671.4879760742188,
+      541.6240234375,
+      684.77197265625
+    ],
+    "text_snippet": "<https://plato.stanford.edu/archives/win2017/entries/abstrac"
+  },
+  {
+    "order": 29,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      692.1279296875,
+      541.5460205078125,
+      705.4119262695312
+    ],
+    "text_snippet": "Saatsi, J. (2017). Dynamical Systems Theory and Explanatory "
+  },
+  {
+    "order": 30,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      56.63999938964844,
+      712.887939453125,
+      402.19000244140625,
+      726.1719360351562
+    ],
+    "text_snippet": "Science, 84:5, 892-904"
+  }
+]

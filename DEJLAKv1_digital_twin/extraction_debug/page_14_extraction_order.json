@@ -1,0 +1,50 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 14,
+    "bbox": [
+      51.008544921875,
+      57.99626541137695,
+      388.41400146484375,
+      235.34481811523438
+    ],
+    "text_snippet": "the beginning of section 3: to begin by taking a phenomenon "
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 14,
+    "bbox": [
+      51.02476501464844,
+      237.3158721923828,
+      388.4481201171875,
+      438.57171630859375
+    ],
+    "text_snippet": "My proposal is that in their most minimal, stripped down for"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 14,
+    "bbox": [
+      51.02360153198242,
+      454.49517822265625,
+      388.4913024902344,
+      617.4097900390625
+    ],
+    "text_snippet": "15 Here as well, the implicit reference to Merleau-Ponty, an"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 14,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

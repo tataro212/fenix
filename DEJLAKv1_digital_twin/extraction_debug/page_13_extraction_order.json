@@ -1,0 +1,50 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 13,
+    "bbox": [
+      51.02360153198242,
+      57.6240348815918,
+      388.45684814453125,
+      486.4978332519531
+    ],
+    "text_snippet": "Then, “who these selves are is implied or assumed in the mea"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 13,
+    "bbox": [
+      51.02360153198242,
+      511.4049377441406,
+      157.81906127929688,
+      522.3639526367188
+    ],
+    "text_snippet": "5 Knowing and loving"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 13,
+    "bbox": [
+      51.023590087890625,
+      536.2008666992188,
+      388.39825439453125,
+      617.8941650390625
+    ],
+    "text_snippet": "I bring loving to bear on epistemology because I think there"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 13,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

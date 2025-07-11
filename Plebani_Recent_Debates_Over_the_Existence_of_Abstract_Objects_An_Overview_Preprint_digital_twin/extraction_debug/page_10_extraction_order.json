@@ -1,0 +1,350 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      92.06400299072266,
+      71.04562377929688,
+      484.0000915527344,
+      82.07134246826172
+    ],
+    "text_snippet": "Is it possible to clarify the distinctive way in which ordin"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      92.06400299072266,
+      88.34561157226562,
+      483.9902648925781,
+      99.37133026123047
+    ],
+    "text_snippet": "explanatory role, and if so can it indeed be said that abstr"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      92.06400299072266,
+      103.68800354003906,
+      408.54998779296875,
+      116.97200775146484
+    ],
+    "text_snippet": "of scientific explanations are not explanatory in that way ("
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      143.64796447753906,
+      541.595947265625,
+      156.9319610595703
+    ],
+    "text_snippet": "It is worth noticing the connection between these two differ"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      164.28797912597656,
+      541.6800537109375,
+      177.5719757080078
+    ],
+    "text_snippet": "challenge and the issue of whether it is possible to provide"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      185.04798889160156,
+      541.8699340820312,
+      198.3319854736328
+    ],
+    "text_snippet": "abstract/concrete distinction. As we saw, one reply to the e"
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      205.68800354003906,
+      541.8220825195312,
+      218.9720001220703
+    ],
+    "text_snippet": "idea that different kinds of objects are associated with dif"
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      226.3279571533203,
+      541.966064453125,
+      239.61195373535156
+    ],
+    "text_snippet": "reply seems to presuppose that abstract and concrete objects"
+  },
+  {
+    "order": 8,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      247.0879669189453,
+      422.260009765625,
+      260.3719787597656
+    ],
+    "text_snippet": "that it is possible to trace the abstract/concrete divide in"
+  },
+  {
+    "order": 9,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      288.5179748535156,
+      541.7639770507812,
+      301.8019714355469
+    ],
+    "text_snippet": "The reply to the epistemological challenge based on the role"
+  },
+  {
+    "order": 10,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      309.1579895019531,
+      541.906005859375,
+      322.4419860839844
+    ],
+    "text_snippet": "on the other hand, sits well with skepticism about the possi"
+  },
+  {
+    "order": 11,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      329.9179992675781,
+      541.9720458984375,
+      343.2019958496094
+    ],
+    "text_snippet": "in a satisfactory way. The two replies seem also to yield di"
+  },
+  {
+    "order": 12,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      350.5579833984375,
+      541.91796875,
+      363.84197998046875
+    ],
+    "text_snippet": "mathematical theory. According to the reply based on the con"
+  },
+  {
+    "order": 13,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      371.3179931640625,
+      541.8200073242188,
+      384.60198974609375
+    ],
+    "text_snippet": "for the acceptability of a mathematical theory is its consis"
+  },
+  {
+    "order": 14,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      391.9579772949219,
+      541.9480590820312,
+      405.2419738769531
+    ],
+    "text_snippet": "on scientific confirmation the applicability of a theory to "
+  },
+  {
+    "order": 15,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      412.7179870605469,
+      541.9600219726562,
+      426.0019836425781
+    ],
+    "text_snippet": "an important role, so much so that Quine at a certain point "
+  },
+  {
+    "order": 16,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      433.3580017089844,
+      542.0400390625,
+      446.6419982910156
+    ],
+    "text_snippet": "have no connection to applied mathematics mere “mathematical"
+  },
+  {
+    "order": 17,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      454.13800048828125,
+      457.6600036621094,
+      467.4219970703125
+    ],
+    "text_snippet": "and suggested not to accept the existential implications of "
+  },
+  {
+    "order": 18,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      495.5379943847656,
+      541.9959716796875,
+      508.8219909667969
+    ],
+    "text_snippet": "We have found a connection between the issue of defining the"
+  },
+  {
+    "order": 19,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      516.177978515625,
+      541.9959716796875,
+      529.4619750976562
+    ],
+    "text_snippet": "question of how to reply to the epistemological challenge ag"
+  },
+  {
+    "order": 20,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      536.93798828125,
+      541.7180786132812,
+      550.2219848632812
+    ],
+    "text_snippet": "epistemological challenge is based on a clear distinction be"
+  },
+  {
+    "order": 21,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      557.5780029296875,
+      541.6640014648438,
+      570.8619995117188
+    ],
+    "text_snippet": "objects and the way we know about concrete ones and seems to"
+  },
+  {
+    "order": 22,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      578.3379516601562,
+      541.9779663085938,
+      591.6219482421875
+    ],
+    "text_snippet": "between abstract and concrete objects; while another reply a"
+  },
+  {
+    "order": 23,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      598.9779663085938,
+      541.882080078125,
+      612.261962890625
+    ],
+    "text_snippet": "believing in the existence of prototypical abstract objects "
+  },
+  {
+    "order": 24,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      619.7679443359375,
+      541.9299926757812,
+      633.0519409179688
+    ],
+    "text_snippet": "the existence of prototypical concrete objects as electrons."
+  },
+  {
+    "order": 25,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      640.407958984375,
+      541.9961547851562,
+      653.6919555664062
+    ],
+    "text_snippet": "the idea that there is no sharp boundary between abstract an"
+  },
+  {
+    "order": 26,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      661.16796875,
+      541.9960327148438,
+      674.4519653320312
+    ],
+    "text_snippet": "some support from the difficulty of characterizing the notio"
+  },
+  {
+    "order": 27,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      681.8079833984375,
+      141.02000427246094,
+      695.0919799804688
+    ],
+    "text_snippet": "previous section."
+  },
+  {
+    "order": 28,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      56.63999938964844,
+      736.7759399414062,
+      539.931640625,
+      785.00732421875
+    ],
+    "text_snippet": "6 See also Morrison (2007, 552, quoted by Knowles and Liggin"
+  }
+]

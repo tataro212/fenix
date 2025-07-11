@@ -1,0 +1,62 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 9,
+    "bbox": [
+      51.02198028564453,
+      57.99626541137695,
+      388.44683837890625,
+      247.2840576171875
+    ],
+    "text_snippet": "because identity-maintenance takes place in precarious circu"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 9,
+    "bbox": [
+      51.02198028564453,
+      261.12969970703125,
+      160.7998809814453,
+      271.0923156738281
+    ],
+    "text_snippet": "3.2 Making sense together"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 9,
+    "bbox": [
+      51.01622009277344,
+      285.161865234375,
+      388.44940185546875,
+      522.279052734375
+    ],
+    "text_snippet": "The notion of participatory sense-making extends these ideas"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 9,
+    "bbox": [
+      51.02360153198242,
+      539.64794921875,
+      388.4991760253906,
+      617.4097900390625
+    ],
+    "text_snippet": "13 Cf. Jonas 1966, 1984, 2016; Merleau-Ponty 1945, 1968; Mat"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 9,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

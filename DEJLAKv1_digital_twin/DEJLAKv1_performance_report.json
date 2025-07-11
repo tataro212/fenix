@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-07-10T23:06:37.713526",
+  "report_version": "1.0",
+  "optimization_level": "enhanced",
+  "metrics": {
+    "pages_per_second": 0.35111326624364264,
+    "text_blocks_per_second": 2.8527952882295966,
+    "images_per_second": 0.0,
+    "translation_coverage": 0.1282051282051282,
+    "translation_speed": 0.3657429856704611,
+    "concurrent_optimization": "Active on 5 pages",
+    "flow_score": 0.45,
+    "structural_integrity": "poor",
+    "extraction_accuracy": 1.0,
+    "optimizations_applied": {
+      "Concurrent Translation": "3-5x speed boost on 25 blocks"
+    },
+    "memory_efficiency": "Needs improvement (<10 blocks/sec)",
+    "processing_efficiency": 47.69230769230769,
+    "benchmark_comparison": {
+      "speed_improvement": "Baseline performance",
+      "quality_improvement": "-36% quality",
+      "memory_improvement": "Standard"
+    },
+    "recommendations": [
+      "Consider enabling concurrent translation for faster processing",
+      "Document flow could be improved with structure optimization",
+      "Some text blocks may not be getting translated - check language detection",
+      "Consider processing smaller batches to improve memory efficiency",
+      "Document structure issues detected - manual review recommended"
+    ]
+  }
+}

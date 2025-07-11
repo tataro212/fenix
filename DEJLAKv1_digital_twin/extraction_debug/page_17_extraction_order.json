@@ -1,0 +1,26 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      51.02360153198242,
+      57.99626541137695,
+      388.4468994140625,
+      617.9942016601562
+    ],
+    "text_snippet": "of knowing: knowing is not always reciprocal. We do not gene"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 17,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

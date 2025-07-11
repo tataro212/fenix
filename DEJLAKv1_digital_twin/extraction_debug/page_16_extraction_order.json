@@ -1,0 +1,74 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 16,
+    "bbox": [
+      51.02360153198242,
+      57.99626541137695,
+      388.4070129394531,
+      79.9239501953125
+    ],
+    "text_snippet": "excessive over- and under-determination of the known, especi"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 16,
+    "bbox": [
+      51.02476501464844,
+      81.92070007324219,
+      388.43804931640625,
+      223.43951416015625
+    ],
+    "text_snippet": "Now, of course, on a dominant understanding of knowing, emot"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 16,
+    "bbox": [
+      51.02360153198242,
+      248.40650939941406,
+      297.7764587402344,
+      259.3655090332031
+    ],
+    "text_snippet": "6 Some further specifications and future directions"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 16,
+    "bbox": [
+      51.023529052734375,
+      273.2024841308594,
+      388.4866638183594,
+      546.2176513671875
+    ],
+    "text_snippet": "Having established that there is an existential overlap betw"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 16,
+    "bbox": [
+      51.02360153198242,
+      558.5833740234375,
+      388.37969970703125,
+      617.4105834960938
+    ],
+    "text_snippet": "20 For more on the ethics that pervades the enactive theory "
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 16,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

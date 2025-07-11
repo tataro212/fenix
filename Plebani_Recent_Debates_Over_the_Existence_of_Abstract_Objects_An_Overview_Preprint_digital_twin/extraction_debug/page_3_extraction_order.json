@@ -1,0 +1,362 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      71.14796447753906,
+      541.6119995117188,
+      84.43196868896484
+    ],
+    "text_snippet": "object is abstract if and only if it has no spatial location"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      91.80799865722656,
+      378.6700134277344,
+      105.09200286865234
+    ],
+    "text_snippet": "do not make things happen and there is no way to act upon th"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      133.2079620361328,
+      541.5339965820312,
+      146.49195861816406
+    ],
+    "text_snippet": "The definition has initial plausibility, given that it does "
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      153.9679718017578,
+      541.6240234375,
+      167.25196838378906
+    ],
+    "text_snippet": "exist here but not there and now but not then; and the opini"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      174.6079864501953,
+      541.6600341796875,
+      187.89198303222656
+    ],
+    "text_snippet": "confirmed by the fact that we cannot perceive them in any wa"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      195.3679962158203,
+      541.6799926757812,
+      208.65199279785156
+    ],
+    "text_snippet": "abstract objects by making them interact with other physical"
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      216.00794982910156,
+      334.989990234375,
+      229.2919464111328
+    ],
+    "text_snippet": "(See Linnebo 2018, section 2.5 for a similar suggestion)."
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      257.4380187988281,
+      541.6599731445312,
+      270.7220153808594
+    ],
+    "text_snippet": "Despite its initial plausibility, there seems to be some cou"
+  },
+  {
+    "order": 8,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      278.1979675292969,
+      541.406005859375,
+      291.4819641113281
+    ],
+    "text_snippet": "abstract object (see Rosen 2017). As a counterexample to the"
+  },
+  {
+    "order": 9,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      298.8379821777344,
+      541.617919921875,
+      312.1219787597656
+    ],
+    "text_snippet": "spatial location, some argue that impure sets (sets whose me"
+  },
+  {
+    "order": 10,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      319.5979919433594,
+      541.6360473632812,
+      332.8819885253906
+    ],
+    "text_snippet": "members of the members of … their members are concrete objec"
+  },
+  {
+    "order": 11,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      340.2380065917969,
+      541.6480102539062,
+      353.5220031738281
+    ],
+    "text_snippet": "elements they contain: on this account, {Obama} is located w"
+  },
+  {
+    "order": 12,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      360.99798583984375,
+      541.55810546875,
+      374.281982421875
+    ],
+    "text_snippet": "counterexamples to the a-causality of abstract objects one c"
+  },
+  {
+    "order": 13,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      381.63800048828125,
+      541.6599731445312,
+      394.9219970703125
+    ],
+    "text_snippet": "abstract artifacts. The commonsensical view about an abstrac"
+  },
+  {
+    "order": 14,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      402.3979797363281,
+      541.4180908203125,
+      415.6819763183594
+    ],
+    "text_snippet": "did not exist until it was invented (Rosen 2017). Similarly,"
+  },
+  {
+    "order": 15,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      423.0379943847656,
+      541.6600341796875,
+      436.3219909667969
+    ],
+    "text_snippet": "like Sherlock Holmes is that they have been created by the w"
+  },
+  {
+    "order": 16,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      443.8179931640625,
+      541.6240234375,
+      457.10198974609375
+    ],
+    "text_snippet": "and Rosen 2017). In this sense fictional characters and game"
+  },
+  {
+    "order": 17,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      464.4579772949219,
+      303.07000732421875,
+      477.7419738769531
+    ],
+    "text_snippet": "exist thanks to the activity of some human beings."
+  },
+  {
+    "order": 18,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      505.8580017089844,
+      541.6480712890625,
+      519.1419677734375
+    ],
+    "text_snippet": "Moreover, is not even clear that abstract objects like books"
+  },
+  {
+    "order": 19,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      525.5863647460938,
+      541.6239624023438,
+      539.9019165039062
+    ],
+    "text_snippet": "powers: Das Kapital arguably had an impact on 20th century h"
+  },
+  {
+    "order": 20,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      547.2579345703125,
+      541.6240234375,
+      560.5419311523438
+    ],
+    "text_snippet": "supposed a-causality of abstract objects, one might hold tha"
+  },
+  {
+    "order": 21,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      567.89794921875,
+      541.6799926757812,
+      581.1819458007812
+    ],
+    "text_snippet": "and that abstract objects might be involved in some events t"
+  },
+  {
+    "order": 22,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      588.657958984375,
+      541.27197265625,
+      601.9419555664062
+    ],
+    "text_snippet": "One might hold that Pythagoras’ theorem is part of the event"
+  },
+  {
+    "order": 23,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      609.2979736328125,
+      541.6799926757812,
+      622.5819702148438
+    ],
+    "text_snippet": "Pythagoras’ theorem and give the correct answer to a certain"
+  },
+  {
+    "order": 24,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      630.0879516601562,
+      79.34400177001953,
+      643.3719482421875
+    ],
+    "text_snippet": "test."
+  },
+  {
+    "order": 25,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      671.4879760742188,
+      541.35205078125,
+      684.77197265625
+    ],
+    "text_snippet": "In light of the difficulty of characterizing the notion of a"
+  },
+  {
+    "order": 26,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      692.1279296875,
+      541.5700073242188,
+      705.4119262695312
+    ],
+    "text_snippet": "on particular examples of abstract objects. Field (1980), on"
+  },
+  {
+    "order": 27,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      712.887939453125,
+      541.6799926757812,
+      726.1719360351562
+    ],
+    "text_snippet": "a nominalist position, makes clear that its focus is on math"
+  },
+  {
+    "order": 28,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      733.5239868164062,
+      541.6119995117188,
+      746.8079833984375
+    ],
+    "text_snippet": "and Zsabo (2003) choose to discuss mathematical objects and "
+  },
+  {
+    "order": 29,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      56.63999938964844,
+      754.283935546875,
+      507.94000244140625,
+      767.5679321289062
+    ],
+    "text_snippet": "into a pointless debate about how to define that technical t"
+  }
+]

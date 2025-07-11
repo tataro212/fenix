@@ -1,0 +1,977 @@
+[
+  {
+    "block_id": "yolo_caption_1_1",
+    "block_type": "blocktype.caption",
+    "text": "και γνωρίζοντας: σκέψεις για ένα"
+  },
+  {
+    "block_id": "text_1_1",
+    "block_type": "blocktype.paragraph",
+    "text": "Αγάπη και γνώση: στοχασμοί για μια δεσμευμένη επιστημολογία"
+  },
+  {
+    "block_id": "text_1_2",
+    "block_type": "blocktype.heading",
+    "text": "Hanne De Jaegher1,2"
+  },
+  {
+    "block_id": "text_1_3",
+    "block_type": "blocktype.footnote",
+    "text": "# Οι Συγγραφείς 2019"
+  },
+  {
+    "block_id": "text_1_4",
+    "block_type": "blocktype.paragraph",
+    "text": "Περίληψη. Σε αναζήτηση των υψηλότερων ικανοτήτων μας, οι γνωστικοί επιστήμονες στοχεύουν να εξηγήσουν πράγματα όπως τα μαθηματικά, η γλώσσα και ο σχεδιασμός (και ενώ τα εξηγούν, συχνά φαντάζονται υπολογιστές εν δράσει). Αλλά είναι αυτές πραγματικά οι πιο εξελιγμένες μορφές γνώσης μας; Σε αυτή την εργασία, επισημαίνω ένα διαφορετικό κορυφαίο σημείο της νόησης. Η πιο εξελιγμένη ανθρώπινη γνώση μας, πιστεύω, βρίσκεται στον τρόπο που αλληλεπιδρούμε μεταξύ μας, στις σχέσεις μας. Η γνωστική επιστήμη και η φιλοσοφία του νου έχουν σε μεγάλο βαθμό αγνοήσει τους τρόπους γνώσης που διαδραματίζονται εδώ. Ταυτόχρονα, η έμφαση στην διακριτή, ορθολογική γνώση προς ζημία της ενεργής, ανθρώπινης γνώσης διαποτίζει τις κοινωνικές πρακτικές και τους θεσμούς, συχνά με επιβλαβείς επιπτώσεις στους ανθρώπους και τις σχέσεις τους. Υπάρχουν πολλοί λόγοι για τους οποίους χρειαζόμαστε μια νέα, ενεργή —ή ακόμα και ελκυστική— επιστημολογία της ανθρώπινης γνώσης. Η ενεργητική θεωρία της συμμετοχικής νοηματοδότησης κάνει βήματα προς αυτή την κατεύθυνση, αλλά χρειάζεται εμβάθυνση. Η ιδέα του Kym Maclaren (2002) περί του «να αφήνεις να είναι» (letting be) προσκαλεί μια τέτοια εμβάθυνση. Ο χαρακτηρισμός της γνώσης ως σχέσης «να αφήνεις να είναι» (letting be) παρέχει έναν διαφοροποιημένο τρόπο αντιμετώπισης των εντάσεων μεταξύ της ύπαρξης του γνώστη και της ύπαρξης του γνωστού, καθώς συναντώνται στη διαδικασία του γνωρίζειν-και-γίγνεσθαι-γνωστό. Αυτή η συνάντηση γνώστη και γνωστού δεν είναι εύκολο να κατανοηθεί. Ωστόσο, υπάρχει ένας τρόπος συσχέτισης στον οποίο το γνωρίζουμε καλά, και αυτός είναι: στις σχέσεις αγάπης. Προτείνω να δούμε την ανθρώπινη γνώση μέσα από το πρίσμα της αγάπης. Τότε βλέπουμε ότι τόσο η γνώση όσο και η αγάπη είναι υπαρξιακοί, διαλεκτικοί τρόποι με τους οποίους συγκεκριμένα και ιδιαίτερα όντα αλληλεπιδρούν μεταξύ τους."
+  },
+  {
+    "block_id": "text_1_5",
+    "block_type": "blocktype.paragraph",
+    "text": "Λέξεις-κλειδιά Νόηση . Συμμετοχική νοηματοδότηση . Ανθρώπινη γνώση . Αφήνω να είναι . Ενέργεια . Αγάπη"
+  },
+  {
+    "block_id": "text_1_6",
+    "block_type": "blocktype.footnote",
+    "text": "* Hanne De Jaegher h.de.jaegher@gmail.com"
+  },
+  {
+    "block_id": "text_1_7",
+    "block_type": "blocktype.footnote",
+    "text": "Τμήμα Λογικής και Φιλοσοφίας της Επιστήμης, Ερευνητικό Κέντρο IAS για τη Ζωή, το Νου και την Κοινωνία, Πανεπιστήμιο της Χώρας των Βάσκων, Λεωφόρος ντε Τολόζα 70, 20018 Σαν Σεμπαστιάν, Ισπανία"
+  },
+  {
+    "block_id": "text_1_8",
+    "block_type": "blocktype.footnote",
+    "text": "Τμήμα Πληροφορικής, Κέντρο Υπολογιστικής Νευροεπιστήμης και Ρομποτικής, και Κέντρο Έρευνας στις Γνωσιακές Επιστήμες, Πανεπιστήμιο του Σάσσεξ, Μπράιτον, Ηνωμένο Βασίλειο"
+  },
+  {
+    "block_id": "yolo_list_1_2",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_1_1",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_1_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_2_5",
+    "block_type": "blocktype.heading",
+    "text": "Χ. Ντε Γιαγκέρ"
+  },
+  {
+    "block_id": "text_2_1",
+    "block_type": "blocktype.heading",
+    "text": "1 Σε αναζήτηση της ανθρώπινης γνώσης"
+  },
+  {
+    "block_id": "yolo_caption_2_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_2_2",
+    "block_type": "blocktype.caption",
+    "text": "Ρωτήστε τους γνωσιακούς επιστήμονες ποιες είναι οι υψηλότερες μορφές γνώσης, και οι περισσότεροι θα συμφωνήσουν: τα μαθηματικά, η γλώσσα, ο σχεδιασμός, η λήψη αποφάσεων. Αναρωτώμενοι στη συνέχεια πώς επιτυγχάνουμε αυτά τα πράγματα, τείνουν να τα φαντάζονται υπολογιστικά. Δηλαδή, με τρόπους που ξεκινούν με διαχωρισμό —μεταξύ νοήματος και περιεχομένου, μεταξύ των στοιχείων της γνώσης (δράση, συναίσθημα, αντίληψη, …)— και που πρέπει να καταλήξουν στο να ενωθούν ξανά. Έχουμε μια τάση να βλέπουμε τη γνώση πιο καθαρά όταν βλέπουμε ένα σύστημα (οργανικό ή τεχνητό) να κυριαρχεί στον κόσμο, όπως: να κυριαρχεί στις διακρίσεις που πρέπει να γίνουν, να κατηγοριοποιεί, να χτίζει πάνω στις διχοτομήσεις, να προχωρά λογικά. Εν ολίγοις, όταν το βλέπουμε να διαιρεί και να βασιλεύει.1"
+  },
+  {
+    "block_id": "text_2_3",
+    "block_type": "blocktype.bibliography",
+    "text": "Συχνά πιστεύεται ότι η ενσωματωμένη και ενεργητική γνωσιακή επιστήμη δεν μπορεί να εξηγήσει αυτό το επίπεδο γνωσιακής λειτουργίας. Η ελάχιστη ενσωμάτωση, όπως η δυναμική εγκεφάλου-σώματος-κόσμου των μυρμηγκιών που περιηγούνται στον κόσμο τους, δεν θα κλιμακωθεί, λένε οι κριτικοί. Αλλά να κλιμακωθεί μέχρι πού; Ο σχεδιασμός, τα μαθηματικά και η γλώσσα είναι σίγουρα μεταξύ των πιο εντυπωσιακών πραγμάτων που κάνουμε. Αλλά είναι η μόνη κορωνίδα της ανθρώπινης γνώσης; Και ακόμη περισσότερο: αν, όταν φανταζόμαστε πώς τα κάνουμε, λάβουμε ως μοντέλο τα είδη λειτουργιών στα οποία είναι καλοί οι υπολογιστές, τότε συλλαμβάνουμε πραγματικά την ανθρώπινη γνώση; Ο πρώτος μου στόχος σε αυτή την εργασία είναι να δείξω ότι υπάρχει ένας τομέας εξελιγμένης γνώσης που έχει παραμείνει εκτός του πεδίου της γνωσιακής επιστήμης. Η ώθηση προς την κατανόηση της υψηλής νοημοσύνης αγνοεί έναν πλούτο και ένα βάθος ανθρώπινης γνώσης που βρίσκεται ακριβώς μπροστά στα μάτια μας. Πάρτε το να γνωρίζετε τι συμβαίνει με κάποιον από το να βλέπετε τον τρόπο που σηκώνει το βλέμμα του, πώς να χτίζετε λειτουργικές πόλεις, πώς να διαβάζετε, να γράφετε και να ακούτε. Πάρτε το να γνωρίζετε πώς να φτιάχνετε σιρόπι σφενδάμου, πώς να δαμάζετε μια αλεπού, πώς να κάνετε τις ιδέες να γίνονται αισθητές στην ποίηση, τη μουσική ή τον χορό, ή πώς να μετακινείστε παιχνιδιάρικα μεταξύ εμπειρικά διαφορετικών κόσμων. Πάρτε τη διάγνωση ψυχιατρικών διαταραχών,2 την ενασχόληση με κάποιον που χάνει τις νοητικές του ικανότητες λόγω άνοιας, την αντιμετώπιση του καρκίνου του μαστού ως ζευγάρι, ή τη συνοδεία κάποιου φυλακισμένου στη ζωή έξω. Η πιο εξελιγμένη γνώση μας είναι γεμάτη αβεβαιότητα, ασυνέπειες, ασάφεια, αντιφάσεις. Αυτά χαρακτηρίζουν το πώς αντιμετωπίζουμε συχνότερα τον κόσμο, τον εαυτό μας και ο ένας τον άλλον. Τι γίνεται με το πώς μαθαίνουμε να εμπιστευόμαστε; Πώς να ξεχωρίσουμε την ποιότητα από την κομπογιαννιτιά; Πώς να ξέρουμε πότε να δράσουμε, για τι να εξοργιστούμε; Πώς να διδάξουμε, πώς να γεράσουμε, ή πώς να πούμε τι εννοούμε (Freire 1970, hooks 1994, Cuffari 2011, Casey και Schoeller 2018); Τι είδους γνώση υπάρχει στο μαγείρεμα ενός γεύματος που δεν είναι απλώς καλό, αλλά νόστιμο; Τι γίνεται με όλα όσα κάνουμε που δεν βασίζονται σε ένα αντικειμενικό,"
+  },
+  {
+    "block_id": "text_2_4",
+    "block_type": "blocktype.footnote",
+    "text": "1 Βλέπε για παράδειγμα: Mitroff et al. 2004; Doumas και Martin 2018; Lieder και Griffiths προσεχώς. 2 Όπως εξηγεί ο φιλόσοφος και ψυχίατρος Thomas Fuchs, «[τ]έτοια γνώση μπορεί να μην εκφράζεται πλήρως με λέξεις. Η συνάντηση με έναν καταθλιπτικό ασθενή χαρακτηρίζεται από μια συγκεκριμένη ατμοσφαιρική αντίληψη που δεν μπορεί να αναλυθεί σε μεμονωμένα στοιχεία. Κανένα εγχειρίδιο δεν μπορεί να αντικαταστήσει την προσωπική εμπειρία μιας διάγνωσης και τον ιδιαίτερο χρωματισμό της. Η έμφυτη σωματική γνώση μπορεί να περιγραφεί μόνο με φράσεις όπως «πώς είναι» ή «πώς αισθάνεται», για παράδειγμα, «πώς είναι να χορεύεις βαλς», «πώς είναι να μιλάς με έναν καταθλιπτικό ασθενή», «πώς πρέπει να αισθάνεται ο πηλός όταν τον περιστρέφεις», «πώς μύριζε στο σπίτι τα Χριστούγεννα» κ.λπ. Επομένως, ούτε η δεξιότητα ενός έμπειρου τεχνίτη ούτε η διαγνωστική διαίσθηση ενός ψυχιάτρου μπορούν να μεταδοθούν στον μαθητή διαλεκτικά – πρέπει να το βιώσει από πρώτο χέρι, μιμούμενος τον δάσκαλο και υιοθετώντας μια παρόμοια σωματική στάση στην αντιμετώπιση της κατάστασης. (Fuchs 2012, σ. 14)». Αυτά είναι παραδείγματα από διάφορες λογοτεχνικές, ακαδημαϊκές και κοινωνικές έρευνες, βλέπε (Reddy 2008, Jacobs 1961, Le Guin 2004, Simpson 2014, de Saint-Exupéry 1943, Lorde 2012, Dissanayake 2000, Welch 2019, Lugones 1987, Kontos και Naglie 2009, Zeiler 2014, de Boer et al. 2019, Needs και Adair-Stantiall 2017)."
+  },
+  {
+    "block_id": "yolo_quote_2_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_3_1",
+    "block_type": "blocktype.caption",
+    "text": "διακριτοποιούσα λογική, αλλά σε μια ζωντανή, βιωμένη λογική; Αυτά τα παραδείγματα χρησιμεύουν για να φέρουν στο προσκήνιο ένα άλλο επιστέγασμα της ανθρώπινης γνώσης—αυτό που ονομάζω ανθρώπινη επίγνωση. Το γεγονός ότι αυτό το είδος γνώσης έχει αγνοηθεί σε μεγάλο βαθμό από τη γνωστική επιστήμη οφείλεται, εν μέρει, σε ορισμένες πραγματικές δυσκολίες στην εξήγησή του. Είναι δύσκολο να φανταστεί κανείς το πώς του με αλγοριθμικούς τρόπους. Αυτό συμβαίνει επειδή ξεκινάει από τη σύνδεση. Η γνώση για την οποία μιλάω είναι δύσκολο να προσεγγιστεί τμηματικά. Η γνώση-σε-σύνδεση δεν είναι εύκολο να διαχωριστεί και να διαιρεθεί. Στην πραγματικότητα, το να φέρουμε αυτό το επιστέγασμα της γνώσης στο προσκήνιο σημαίνει ταυτόχρονα να υιοθετήσουμε μια διαφορετική οπτική γωνία για τον ανθρώπινο νου γενικότερα. Αυτό που θέλω να κάνω είναι να υιοθετήσω μια κάθετη άποψη για τη γνωστική λειτουργία: να κοιτάξω πλάγια, αντί μετωπικά, τα κλασικά κουτιά της αντίληψης, της δράσης, της γλώσσας, της μνήμης και του συναισθήματος, και να εστιάσω αντ' αυτού σε αυτό που ρέει μέσα από αυτά. Παίρνω ως αφετηρία τη σύνδεση και επιχειρώ, έτσι, να διαλύσω τις υποτιθέμενες μονάδες του διαγράμματος-κουτιού και να πάρω στα σοβαρά αντ' αυτού το φαινόμενο της γνώσης-σε-σύνδεση. Κατά κάποιο τρόπο, με την ενεργητική γνωστική επιστήμη (στη γραμμή των Varela-Thompson-Di Paolo),3 έχουμε κάνει ένα ξεκίνημα με αυτόν τον τρόπο θέασης της γνώσης, αν και μερικές φορές είναι δύσκολο να περάσει αυτό το μήνυμα. Όταν τίθενται κρίσιμα ερωτήματα, συχνά απαιτείται μια απάντηση αυστηρά με υπολογιστικούς, γνωσιολογικούς όρους. Αν και αυτό είναι κατανοητό, στην πραγματικότητα δεν μπορεί να γίνει. Η ενεργητική σκέψη στέκεται σε διαφορετικό έδαφος από αυτό της προσέγγισης που εμπνέεται από τον υπολογισμό.4 Αν και δεν μπορώ να επεκταθώ σε αυτό το ζήτημα εδώ,5 οι ιδέες που παρουσιάζω θα πρέπει να εκληφθούν ως ενίσχυση της αναζήτησης της ενεργητικής προσέγγισης για μια πραγματικά εναλλακτική επιστημολογία. Μια που μπορεί να εξηγήσει την ανθρώπινη γνώση σύμφωνα με μια βιωμένη, ζωντανή λογική."
+  },
+  {
+    "block_id": "text_3_2",
+    "block_type": "blocktype.footnote",
+    "text": "1.1 Προεπισκόπηση του επιχειρήματος"
+  },
+  {
+    "block_id": "text_3_3",
+    "block_type": "blocktype.paragraph",
+    "text": "Στην επόμενη ενότητα, θα δείξω ότι και από κοινωνική άποψη, είναι σημαντικό να κατανοήσουμε καλύτερα την ανθρώπινη γνώση, επειδή έχει επιπτώσεις στον τρόπο που συμπεριφερόμαστε ο ένας στον άλλο, και αυτό είναι κάτι για το οποίο πρέπει να είμαστε προσεκτικοί. Στη συνέχεια, θα προτείνω ότι η ενεργητική θεωρία της διαυποκειμενικότητας ως συμμετοχική νοηματοδότηση συμβάλλει στην εξήγηση της ανθρώπινης γνώσης, με τη διαλεκτική της προσέγγιση στον τρόπο με τον οποίο οι άνθρωποι νοηματοδοτούν από κοινού στην κίνηση, την αναπνοή και τη συμβίωση (De Jaegher and Di Paolo 2007; Di Paolo et al. 2018). Αλλά δείχνω επίσης γιατί δεν έχει φτάσει ακόμα εκεί. Κάτι λείπει από τις ιδέες της νοηματοδότησης, ένα ορισμένο βάθος. Θα εξηγήσω τι εννοώ με αυτό, αντλώντας έμπνευση από την ιδέα της Kym Maclaren για το «να αφήνεις να υπάρχει» (Maclaren 2002). Η κατανόηση της γνώσης ως «να αφήνεις να υπάρχει» μπορεί να αποτελέσει τη βάση μιας εμπλεκόμενης επιστημολογίας. Ενώ η κοινή φράση «άσε το να γίνει» χρησιμοποιείται για να υποκινήσει την αποδέσμευση, εδώ, στον τομέα της επιστημολογίας, το «να αφήνεις να υπάρχει» είναι κάθε άλλο παρά αποδεσμευμένο. Όπως θα δείξω, η επιστημολογική στάση «να αφήνεις να υπάρχει» αφορά ακριβώς την εμπλοκή, και μάλιστα μια βαθιά μορφή εμπλοκής. Είναι μια σχέση μεταξύ μερών που ενδιαφέρονται να γνωρίσουν ο ένας τον άλλο, και"
+  },
+  {
+    "block_id": "text_3_4",
+    "block_type": "blocktype.footnote",
+    "text": "3 Αυτό αναφέρεται σε μια συγκεκριμένη σχολή σκέψης, μέσω ορισμένων από τους κύριους συγγραφείς της, για να τη διαφοροποιήσει από άλλα ρεύματα που επίσης χρησιμοποιούν την ονομασία «ενεργός» (enactive). 4 Δεν αναφέρομαι εδώ στο τεχνικό ζήτημα του τι είναι υπολογισμός, αλλά μάλλον στην τάση να βρίσκει κανείς έμπνευση για την κατανόηση της ανθρώπινης σκέψης στα είδη των λειτουργιών που εκτελούν οι υπολογιστές: την κενή νοήματος επεξεργασία διακριτών και αφηρημένων πληροφοριών. Το αντιπαραβάλλω αυτό με είδη σκέψης όπως αυτά που περιγράφονται από τους Gendlin (1962/1997), Bruner (1979), Polanyi (1958), Dreyfus (1992), και άλλους. 5 Ωστόσο, βλ., π.χ., την ανταλλαγή μεταξύ Di Paolo 2009 και Wheeler 2010."
+  },
+  {
+    "block_id": "yolo_caption_3_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_3_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_4_6",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_4_1",
+    "block_type": "blocktype.paragraph",
+    "text": "τα οποία είναι το καθένα ικανό να είναι—να είναι ο εαυτός του—ενώ ταυτόχρονα εμπλέκεται. Η εμπλοκή με κάτι γίνεται πάντα από ένα συγκεκριμένο κίνητρο, ενδιαφέρον και προοπτική. Εξαιτίας αυτού, αυτός που εμπλέκεται, εν μέρει, καθορίζει το πράγμα (πρόσωπο, γεγονός, κατάσταση) με το οποίο εμπλέκεται. Για να υφίσταται το πράγμα με το οποίο υπάρχει εμπλοκή, λοιπόν, σε αυτή τη σχέση, αυτός που εμπλέκεται το αφήνει να είναι, πάντα με έναν συγκεκριμένο τρόπο που συνδέεται άμεσα με τον ίδιο τον τρόπο ύπαρξης αυτού που εμπλέκεται. Αυτό ακριβώς σημαίνει να μην εγκαταλείπουμε το πράγμα που γνωρίζουμε, αλλά μάλλον να εμπλεκόμαστε με αυτό, και αυτό μπορεί να γίνει μόνο ως ο συγκεκριμένος εμπλεκόμενος που είμαστε. Το «αφήνω να είναι», ως το κέντρο και το σημείο εκκίνησης μιας εμπλεκόμενης επιστημολογίας, περιγράφει τι σημαίνει να εμπλεκόμαστε με ό,τι γνωρίζουμε με έναν τρόπο που ούτε το υπερκαθορίζει, ούτε το υποκαθορίζει. Η Maclaren εξηγεί την ιδέα ζητώντας μας να φανταστούμε έναν εκπαιδευτή αλόγων του οποίου η σχέση με το άλογό του πηγαίνει εντελώς στραβά (διηγούμαι την ιστορία παρακάτω). Αυτό την οδηγεί να προτείνει ότι πρέπει να μάθουμε να «αφήνουμε να είναι» (την ανθρώπινη γνώση) και, επιπλέον, ότι το κάνουμε αυτό από και στις σχέσεις και αλληλεπιδράσεις μας με άλλους. Το εξηγεί αυτό με τις έννοιες της δια-υποκειμενικότητας και της δια-σωματικότητας του Merleau-Ponty. Όλα αυτά, υποστηρίζω, είναι κεντρικά και θεμελιώδη για την κατανόηση της ανθρώπινης γνώσης που πιστεύω ότι πρέπει να κατανοήσουμε καλύτερα. Αλλά το «αφήνω να είναι» είναι μια δύσκολη ιδέα να κατανοηθεί. Για να το κατανοήσουμε καλύτερα, προτείνω να το αναζητήσουμε σε έναν τομέα της ζωής στον οποίο το γνωρίζουμε καλά. Το γνωρίζουμε καλά στις ερωτικές μας σχέσεις. Είναι στις ερωτικές μας σχέσεις που βιώνουμε και γνωρίζουμε την υπαρξιακή ένταση του «αφήνω να είναι».6 Στις ερωτικές σχέσεις, κινούμαστε μεταξύ του να είμαστε ο εαυτός μας και, ως εαυτοί μας, να συναντάμε έναν άλλον—ένα διαφορετικό ον, το οποίο δεν μπορούμε να αποφύγουμε να προσπαθήσουμε να καθορίσουμε, αλλά ούτε μπορούμε να το καθορίσουμε πλήρως (και δεν πρέπει να το καθορίσουμε βίαια, με κίνδυνο να τερματιστεί η αλληλεπίδραση). Αυτό σημαίνει: δεν πρέπει να τους υπερκαθορίζουμε, ούτε να τους υποκαθορίζουμε. Και το ίδιο ισχύει και για εμάς σε αυτή τη σχέση. Πλοηγώντας αυτές τις εντάσεις, όλοι αλλάζουμε. Το να αγαπάς είναι μια ατελείωτη πράξη ισορροπίας μεταξύ της συνεχούς ύπαρξης και γίγνεσθαι του εραστή και του αγαπημένου. Είναι σε αυτές τις σχέσεις, νομίζω, που μπορούμε να αρχίσουμε να βρίσκουμε έναν τρόπο να κατανοήσουμε την πιο εξελιγμένη ανθρώπινη γνώση μας. Ας εξετάσουμε πρώτα μερικά παραδείγματα του είδους της γνώσης που επιδιώκω, και γιατί είναι σημαντικό να την κατανοήσουμε καλύτερα."
+  },
+  {
+    "block_id": "yolo_caption_4_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_4_2",
+    "block_type": "blocktype.heading",
+    "text": "Δύο πτυχές ανθρώπινης γνώσης"
+  },
+  {
+    "block_id": "text_4_3",
+    "block_type": "blocktype.footnote",
+    "text": "2.1 Τι γνωρίζουμε σχετικά με την ανθρώπινη γνώση;"
+  },
+  {
+    "block_id": "text_4_4",
+    "block_type": "blocktype.paragraph",
+    "text": "Η πρώτη δυσκολία με αυτό το ερώτημα είναι ότι μεγάλο μέρος της ανθρώπινης γνώσης είναι άρρητο: συχνά δεν μπορούμε να εκφράσουμε αυτό που γνωρίζουμε με λόγια. Επίσης, έχουμε ελάχιστους τρόπους να μιλήσουμε γι' αυτό ως φαινόμενο στη γνωσιακή επιστήμη, επειδή οι δυτικές επιστημονικές προσεγγίσεις γενικά δεν περιλαμβάνουν αυτό το είδος γνώσης στις ιδέες τους για το τι είναι ο νους. Όμως αυτή η διπλή αρρητότητα δεν πρέπει να μας αποτρέψει από το να το διερευνήσουμε. Αντιθέτως. Το κάνει"
+  },
+  {
+    "block_id": "text_4_5",
+    "block_type": "blocktype.footnote",
+    "text": "6 Θα πρέπει ήδη να πω: Ερμηνεύω αυτές τις σχέσεις ευρέως, συμπεριλαμβανομένης της φιλίας και των σχέσεων γονέα-παιδιού. Ταυτόχρονα, για πολλούς από εμάς, είναι στις ρομαντικές και σεξουαλικές σχέσεις που αυτή η ένταση είναι συχνά εντονότερη, καθιστώντας την ίσως πιο απτή και αναγνωρίσιμη σε αυτές τις σχέσεις και αλληλεπιδράσεις."
+  },
+  {
+    "block_id": "yolo_caption_4_2",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_caption_4_3",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_5_1",
+    "block_type": "blocktype.caption",
+    "text": "σημαίνει ότι για να αρχίσουμε να το ερευνούμε, πρέπει πρώτα να το φέρουμε στην αντίληψή μας. Τα ακόλουθα παραδείγματα χρησιμεύουν για να υποδείξουν την ανθρώπινη γνώση, για να την επισημάνουν."
+  },
+  {
+    "block_id": "text_5_2",
+    "block_type": "blocktype.footnote",
+    "text": "2.1.1 Φροντίδα άνοιας"
+  },
+  {
+    "block_id": "text_5_3",
+    "block_type": "blocktype.caption",
+    "text": "Πρώτον, ας εξετάσουμε τη φροντίδα της άνοιας — έναν τομέα στον οποίο οι συναισθηματικές ικανότητες είναι ζωτικής σημασίας. Στην παραδοσιακή ψυχολογία, οι συναισθηματικές δεξιότητες γενικά νοούνται ως η αναγνώριση, η αντίληψη και η κατηγοριοποίηση των συναισθημάτων. Για να ελεγχθούν οι συναισθηματικές δεξιότητες στην άνοια, ζητείται από τους ασθενείς να ταξινομήσουν φωτογραφίες προσώπων σε χαρούμενα, λυπημένα, θυμωμένα κ.ο.κ. Διαπιστώνεται μειωμένη ικανότητα να το κάνουν αυτό (βλ. π.χ. Lindquist et al. 2014), και το συμπέρασμα είναι: τα άτομα με άνοια χάνουν τις συναισθηματικές τους ικανότητες. Αυτή η ιδέα επηρεάζει τις καθημερινές πρακτικές μέσω των πληροφοριών που δίνουν οι γιατροί στους ασθενείς και τις οικογένειές τους σχετικά με την πρόγνωση της νόσου και μέσω των οδηγιών για τους φροντιστές. Όμως, όταν είσαι κοντά σε ένα άτομο με άνοια, η συναισθηματική σύνδεση είναι ένα από τα πράγματα που παραμένει περισσότερο. Το να κάθεστε μαζί σε ένα παγκάκι στο πάρκο παρατηρώντας τα πουλιά και τον καιρό να περνούν, μπορεί να είναι στιγμές μεγάλης σημασίας. Το αντιλαμβάνεσαι αυτό με την οπτική επαφή, μέσω της αφής, με την αγκαλιά. Στην πραγματικότητα, όταν όλα τα άλλα έχουν χαθεί, συχνά πρακτικά ο μόνος τρόπος να αντιληφθείς πώς είναι τα πράγματα με το άτομο είναι μέσω της συναισθηματικής σου σύνδεσης. Αυτό είναι επίσης σαφές.7 Συχνά είναι προφανές με ποιους από τους πολλούς φροντιστές τους (νοσηλευτές, γιατρούς, εργοθεραπευτές, καθαριστές) το άτομο νιώθει καλά και με ποιους όχι, ή ακόμα και πώς αυτό διαφέρει μέρα με τη μέρα. Είναι φανερό στη σωματική παρουσία και τη συμπεριφορά του ατόμου. Η παρατήρηση αυτού επηρεάζει εσάς και τους φροντιστές άμεσα. Εκδηλώνεται στον τρόπο που όλοι κινούνται. Εκδηλώνεται μέσα και μέσω των νοημάτων που γίνονται αντιληπτά, δημιουργούνται, βιώνονται, μέσα και μέσω των αλληλεπιδράσεών σας (βλ. επίσης Kontos 2012). Η Kristin Zeiler (2014, σελ. 140) προχωράει αυτό περαιτέρω στις ιδέες της σχετικά με τη διασωματική προσωπικότητα στην άνοια:"
+  },
+  {
+    "block_id": "text_5_4",
+    "block_type": "blocktype.paragraph",
+    "text": "«Από μια μοναδική, προσανατολισμένη στη γνωστική λειτουργία, αντίληψη της προσωπικότητας, ίσως να μην είναι πολλά αυτά που μπορούν να κάνουν οι εργαζόμενοι στη φροντίδα της άνοιας για να βοηθήσουν τα άτομα με άνοια να παραμείνουν προσωπικότητες. Εάν χάσουν τις απαραίτητες γνωστικές ικανότητες, δεν θα χαρακτηριστούν ως πρόσωπα. Πολύ περισσότερα μπορούν να γίνουν από την προοπτική μιας διασωματικής αντίληψης. Ακόμα κι αν οι επαγγελματίες και οι συγγενείς που ασχολούνται με τη φροντίδα της άνοιας αντιμετωπίζουν πολλές δύσκολες καταστάσεις, και ακόμα κι αν οι πόροι διαφόρων ειδών είναι συχνά σπάνιοι, η φροντίδα της άνοιας θα πρέπει κατά προτίμηση να οργανώνεται με τέτοιο τρόπο ώστε να αυξάνονται οι δυνατότητες για τα άτομα με άνοια να εκφράζονται σε αλληλεπίδραση με άλλους ως πρόσωπα.»"
+  },
+  {
+    "block_id": "text_5_5",
+    "block_type": "blocktype.footnote",
+    "text": "An approach that reduces emotional capacities to picture categorization misses all of this. It fails at recognizing, even at noticing, concrete knowing-in-connection."
+  },
+  {
+    "block_id": "text_5_6",
+    "block_type": "blocktype.footnote",
+    "text": "7 I literally mean it is in the connection (not: the connection conveys this to me. This extra step is not needed, though it is also possible for humans to take a reflective attitude). In seeing a person with dementia interact, we know how it is with them. See the discussion of Merleau-Ponty’s notions of intercorporeality and intersub- jectivity below."
+  },
+  {
+    "block_id": "yolo_quote_5_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_6_6",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_6_1",
+    "block_type": "blocktype.footnote",
+    "text": "2.1.2 Digitalization"
+  },
+  {
+    "block_id": "yolo_caption_6_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_6_2",
+    "block_type": "blocktype.caption",
+    "text": "In his book The New Analog, Damon Krukowski explains how, in mobile phone design, engineers now reduce what is transmitted during a phone call to just the spoken words. For efficiency reasons, they reduce parts of the signal that convey the intonation, pauses, emphasis, breathing, sounds from the environment (what is the room like?), and so on. But these are precisely the things that to us, humans, are rich with meaning. Sometimes much more so than the words. Krukowski (2017) explains how, while our analog bodily contact with the world is continuous and tangible, experienced through our devices it becomes increasingly intangible and discontinuous; digital. What Krukowski diagnoses is close to the same problem I indicate in the other two examples in this section. Here, though, it is not the cognitive sciences looking at humans as if they were computer systems and pre-formatting for them, in psychological tests and in care guidelines, what is relevant to them (emotion categorization yes, sitting on the sofa together no). Rather, it is our socio-cultural world that is being increasingly digitalized, following information-processing assumptions about what is relevant to us. Promoting the digital, the computational, the discrete, over the human cuts out what is meaningful—and uniquely meaningful to humans (i.e. not to computers)8. With all the precision of the digital signal, and with noise stripped away, we are in effect isolated, from our senses, from our connections, from significance. Aspects of the environmental situation of the other person are in this way deleted from the interaction (something that was not entirely the case with analog technology). This problematic, reductive viewpoint pervades both cognitive science and contemporary Western society (one could suggest, for mutually reinforcing reasons)."
+  },
+  {
+    "block_id": "text_6_3",
+    "block_type": "blocktype.footnote",
+    "text": "2.1.3 Solitary confinement"
+  },
+  {
+    "block_id": "text_6_4",
+    "block_type": "blocktype.paragraph",
+    "text": "Another example is a central notion behind much of the US’s carceral system: that of prisoner isolation as a way to redeem, rehabilitate, or control people in prison. In her phenomenological analysis of solitary confinement, Lisa Guenther (2013) shows how harmful this practice is, because human subjectivity is so ungobehindably9 intersub- jective that isolating a person over long periods of time can break them to the core. The practice of solitary confinement is an example of an institutionalized effort to achieve societal order through what is, in some sense, a digitalization—taking to the extreme the tendencies of a society that divides itself into disparate elements, cut off from each other. This, however, is to the detriment of human knowing. First, prison inmates’ capacities to know are undermined by solitary confinement, on all levels of their existence, because their subjectivity and personhood are severely damaged, as Guenther shows. But not only this. The knowing that all of us can do is also damaged because as members of a society that applies such methods, we do not recognize"
+  },
+  {
+    "block_id": "text_6_5",
+    "block_type": "blocktype.footnote",
+    "text": "8 I am not contrasting human knowing with animal knowing. In line with the enactive idea of the life-mind continuity (Thompson 2007), animal and human knowing lie on a continuum— including the forms of knowing I am describing here, though I cannot work out the connection with animal knowing in this paper. 9 Meaning: so deeply and pervasively that we cannot go behind it. The term was used by Varela to say that lived experience is the “basic ground” on which to understand life (Thompson 2004). I am using it here to say that intersubjectivity is just as basic to understanding knowing. See also the discussion of intersubjectivity in Merleau-Ponty in section 4."
+  },
+  {
+    "block_id": "yolo_caption_6_2",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_6_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_7_1",
+    "block_type": "blocktype.caption",
+    "text": "humans as humans but merely, institutionally, as “risks to be managed, resistances to be eliminated, and organisms to be fed, maintained, and even prevented from taking their own lives” (Guenther 2013, p. xvi). This operative and divisive form of knowing does not know humans well. It does not let them be, in the epistemological-ontological- ethical sense I am developing here."
+  },
+  {
+    "block_id": "text_7_2",
+    "block_type": "blocktype.footnote",
+    "text": "2.2 Can we do better?"
+  },
+  {
+    "block_id": "text_7_3",
+    "block_type": "blocktype.caption",
+    "text": "Can we understand human knowing better? This question is a strange one, in light of this: I think that, as humans, we know all of this well. We know, as teachers, parents, farmers, brothers and sisters, what it is to know well. In fact, we are all experts in this human knowing. At least to the extent that we have lots of experience: we engage in it daily (even if we do not always feel we are good at it). It is mainly as scientists and as policy makers that we tend towards digitalization and piecemealing, and we do so because of certain (sometimes understandable) concerns. Sometimes these concerns are more systemic and more institutional than in the interest of humans (as when, for example, a concern for “law and order” separates people from society—effectively preventing them from further participating—rather than investing in understanding why they are finding it difficult to participate in ways that are not taken as threatening by society). We also do it because of extraneous models of cognition—we seem to remain keen on basing our frameworks for cognition on systems that embody structures very different from our own (and in turn we respond plastically trying to fit to those structures).10"
+  },
+  {
+    "block_id": "text_7_4",
+    "block_type": "blocktype.paragraph",
+    "text": "Doing better implies once again to get closely and earnestly acquainted with our lived experience. Phenomenologists and others have done this already, carefully and in painstaking detail. It is not, I think, that we have not learned from them. It is also not that we cannot learn from them. We have and we can. But somehow we remain reluctant. Maybe we are afraid to really know engagement, because if we properly understood it, we would have to engage as scientists too. Objectivity understood as disengagement would not suffice anymore to know life, to know human knowing. We would have to think science anew. It is also not that we have not tried this. People have (see e.g. Polanyi 1958; Prigogine and Stengers 1984; Jack and Roepstorff 2003; Barad 2007; Stengers 2013; Haraway 2016). But it is clear from everyday life that we still, again, need to do this. The examples show that the complexities and subtleties of human knowing demand what we may call, for now, a high-level practical connecting know-how. This kind of knowing has been discussed before, but here I intend to take a fresh look at it again, and at the grounds on which to explain it. The enactive approach to cognition makes a beginning with this. It has some important elements in hand today to make progress on the question of how humans know. Many thinkers writing about human knowing understand that individuals’ knowing is deeply interwoven with the interactions they engage in and with the world they inhabit (see e.g. Carpendale and Lewis 2004; Rodríguez 2007; Zlatev et al. 2008; Foolen et al. 2012). So much so that individuals are not thinkable outside of their interactions and embeddedness in their (social) world. It is this commonly recognized"
+  },
+  {
+    "block_id": "text_7_5",
+    "block_type": "blocktype.footnote",
+    "text": "10 See also Cuffari and Jensen (2014)."
+  },
+  {
+    "block_id": "yolo_quote_7_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_8_8",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_8_1",
+    "block_type": "blocktype.paragraph",
+    "text": "link between the personal and the interactional that suggests that enactive cognitive science, especially in the theory of participatory sense-making, is moving some way towards understanding human knowing."
+  },
+  {
+    "block_id": "yolo_caption_8_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_8_2",
+    "block_type": "blocktype.heading",
+    "text": "3 Human knowing as participatory sense-making"
+  },
+  {
+    "block_id": "text_8_3",
+    "block_type": "blocktype.caption",
+    "text": "The enactive theory of participatory sense-making is concerned with embodied inter- subjectivity, understood as the meaningful engagements between subjects (Reddy 2008), or: our social lives in general. This wide perspective is an important enactive starting point. It is different from the cognitivist piecemeal beginnings of the box diagram. The enactive view on cognition as it flows between knower and known induces a set of particular assumptions and questions that set enactive investigations in motion. Enactive thinkers assume that the flow of engagements with the world is always already imbued with significance (I explain this below). This then leads to the initial questions of: Where does this particular kind of knowing come from? What characterizes it? What are its dynamics? What does the organism do? How does it regulate its activity of knowing? What is its agency? What is the connection between its existence (its self-organization and self-maintenance) and its behavior? How do subject and world involve themselves (that is: produce and distinguish themselves) in the knowing relation?11 What does this relation itself do with how it makes sense?"
+  },
+  {
+    "block_id": "text_8_4",
+    "block_type": "blocktype.footnote",
+    "text": "3.1 Living knowing"
+  },
+  {
+    "block_id": "text_8_5",
+    "block_type": "blocktype.paragraph",
+    "text": "Enactive cognitive science builds its conception of cognition on the basis of the processes of living (Varela 1991, 1997). Living self-organization is where a type of fundamental knowing begins. Living beings are autonomous, self-organizing systems—beings which produce and maintain themselves. They do this in a completely material sense. Most basically, on the level of metabolism, an organism ingests materials and excretes waste products in order to stay alive—to keep existing. This implies, first, that the precise and particular body it has determines what it can do (e.g. what is nutritious for it and what isn’t) and at the same time, that what it does in turn shapes its body. And second, that the organism will have a particular relation with its world, namely, in terms of that which, quite literally, matters to it.12"
+  },
+  {
+    "block_id": "text_8_6",
+    "block_type": "blocktype.paragraph",
+    "text": "Self-individuation and self-maintenance also take place at other levels. A living being is constantly maintaining identities: for instance, organic, sensorimotor, and immunological ones. All of these identities imply perspectives. Organisms cast a web of significance on the world. In this world of significances, organisms moreover adapt,"
+  },
+  {
+    "block_id": "text_8_7",
+    "block_type": "blocktype.footnote",
+    "text": "11 This formulation is intentionally reminiscent of Merleau-Ponty when he says, “[t]he world is inseparable from the subject, but from a subject who is nothing but a project of the world; and the subject is inseparable from the world, but from a world that it itself projects” (Merleau-Ponty 1945, p. 454). For an enactive discussion of this, see Di Paolo 2018. 12 The notion of the material at work here is aligned with what Elizabeth Grosz calls the “material-ideal” or “incorporeal openness” (Grosz, 2017), and can be traced back to Spinoza’s ontology of one substance (1985), Simondon’s conception of individuation (2005, 2009), and Merleau-Ponty’s ontology of the flesh (1968). Eduardo Kohn’s book How Forests Think (2013) and David Abram’s The Spell of the Sensuous (2012) each in their own way show the world experienced like this, and sensitively pull the reader into it."
+  },
+  {
+    "block_id": "yolo_caption_8_2",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_8_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_9_1",
+    "block_type": "blocktype.caption",
+    "text": "because identity-maintenance takes place in precarious circumstances: living beings are continually threatened with disintegration, from their own systemic organization and from their environment. They may become ill, or need to flee from a predator. Organizationally, they continually move towards and away from their boundaries of viability, a dynamic which they can sometimes recognize and act upon (i.e., regulate), and sometimes not (Di Paolo 2005). An organism interacts with its world, which it is part of. It is continually both producing itself out of the materials of the world, as well as distinguishing itself from it. The processes of sense-making are never fully satisfied, never fully safe, never fully accomplished (only in the moment when the creature dies, does the circle close). Organisms make sense as material beings in a world that is continually changing and thereby uncertain. Their particular materiality and circumstances enable and constrain the very sense they can make of the world.13 The enactive scientific and philosophical perspective therefore always begins from the idea that the connection between an organism’s behavior and its self-organization and modes of existence is primordial."
+  },
+  {
+    "block_id": "text_9_2",
+    "block_type": "blocktype.footnote",
+    "text": "3.2 Making sense together"
+  },
+  {
+    "block_id": "text_9_3",
+    "block_type": "blocktype.paragraph",
+    "text": "The notion of participatory sense-making extends these ideas into the domain of social understanding (De Jaegher and Di Paolo 2007). The idea is that, much like individuals, interaction processes also self-organize. That is, they can take on a life of their own. This is well-known from everyday life.14 Think of how difficult it can be to end a conversation, even if both you and your interaction partner have already begun saying goodbyes. Elements of interaction dynamics can supplement or even replace cognitive functions that we usually assume to be individual (De Jaegher et al. 2010), and patterns of coordination between people can modulate, enable, and constrain individual sense- making (e.g. Himberg et al. 2018; Dumas et al. 2018). Social interactions can thus be called social only when two conditions hold: when there is a co-regulated, mutual coupling that leads to a temporary operational closure of the interaction process; and when the autonomy of the interactors is not destroyed in the process, though it can be decreased or increased (De Jaegher and Di Paolo 2007). Participatory sense-making, then, happens when agents participate in each other’s sense-making. This, they do when the precarious processes of not just their individual sense-making, but also of the interaction process, which is also autonomous and thus precarious, interact with each other (De Jaegher et al. 2016). This makes it possible to deeply affect one another (De Jaegher 2015; Di Paolo 2015) and requires us to navigate tensions between embodied and interactive normative domains that are not guaranteed to be in alignment. Here others, and the interactive experience and skills we honed"
+  },
+  {
+    "block_id": "yolo_caption_9_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_9_4",
+    "block_type": "blocktype.footnote",
+    "text": "13 Cf. Jonas 1966, 1984, 2016; Merleau-Ponty 1945, 1968; Maturana and Varela 1980; Dillon 1997; Varela et al. 1991; Thompson 2007; Di Paolo 2005, 2009, 2018. Kyselo (2014) shows that the tension between self- production and self-distinction not just characterizes metabolic life, but social life just as much. Di Paolo et al. (2018) show in detail the dialetics at work in the living self-organization of organic, sensorimotor, intersub- jective, and linguistic bodies in their world. 14 And the sociologists know it very well too, of course (e.g. Goffman 1983). One of the first aims with developing the theory of participatory sense-making was to build a bridge for cognitive scientists and sociologists to meet on the topic of researching intersubjectivity."
+  },
+  {
+    "block_id": "yolo_quote_9_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_10_4",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_10_1",
+    "block_type": "blocktype.paragraph",
+    "text": "since the earliest stages of development (already in utero), and the here and now interactions we engage in, make up our intersubjective, even our linguistic bodies (see Di Paolo 2016, and Di Paolo et al. 2018). Our ways of moving and—immediately connected to this—of making sense are interconnected with others. Intersubjectivity is thus understood as the interplay between interactive and individual autonomies, vul- nerabilities, and sense-makings."
+  },
+  {
+    "block_id": "yolo_caption_10_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_10_2",
+    "block_type": "blocktype.footnote",
+    "text": "3.3 Need for a different epistemology"
+  },
+  {
+    "block_id": "text_10_3",
+    "block_type": "blocktype.caption",
+    "text": "The view of cognition as sense-making sketched so far ranges from organismic concerns all the way to societal concerns. The sensitivities and powers of human sense-making span this whole range; they weave through this realm of ongoing dialectical signification. And yet, there is a need for deepening the notions of sense- making and participatory sense-making which, as formulated, can be taken to be rather general. These ideas need to be deepened for two reasons directly related to the two aims of this paper: to understand human knowing better, and to pull forward the enactive approach to human minds. The first reason is that practitioners—e.g. teachers, therapists, doctors, care workers, prison guards—when hearing the ideas of participatory sense-making explained, some- times respond by asking: But isn’t this self-evident? The theory seems simple, because they understand it well. It seems to merely put into words what they do in their practice. The answer is: yes and no. Yes, we know these things, as humans. We often know what is at stake when we are trying to understand and deal with our own and each other’s behavior. And yet, no, it is not simple, well-known, or self-evident, in the sense that there is little theoretical or scientific backing as yet for this form of knowledge. And this is problematic, because this lack in the scientific discourse influences the ways we treat each other. The ideas of participatory sense-making, like any scientific theory, need to be and are empirically tested (e.g. Di Paolo & De Jaegher 2012; Rossmanith et al. 2014; Deschamps et al. 2016; Lenay 2017; Schneider et al. 2019). But if there is a need to make amenable to science that which every good teacher and therapist knows, but which has so far not been acknowledged, let alone grounded in cognitive science, then a true dialogue between academic and applied disciplines is also needed. Enactive thinking needs to be informed by the expertise of practitioners and experts-from- experience. This, however, requires a rethinking of the role of the researcher, the scientist, the philosopher. It requires a different epistemology. The second reason is that, as I said above, enactive thinking still needs clarification. The question of whether enaction can “scale up” beyond “low level” embodied cognition points to so-called “high-level” forms of cognition in ways that we should address (de Bruin and de Haan 2012; Cowley and Nash 2013; Hutto and Myin 2013). And we do. Only, not by accepting the emaciated idea of embodiment behind these kinds of criticisms (as we explain in Cuffari et al. 2015). The enactive notion of embodiment is not stuck at the minimal anymore (Di Paolo et al. 2017). In fact, nothing in enactive theory restricts it to this so-called “low level,” as the approach to language we put forward shows (Di Paolo et al. 2018). While what we do in Linguistic Bodies (Di Paolo et al. 2018) reaches—on first sight—for one of the traditional pinnacles of cognition, we do not reach it by an"
+  },
+  {
+    "block_id": "text_11_1",
+    "block_type": "blocktype.caption",
+    "text": "abstract computational approach, nor by piling up explanations for ever more complex skills. We reach it enactively. That is, by following the logic of bodies, and of bodies interacting—that is, participating in interactive encounters, dealing with interactive normativity. In doing so, we move through the paradoxes, inconsistencies, internal contradictions, difficulties—just general messiness—of worldly knowing. We touch on the imagination, on intuition, on the ineffable and the ephemeral. The point is not exactly that these are more sophisticated or more complex than the so-called represen- tation-hungry problems. It is that these ways of knowing cannot be measured with the same instruments or by the same standards. They ask for a different kind of map, not a different road on the same old map. This is the map drawn in Linguistic Bodies. It is a dialectical-phenomenological way-finding tool from the morasses of basic life to the pinnacles of human cognition, in line with the life-mind continuity thesis (Jonas 1966, 1984, 2016; Thompson 2007). In doing this, we make headway on addressing some of the more interesting criticisms of enaction, those that indicate where enactive thinking needs to go next, rather than insist we keep using the same worn-out map. Some of them are: that enactive thinking needs phenomenological and existential thickness (de Haan 2020), that it needs a better account of responsibility (van Grunsven 2018), of normativity (Bickhard 2016), and more particularly, of positive norms (Barrett 2017). Without having space to go into these criticisms here, I suspect that they turn around and can be responded to by looking at things through the lens of something that is present but remains largely inexplicit in Linguistic Bodies, and that is the problem of letting be."
+  },
+  {
+    "block_id": "text_11_2",
+    "block_type": "blocktype.heading",
+    "text": "4 The problem of letting be"
+  },
+  {
+    "block_id": "text_11_3",
+    "block_type": "blocktype.paragraph",
+    "text": "Philosopher Kym Maclaren puts her finger on a problem that is not often recognized in this way in epistemology and that yet, I think, is pivotal (Maclaren 2002). It is basic to both how we know knowing in everyday life, and to the shift that needs to be made in the sciences of the mind. To illustrate it, she describes a horse trainer who is interested only in his horse as a means to making money. He trains and trains the horse, with no regard for its need to roam and play. The horse becomes more and more sullen. Eventually it breaks down. This horse has not been seen properly. Its trainer’s narrow perspective on it, informing the ways he interacts with it, has limited the horse in its very being (it may eventually even die). This kind of problem shows the interface between ontology and epistemology—the place where they are, in a sense, one. The horse trainer does not properly know his horse, and thereby damages it. He has not let the horse be, in its horseness, in its this- horseness. While there is not one truth to how or what something is, the example shows that there are also not infinite ways in which we can know things. As Maclaren says, “[w]e can do injustices in the way we take things up” (ibid., p. 188). In our knowing of things, we never fully know them. But the real problem is that we can “know” them quite wrongly. This problem, which Maclaren calls the “problem of letting be” is central to fully understanding knowing. It is a question that has not been substantially addressed in cognitive science, including in enaction. There is a tension in human knowing that we are only beginning to understand."
+  },
+  {
+    "block_id": "yolo_caption_11_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_11_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_12_2",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_12_1",
+    "block_type": "blocktype.paragraph",
+    "text": "We often tend to know things (and people) in an overly deterministic manner, that is: where a big part of the knowing is determined by the knower, and a smaller part by the known. This is an over-determining, and thereby limiting knowing. Different “knowns” fare more or less well by how much determining of them the knower does. Different knowns can more or less easily withstand a more or less determining attitude by the knower. Some knowns seem inert in the face of being known. For example, the objects of astrophysics seem to withstand our probing—they remain fixed. But even this is an illusion that comes in part from the difference in timescale between the dynamics of our existence and that of the stars (it is no coincidence that major shifts in our conceptions of the universe continue to change our understanding of life and the place of humanity in it, evidencing that we have let these kinds of knowns be and change us). The example of the horse trainer shows that we do not automatically “let things be”. This, Maclaren says, further points to the fact that letting be is something we have to learn to do. This learning to let be, according to her, is bodily and intersubjective: we learn it in our relations with others—from letting others be. She works out this idea on the basis of Merleau-Ponty’s notions of intercorporeality and intersubjectivity, two ongoing modes of our living with others in a shared world. Take watching a soccer game (Merleau-Ponty 1960). The spectator “inhabits the player’s actions and the game itself in a bodily way, such that those actions play themselves out in his own body” (Maclaren 2002, p. 190, emphasis original). He lives the game through the player, watching, moving with him. So, we know the world “by virtue of being swept up in the other’s bodily attitude, in her bodily intending of the world” (p. 191). In the way others move, handle objects, do things, we perceive how to intend those objects and things ourselves. When watching a skillful horse trainer, “I see, in the way that she approaches the stallion in the field, his power and volatility – for, although he is stepping towards her primly and in a friendly manner, I can read in her own step and posture that readiness for the slightest breeze or sudden sound to send him wheeling and kicking” (p. 191). While we see and get to know the world through others’ actions, at the same time, there is an écart in this intercorporeality. I am not fully over there, in the other’s place, but also here, and there is a distance between me and the things lived through the other. In this way, things open up new bodily and affective meanings for us, “which we recover or resume in ourselves” (p. 193). Through others, we perceive how (not) to take things up. Intercorporeality, then, means “the way in which we are implicated in other’s actions and drawn into a world by them” (p. 193). Merleau-Ponty’s notion of intersubjectivity refers to how we mutually situate ourselves and others within a social world that is always already there; which we can temporarily turn our backs to, but cannot go behind. Intersubjectivity reveals our own subjectivity and that of others to us. While in intercorporeality we get to know the particular meaning of things in how the world is revealed to us through our moving with others’ actions, in intersubjectivity the other is revealed to us in her actions as a particular other. Maclaren gives the example of the different attitudes of an expert with regard to their own skill, and what they thereby convey to us. An expert sailor can deftly tie knots, being fully inside their own activity while onlookers remain outside of it. Or they can take on a teaching role, and slow the activity down for us, showing us the moves. Then the activity opens up to us and we can participate. This shows the “multiple intentionality of actions” (p. 195). Different people are oriented to things in different ways, interacting with things according to their capacities and motivations."
+  },
+  {
+    "block_id": "yolo_caption_12_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_12_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_13_1",
+    "block_type": "blocktype.caption",
+    "text": "Then, “who these selves are is implied or assumed in the meaning that the action reveals in the thing itself” by their acting on it (p. 195). A thing, then, “offers certain possibilities and denies others, and [in this] the individuals are implicated and defined in determinate ways” (p. 195). We deal with things in active configurations which reveal particular meanings, and particular ways of being of the people we encounter. We determine or define ourselves and others in our actions, for instance when a teacher has an idea of me as being less advanced than I am, and I can fall into that role, or not, but this attitude situates me in a particular way that I must deal with. “[A]ny action in a shared context makes a claim—a surreptitious claim—about what places the actor and the witness occupy in relation to each other and in relation to the object” (p. 196). We are implicated in our actions by the way others and we ourselves act on each other and things. Thus, “[o]thers’ actions never simply ‘let us be’ or leave us free to be who we are. Others’ actions always situate and determine us” (p. 196). And we do the same to others. The letting be that is at the center of this is thus not that of a “laissez-faire”. It is not defeatist. Nor is it disengaged. On the contrary, it is a full engagement: an ongoing, never-finished balancing between over- and underdetermination—just the right amount of determining, at this moment, for this person engaging with this other, this thing, event, situation. What the right amount of ongoing, changing, determining is, will be determined situation by situation, and will be different in different moments. In the engagement of knowing, the processes, events and beings that the knower knows balance between being themselves and being-as-they-are-known. That is: they are determined in part by themselves (their own being) and in part by the knower’s being (her situation, motivations, interests). They are never fully self-determined, and never fully other-determined—always dialectically evolving between determinations. This is what letting be is: an ongoing, moving, dialectical balancing between the being of the knower (who lets be) and the being of the known (who/which is, separately, by itself, but also—while known—in the context of this engagement). Knowing as letting be thus happens between knower and known. This means: they are each implicated in this. Letting be is a way of knowing premised on change. These three elements: the knower, the known, and the relationship between them all change. Knowing is changing, for both knower and known and for their relation. This shows the engagement at the heart of knowing. The epistemology we are looking for, then, is an epistemology of engagement. Or better: an engaged epistemology. It is this engagement of knowing that we need to better understand. And this, I think, can be done by analyzing a relation in which we know engagement best: that of loving."
+  },
+  {
+    "block_id": "text_13_2",
+    "block_type": "blocktype.footnote",
+    "text": "5 Knowing and loving"
+  },
+  {
+    "block_id": "text_13_3",
+    "block_type": "blocktype.footnote",
+    "text": "I bring loving to bear on epistemology because I think there is something in the basic structure of knowing that is easy to forget about, but that we may find again by studying the basic structure of loving. I think loving and knowing share a core, and that they entail each other. As we think of loving and knowing in an everyday sense, they seem quite different and far apart. But I would like to suggest that in their basic manifestation they share something, and it is this that I want to explore here. The conceptual move is similar to the one made at"
+  },
+  {
+    "block_id": "yolo_caption_13_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_13_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_14_4",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_14_1",
+    "block_type": "blocktype.paragraph",
+    "text": "the beginning of section 3: to begin by taking a phenomenon in its widest, most general form and then to see where it folds, where it ripples, where its threads fall for us to follow.15 Except that here I bring together two broad modes of existence, based on an intuition that they share something, to then see how their patterns fall together. The idea of bringing knowing and loving together is not new (after all—need it even be said?—they make up the very word philo-sophy). Others have conceived of their linkages. Think of Audre Lorde (2012), bell hooks (2000), Aimé Césaire (1990), Max Scheler (1992), Goethe, Gabriel Marcel 1951), Carol Gilligan (2003), Josef Pieper (2014), or Hadewijch of Antwerp (Milhaven 1993). It is perhaps no coincidence that poets, religious philoso- phers, mystics, and feminist thinkers have made this connection, or find it natural. There is a thread in human living and in human history that they are perhaps more free to remain in touch with during and over against the—always also ongoing—pulls of disconnection. I propose to think this connection between loving and knowing anew here in the spirit of an enactive move in search of the lived logic of sense-making, and of human sense-making in particular.16"
+  },
+  {
+    "block_id": "yolo_caption_14_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_14_2",
+    "block_type": "blocktype.paragraph",
+    "text": "My proposal is that in their most minimal, stripped down form, loving and knowing are manifestations of the same basic, existential way of relating. Let’s unpack this. First, what happens in loving is not neutral. The lover is not general or universal. They are not an abstract subject. Quite the opposite. In loving, who loves matters. The lover is particular and concrete. Loving goes out from a person’s core being. Jean-Luc Marion puts it like this: “Loving puts in play my identity, my ipseity, those resources of mine that are more inward to me than myself.” In love I “implicate myself”. I love “in the flesh, and this flesh is one only with me” (Marion 2007, p. 9). Loving is a movement towards the world out of one’s own inner direction and directedness (cf. also Spinoza’s conatus). This also goes for the one who is loved: it is this particular one that one loves. The movement of loving not only starts in a precise place; it also goes out to a specific place: the loved. Lover and loved are particular and concrete.17 And finally, it also goes for what takes place between them: their relation. This phenomenon, like letting be, has not two but three basic elements: the lover, the loved, and their relationship. All three make up the concrete dynamics of loving. Lovers are particular and concrete beings, meeting each other in concrete and particular worldly interactions. One cannot love abstractly.18"
+  },
+  {
+    "block_id": "text_14_3",
+    "block_type": "blocktype.bibliography",
+    "text": "15 Here as well, the implicit reference to Merleau-Ponty, and his ontology of the flesh (Merleau-Ponty 1968, see also Dillon 1997), is intentional. 16 Notice that this is a move in the same style as what I am proposing here to be basic to knowing: it is a matter of letting the phenomenon be, i.e. of encountering it in its interaction with me, the thinker—an interaction that we both determine. Nico Luijpen (1959) describes beautifully this existential-phenomenological mode of philosophizing. 17 I’m talking about loving in a general sense, not in an exclusively romantic one. What I describe is a core relating that happens also in friendship and parent-child relations. Terms like “lover” therefore need to be taken in this general sense (like “knower” or “thinker”). I do think, however, that some of these basic tensions play out most strikingly in romantic relations, and the latter are an important site to study the basic tensions of loving, precisely also in their relations to knowing. This is a fertile ground for further work, see for instance Carol Gilligan’s or Lena Gunnarsson’s insights on this (e.g. Gilligan 1982, 2003; Gunnarsson 2014). Gilligan and Gunnarsson, each in their own ways, show the close and mutually determining links between patriarchy, intimate relations, and what and how we can know (see also Benjamin 1988 and Gilligan and Richards 2009). 18 The phenomenology of loving and knowing deserves a fuller exploration, particularly through engaging with the work of Marion, but also with that of Irigaray, de Beauvoir, Merleau-Ponty, Henry, Scheler, Marcel, Levinas, and Sartre."
+  },
+  {
+    "block_id": "text_15_1",
+    "block_type": "blocktype.caption",
+    "text": "Each participant in the loving relationship attempts to maintain their identity, their ipseity, in the face of their coming together. Coming together pulls on their identities, prods them, attempts to modify them, does modulate them. Loving is: not growing into one, nor growing separate—all while having no choice but to follow and navigate between precisely these opposing tendencies. These tendencies—towards symbiosis and towards separation—play out continually in loving relationships. To love is to navigate the various tensions between the tendencies and directions of one’s own becoming, the other’s, and that of the relation.19"
+  },
+  {
+    "block_id": "text_15_2",
+    "block_type": "blocktype.paragraph",
+    "text": "It is in this sense that understanding human knowing in analogy with loving deepens the notions of sense-making and participatory sense-making. On the background of the enactive logic, in which cognition—what flows between sense-maker and world—is imbued with meaning because of the logic of living self-organization, loving adds this to understanding human knowing: first, that lovers—knowers—are existentially implicat- ed in their relation, and second, that an existential dialectic plays out between the individuals and their relation. To understand knowing as loving means to see the concrete existential involvement on the part of the individuals, and the relational dynamics generated by this involvement at work in the dialectic of being and becoming together. The weight of these three basic elements in loving shows in the fact that one of the most difficult things—perhaps the most difficult dynamic of loving relationships—is that its participants are continually pulled between too much and too little closeness (distance), and between determining and being determined. We see a similar dynamic at work in the phenomenon of knowing: knowing is the continual, ongoing balancing act between too much and too little determination between the knower (who lets be) and the known (who is being let be). Because lovers (knowers) are personally implicated, and because their relationships and interactions can play with them, lovers (knowers) need to deal with the double-sided risks of determination. They need to deal both with being-determined (by the other, by the relation, and by themselves) and with determin- ing (the other, the relation, and themselves). This is the dynamic lovers and knowers enter into. It is a large and basic part of what I think we need to begin to understand about knowing again. This dynamic is missing in the picture categorization tests of emotional skill in dementia, it is missing in the signal optimization approach to mobile communication, and it is missing in the isolation of prisoners. Only limited, abstract knowing is at play here. In cases like these, people are not recognized as being personally implicated in their relations, nor are their relations seen as defining them. These aspects of who they are and of how they relate are precisely cut out from the kinds of isolating understand- ings illustrated earlier. As shown already, this is not an “objective” or “neutral” view. On the contrary, it has real-world implications, and often makes it effectively difficult for people to be themselves in their relations and to be at home in the world. Think also of the horse trainer and his horse; perhaps he only intends to “use” his horse as an “object” for making money. But this fails, because the horse resists this kind of interaction—has to resist it, as a living being, in order to stay healthy or even alive. Even kinds of knowing that have a primarily instrumental motivation still need to avoid"
+  },
+  {
+    "block_id": "text_15_3",
+    "block_type": "blocktype.footnote",
+    "text": "19 In analogy with the definition of social interaction (De Jaegher and Di Paolo 2007), neither the relation, nor any of the participants should overly dominate the dynamics, because that would sign the dissolution of the relation or interaction."
+  },
+  {
+    "block_id": "yolo_quote_15_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_16_6",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_16_1",
+    "block_type": "blocktype.paragraph",
+    "text": "excessive over- and under-determination of the known, especially if they deal with other living beings.20"
+  },
+  {
+    "block_id": "yolo_caption_16_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_16_2",
+    "block_type": "blocktype.paragraph",
+    "text": "Now, of course, on a dominant understanding of knowing, emotion categorization tests, noise-reduction technologies, and prisoner treatment guidelines are or do produce forms of “knowledge”. But this kind of knowledge is either unfinished or over- determining, in comparison with the proposal made here. We do, obviously, reach these kinds of detached knowledge. They form a large and well-established part of our knowing. But they are not the basis of our knowing, as we tend to think. Rather, they are high abstractions of the engagement that all of human knowing begins in. The engaged knowing that I consider the highest form of human cognition is not this abstracting kind of knowledge, which in any case is derived from it. Engaged knowing shares its core characteristics with the loving relationship, namely a personal involve- ment, concreteness, and mutual transformation. It is in this sense that loving and knowing are manifestations of the same existential relation."
+  },
+  {
+    "block_id": "text_16_3",
+    "block_type": "blocktype.heading",
+    "text": "6 Some further specifications and future directions"
+  },
+  {
+    "block_id": "text_16_4",
+    "block_type": "blocktype.caption",
+    "text": "Having established that there is an existential overlap between loving and knowing, several issues and questions can now be addressed that can help make the proposal for an engaged epistemology more concrete. Following the enactive principle of the life-mind continuity, what I put forward here further illuminates the nature and depth of the involvement and implication of living beings—from basic organisms to humans—in what they are making sense of. Every sense-maker is implicated in what they make sense of, because it matters to them—they care about it. This implication can be very basic, as in the case of the bacterium that needs to swim up the sugar gradient to remain viable. But on the other end of the spectrum of complexity of living beings, for humans the dimension of loving unearths further existential complexities and depths to this involvement. There is, if you like, a basic living layer of existential import to what organisms as sense-makers do. Building on this, and through their complex social relations and cultural embeddedness, humans weave other layers of exis- tential significance into their sense-makings (Di Paolo et al. 2018). This is what I have tried to further disclose here. Looking at human knowing through the lens of the existential dialectics of loving, we can begin to see that the uncertainties, paradoxes, ambiguities and contradictions that characterize human knowing are not things to avoid, but basic to it. A few further specifications and future directions can be given. First, loving (in its minimal definition at play here) is reciprocal, but we don’t tend to think knowing is. Knower and known are not completely like lovers. For one thing, knowers are not always knowing other knowers. Knowers also know objects—those (apparently) inert things. A unfolding love relation is mutual: it is a relation between those who love each other.21 In this sense, the dynamics of loving seem to exceed those"
+  },
+  {
+    "block_id": "text_16_5",
+    "block_type": "blocktype.footnote",
+    "text": "20 For more on the ethics that pervades the enactive theory of knowing, see Di Paolo et al. 2018, especially chapter 12. 21 I am not considering here cases like unrequited love or desire. These are complications of loving that do not fall within the minimal description at play here. Nothwithstanding this, the relations between symmetry and asymmetry in both loving and knowing relationships is one route along which to further work out the current proposal."
+  },
+  {
+    "block_id": "yolo_quote_16_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_17_1",
+    "block_type": "blocktype.caption",
+    "text": "of knowing: knowing is not always reciprocal. We do not generally think that what we know is affected by being known, nor that it knows us back, except in social understanding. More even, we also know that the reciprocity of loving relations can quickly get very intricate because of all the ways our selves and the other are invested in and affected by the relation. In this sense, perhaps loving relationships seem too convoluted and intricate to serve as a model for understanding knowing. But if Maclaren is right that letting be is not something we immediately get right, and that we learn the subtleties of knowing in our intersubjective, intercorporeal relations with others, then much of our knowing is perhaps a kind of pruning of this entwinement of loving. The dynamics at work in knowing things that are not ostensibly affected by being known or affect the knower back may be a distillation of the reciprocity present when we know things that do know us back (notably: others). Objective knowing is a more detached form of engaged knowing. What it abstracts from is engaged knowing. The more objective knowing becomes, the more it cuts relationships with its “object” of knowing. In loving, those who love influence each other. We are not used to thinking of knowing in this way. We tend to think that only the knower is directed to the other, who/which is not affected by this, and that the known does not influence the knower back. But it is not that simple. Even in the most supposedly abstract cases, the known does reflect back to us and on us. Quantum physicists know this, feminists know this, ethnographers know this. When the objects of our observations are affected in their own ways by the act of observation, be they atom or person, it is clear that we cannot fully disentangle knower and known. Certainly this is the case for humans. Why would we think it is harmless to know a person with dementia in terms of a so-called “objective” but in fact fully abstracted and abstracting deficiency, rather than starting from relating with them as they are, as we are? Another question to consider is whether we can fully know each other, or anything. An often heard argument in epistemology and phenomenology is that we never know someone or something fully. There is always a side to an object or situation that we do not see, a horizon or layer that we cannot penetrate (Husserl, Merleau-Ponty), and there is always something radically alter to another person (Levinas). While we can turn an object around in our hand or walk around it, and now its other side will appear to us, we cannot, ostensibly, do this with people: something will always remain radically other. And if we do walk around the object, its first side is now invisible. Husserl and Merleau-Ponty have tried to deal with this problem by relegating it to a rather abstract form of intersubjectivity, transcendental intersubjectivity, but never really managed to solve it (Gallagher 2013). While I agree that we can probably never fully know each other, ourselves, or any aspect of reality, and that something will always remain hidden, I don’t think that what we do not know is and must remain fixed. What we do not know is not itself static. We keep moving around it, and thereby it changes. We keep interacting with the to-be-known, and thereby what we do not know of it changes. A loving-and-knowing epistemology is an engaged—better even: engaging—epistemol- ogy, in the sense that if knowing relations and those who engage in them are always concrete and situated, and always under the influence of this relationship of knowing- and-being-known, then those aspects of the to-be-known that we don’t currently know change. There are no fixed essences on this approach, also in the case of the un-known. There is not so much an unknown, as a to-be-known. The unknown is not fixed. (This, I think, still does not mean that we can know anything exhaustively. It just means that"
+  },
+  {
+    "block_id": "yolo_quote_17_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_18_4",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_18_1",
+    "block_type": "blocktype.paragraph",
+    "text": "what we don’t know is not unchangeable by knowing, even in its hidden aspects.) Thus, this epistemology sits between the extremes of intellectualism and empiricism of Meno’s paradox. It puts holes in the ideas that we either must already know what we are looking to know, or can never know it, and starts to weave a living thread between these two opposing tendencies. The existential dialectic of an encounter between beings (a relationship based in caring, in mattering), which unfolds over time and ongoingly changes the participants on both sides of it affects them deeply (De Jaegher 2015; Loaiza 2019), and can even go so far as to retroactively modulate the knower’s intentions (Di Paolo 2015, Maclaren 2017). In fact, what needs to be brought back into epistemology is precisely also this importance of the un-known, of the hidden, the secret, and the mysterious.22 Knowing is not an activity of exhausting the other (thing, event, situation). That would be impossible, not because something will always remain other or hidden, but because knowing takes place in a continual becoming of both knower and known. Knowing and not-knowing are intertwined. Knower and known are ongoingly becoming in any case—each in their own developments—but when they meet in the relation of know- ing, their becoming is particularized by this very relation, and their becoming happens, there and then, according to the specifics of that encounter. (After which, they may each go their own way again, but changed because of this encounter of knowing–being- known.) This is another thing that this epistemology learns from looking at loving relationships. There is something of loving that is more-than-knowing: loving, precise- ly, allows us to interact with more than what we know.23 It is true that we can love more than we know, we can love what we do not know yet, and this can in fact invite us to know. Perhaps, then, loving is a motivation for knowing? It certainly can be. But that is not the only connection between loving and knowing. We do not need to know, in order to love. There is mystery in loving. But it is precisely something of this that I would like to bring back into our understanding of knowing. An engaged epistemology under- stands that there is a more-than-knowing to knowing. Not just in the simple sense that knowing is being after something more of the to-be-known—that it aims to unveil more—but also in the sense that our knowing can exceed that which we actually grasp, while at the same time it is also true that we can never know anything fully.24"
+  },
+  {
+    "block_id": "yolo_caption_18_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_18_2",
+    "block_type": "blocktype.paragraph",
+    "text": "This brings me to another pertinent issue, which is that of knowing something one hates. What happens when we are faced with having to get to know something that repulses us, or something that we should aim to eradicate? Take murder, or racism, or a particular disease. Do we need to love something that we want to change, even eliminate, in order to know it? Yes, I think so, in the following sense. Notice, first of"
+  },
+  {
+    "block_id": "text_18_3",
+    "block_type": "blocktype.footnote",
+    "text": "22 Cf. epistemologies of not knowing (see e.g. Tuana 2006; Spelman 2007). 23 This is in part expressed in Marion’s phenomenology of loving. (Thank you to an anonymous reviewer for pointing this out to me.) To an extent, I agree with it, but not fully. Marion (2007) places loving radically before knowing (and even before being) but I believe this goes too far in the wish to correct the historical, Western over-rationalization of knowing. Once loving is restored to its rightful place in epistemology, we don’t need to prioritize loving anymore. It then becomes on par with being and knowing. This is what I’m attempting to do here: to bring back into epistemology our felt understanding that what matters, matters. This can inform an epistemology for humans, on the basis of the enactive logic of lived, living knowing. Human knowing is a living, loving knowing. 24 Alice Koubová (2014, p. 10) says that social understanding “may also imply a capacity of generous respect for alterity–stepping back, letting be–which is not passive but creative”. This is right, and I think it applies to knowing in general."
+  },
+  {
+    "block_id": "text_19_1",
+    "block_type": "blocktype.caption",
+    "text": "all, that the opposite of loving is not hatred, for hating is itself a strong relation, but an overly determining one. Hating murder or hating racism are not ways to know or to begin changing or eliminating them. This is perhaps clearer in the case of the disease. In order to eliminate it, we need to study it, in depth, and this requires engaging with it in the ways I have been describing. Even to understand that which we do not want to know or that which we want to fundamentally change, we have no choice but to enter into the same existential dialectic with it, to open up to it, and to open it up to us, as fully as possible. Precisely in cases like these, that is needed. To truly get to the bottom of the disease, or any phenomenon like this, we need to existentially engage with it. Only through the kind of engagement that I have sketched here, can we hope to truly change something. This is risky. In fact, knowing is triple risky: we risk being changed by something when knowing it, getting into too much of an interaction with it (getting too entangled with it), and finally, we risk changing it. In fact, all these three things happen. The art is to engage in knowing sensitively, judiciously, and—often—with courage. A loving epistemology does not paint a rosy picture of knowing. Nor does it start from a rosy picture of loving. One thing I hope this proposal can do, is give to cognitive science and philosophy of mind a solid ground from which to begin a new dialogue with epistemologies that they have previously overlooked. For instance, some readers may have sensed an affinity with the concept of ubuntu. What I put forward here indeed shares with the philosophy of ubuntu the beginnings in connection, and also the immediate intricacies that come with it, including the ethical complexities (cf. Eze 2010). There is also a connection with Indigenous thinking, for instance Leanne Betasamosake Simpson’s work on land as pedagogy in Nishnaabeg epistemology (Simpson 2014, 2017).25 These indicate some of the rich and diverse fields of connections waiting to be opened up and learned from."
+  },
+  {
+    "block_id": "text_19_2",
+    "block_type": "blocktype.heading",
+    "text": "7 Conclusion"
+  },
+  {
+    "block_id": "text_19_3",
+    "block_type": "blocktype.paragraph",
+    "text": "What I have attempted to show is that loving involves knowing, and that knowing involves loving. Loving and knowing, for human beings, entail each other. To under- stand knowing only “coldly,” abstractly, objectively is either not to see the loving involved, or not to know fully. I have conceptualized loving and knowing here as dialectics between living, involved, implicated, caring bodily beings, who encounter each other, themselves, and their world in concrete interactions. Understood like this, we can see that both loving and knowing are existential ways of relating where the lover or knower have to deal with the double arrows (and triple risks) of determination: determining the other and being determined by the other, while in the throes of relations and interactions that we also are determined by as well as determine. By doing this, I have attempted to elaborate and deepen the enactive concepts of sense-making and participatory sense-making, to better understand how living beings are implicated in their sense-making activities, and do justice to our most sophisticated forms of human sense-making."
+  },
+  {
+    "block_id": "text_19_4",
+    "block_type": "blocktype.footnote",
+    "text": "25 See also the work of, among many others, Boaventura de Sousa Santos (e.g. 2007); Joe Kincheloe (2011); Linda Tuhiwai Smith (2012), Toby Rollo (forthcoming)."
+  },
+  {
+    "block_id": "yolo_caption_19_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_19_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_20_7",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_20_1",
+    "block_type": "blocktype.paragraph",
+    "text": "I began this paper with questions about what and how cognitive scientists investigate—let me end with this as well. It is too early to spell out in detail the implications of an engaged, even engaging, epistemology for cognitive science, but we can say this much: it will have to begin by taking the relationships and interactions between knower and known much more seriously, in the sense-makers we investigate, but also in ourselves, as we do cognitive science. We need to further work out how knowing relationships play out. One place to begin is to investigate how individual and interactive autonomy and self-organization are at play in epistemological relationships. That is: to further employ the framework of participatory sense-making not just to understand intersubjectivity, but also to ground epistemology. The theory of participa- tory sense-making is built on the two pillars of understanding both individual autonomy and sense-making, and the dynamics of the interaction between them. This, with the understanding that loving and knowing are fundamentally related, and thus that knowers are existentially involved in knowing, may form the basic set-up for under- standing relationships of knowing, as also suggested by those that consider intersub- jectivity the basis of consciousness (e.g. Thompson 2001; de Quincy 2000) or of language (Di Paolo et al. 2018). Intersubjective practices, which all of us engage in, but particularly those working in education, therapy, health services, law, social work, care work, the arts, issues of diversity, and so on, are the best places to study the most sophisticated forms of knowing. Engaged knowing is at work in these areas, and they as well as the mind sciences stand to benefit from an engaging epistemology."
+  },
+  {
+    "block_id": "yolo_caption_20_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_20_2",
+    "block_type": "blocktype.paragraph",
+    "text": "Acknowledgements Thank you Ezequiel Di Paolo, Elena Cuffari, Thomas Fuchs, Shaun Gallagher, Sanneke de Haan, Doran Osterhold, Marek McGann, Beata Stawarska, Jo Bervoets, Vasu Reddy, Barbara Pieper, Alex Penn, Mieke Koppers and Luc De Jaegher, and everyone I conversed with when presenting this work in Amsterdam, Antwerp, Berlin, San Sebastián, Edinburgh, Garrison, Heidelberg, Memphis, Montreal, Odense, Portsmouth, Vancouver, Winlaw, and Zumaia in the last three years. Two anonymous reviewers have also been instrumental in bringing out the argument as presented here. The work was financially supported by the Spanish Ministry of Science, Innovation and Universities: Ramón y Cajal Fellowship (RYC-2013-14583), and Inter-Identidad project (FFI2014-52173-P)."
+  },
+  {
+    "block_id": "text_20_3",
+    "block_type": "blocktype.paragraph",
+    "text": "Compliance with ethical standards There is no conflict of interest, and no human or animal participants have been used in this research."
+  },
+  {
+    "block_id": "text_20_4",
+    "block_type": "blocktype.paragraph",
+    "text": "Open Access This article is distributed under the terms of the Creative Commons Attribution 4.0 International License (http://creativecommons.org/licenses/by/4.0/), which permits unrestricted use, distribution, and repro- duction in any medium, provided you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons license, and indicate if changes were made."
+  },
+  {
+    "block_id": "text_20_5",
+    "block_type": "blocktype.heading",
+    "text": "References"
+  },
+  {
+    "block_id": "text_20_6",
+    "block_type": "blocktype.footnote",
+    "text": "Abram, D. (2012). The spell of the sensuous: Perception and language in a more-than-human world. New York: Vintage. Barad, K. (2007). Meeting the Universe Halfway. Quantum Physics and the Entanglement of matter and meaning. Durham and London: Duke University Press. Barrett, N. F. (2017). The normative turn in enactive theory: An examination of its roots and implications. Topoi, 36(3), 431–443."
+  },
+  {
+    "block_id": "yolo_caption_20_2",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_20_3",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_20_2",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_20_1",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "text_21_1",
+    "block_type": "blocktype.list_item",
+    "text": "Benjamin, J. (1988). The Bonds of Love. Psychoanalysis, Feminism and the Problem of Domination. New York: Pantheon Press. Bickhard, M. H. (2016). Inter- and En-activism: Some thoughts and comparisons. New Ideas in Psychology, 41, 23–32. https://doi.org/10.1016/j.newideapsych.2015.12.002. Bruner, J. S. (1979). On Knowing. Essays for the Left Hand (Expanded Edition). Cambridge: Belknap Press. Carpendale, J. I. M., & Lewis, C. (2004). Constructing an understanding of mind: The development of children's social understanding within social interaction. Behavioral and Brain Sciences, 27, 79–151. Casey, E., & Schoeller, D. (Eds.). (2018). Saying what we mean. Implicit precision and the responsive order. Selected Works by Eugene T. Gendlin. Evanston, IL:Northwestern University Press. Césaire, A. (1990). Lyric and Dramatic Poetry, 1946–82 (C. Eshleman & A. Smith, Trans.). Charlottesville: University of Virginia Press. Cowley, S., & Nash, L. (2013). Language, interactivity and solution probing: Repetition without repetition. Adaptive Behavior, 21(3), 187–198. Cuffari, E. (2011). Habits of transformation. Hypatia, 26(3), 535–553. https://doi.org/10.1111/j.1527- 2001.2011.01186.x. Cuffari, E. C., & Jensen, T. W. (2014). Living bodies: Co-enacting experience. In C. Müller, A. Cienki, E. Fricke, S. H. Ladewig, D. McNeill, & S. Teßendorf (Eds.), Body-Language-Communication: An International Handbook on Multimodality in Human Interaction (Vol 2): Mouton de Gruyter. Cuffari, E., Di Paolo, E., & De Jaegher, H. (2015). From participatory sense-making to language: There and back again. Phenomenology and the Cognitive Sciences, 14(4), 1089–1125. https://doi.org/10.1007 /s11097-014-9404-9. de Boer, M., Zeiler, K., & Slatman, J. (2019). Sharing lives, sharing bodies: Partners negotiating breast cancer experiences. Medicine, Health Care and Philosophy, 22(2), 253–265. de Bruin, L., & de Haan, S. E. (2012). Enactivism & social cognition: In search of the whole story. Journal of Cognitive Semiotics, 4(1), 225–250. de Haan, S. (2020). Enactive Psychiatry. Cambridge: Cambridge University Press. De Jaegher, H. (2015). How we affect each other. Michel Henry's 'pathos-with' and the enactive approach to intersubjectivity. Journal of Consciousness Studies, 22(1–2), 112–132. De Jaegher, H., & Di Paolo, E. (2007). Participatory sense-making: An enactive approach to social cognition. Phenomenology and the Cognitive Sciences, 6(4), 485–507. https://doi.org/10.1007/s11097-007-9076-9. De Jaegher, H., Di Paolo, E. A., & Gallagher, S. (2010). Can social interaction constitute social cognition? Trends in Cognitive Sciences, 14(10), 441–447. https://doi.org/10.1016/j.tics.2010.06.009. De Jaegher, H., Peräkylä, A., & Stevanovic, M. (2016). The co-creation of meaningful action: Bridging enaction and interactional sociology. Philosophical Transactions of the Royal Society, B: Biological Sciences, 371(1693), 20150378. https://doi.org/10.1098/rstb.2015.0378. de Quincy, C. (2000). Intersubjectivity: Exploring consciousness from the second-person perspective. The Journal of Transpersonal Psychology, 32(2). de Saint-Exupéry, A. (1943). Le Petit Prince. New York: Reynal and Hitchcock. de Sousa Santos, B. (Ed.). (2007). Cognitive Justice in a Global World: Prudent Knowledges for a Decent Life. Plymouth: Lexington Books. Deschamps, L., Lenay, C., Rovira, K., Le Bihan, G., & Aubert, D. (2016). Joint perception of a shared object: A minimalist perceptual crossing experiment. Frontiers in Psychology: Cognitive Science, 7(1059). Di Paolo, E. A. (2005). Autopoiesis, adaptivity, teleology, agency. Phenomenology and the Cognitive Sciences, 4(4), 97–125. Di Paolo, E. A. (2009). Extended life. Topoi, 28(1), 9–21. Di Paolo, E. A., De Jaegher, H. (2012). The interactive brain hypothesis. Frontiers in Human Neuroscience, 6, 163. https://doi.org/10.3389/fnhum.2012.00163. Di Paolo, E. A. (2015). Interactive time-travel: On the intersubjective retro-modulation of intentions. Journal of Consciousness Studies, 22(1–2), 49–74. Di Paolo, E. A. (2016). Participatory object perception. Journal of Consciousness Studies, 23(5–6), 228–258. Di Paolo, E. A. (2018). The enactive conception of life. In A. Newen, L. de Bruin, & S. Gallagher (Eds.), The Oxford Handbook of Cognition: Embodied, Embedded, Enactive, and Extended (pp. 71–94). Oxford: Oxford University Press. Di Paolo, E. A., Buhrmann, T., & Barandiaran, X. E. (2017). Sensorimotor Life. An Enactive Proposal. Oxford: Oxford University Press. Di Paolo, E. A., Cuffari, E. C., & De Jaegher, H. (2018). Linguistic Bodies. The Continuity Between Life and Language. Cambridge: MIT Press. Dillon, M. C. (1997). Merleau-Ponty's Ontology (2nd ed.). Bloomington: Indiana University Press. Dissanayake, E. (2000). Art and intimacy. How the arts began. Washington: University of Washington Press."
+  },
+  {
+    "block_id": "yolo_list_21_4",
+    "block_type": "blocktype.list_item",
+    "text": "(2000). Art and intimacy. How the arts began. Washington: University of Washington Press."
+  },
+  {
+    "block_id": "yolo_list_21_6",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_2",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_1",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_3",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_5",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_11",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_7",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_9",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_8",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_21_10",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_21_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_22_2",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_22_1",
+    "block_type": "blocktype.list_item",
+    "text": "Doumas, L. A. A., & Martin, A. E. (2018). Chapter six - learning structured representations from experience. In K. D. Federmeier (Ed.), Psychology of Learning and Motivation (Vol. 69, pp. 165–203). Amsterdam: Academic Press. Dreyfus, H. L. (1992). What computers still Can't do. Cambridge, MA: MIT Press. Dumas, G., Lefebvre, A., Zhang, M., Tognoli, E., & Scott Kelso, J. A. (2018). The human dynamic clamp: A probe for coordination across neural, behavioral, and social scales. In S. C. Müller, P. J. Plath, G. Radons, & A. Fuchs (Eds.), Complexity and Synergetics (pp. 317–332). Cham: Springer International Publishing. Eze, M. O. (2010). Intellectual History in Contemporary South Africa. London: Palgrave Macmillan. Foolen, A., Lüdtke, U., Racine, T. P., & Zlatev, J. (2012). Moving ourselves, moving others. Amsterdam/ Philadelphia: John Benjamins. Freire, P. (1970). Pedagogy of the Oppressed. New York: Herder. Fuchs, T. (2012). The phenomenology of body memory. In S. Koch, T. Fuchs, M. Summa, & C. Müller (Eds.), Body Memory, Metaphor and Movement (pp. 9–22). Amsterdam: John Benjamins. Gallagher, S. (2013). In the shadow of the transcendendal: Social cognition in Merleau-Ponty and cognitive science. In K. Novotný, P. Rodrigo, J. Slatman, & S. Stoller (Eds.), Corporeity and Affection: Dedicated to Maurice Merleau-Ponty. Brill: Boston and Leiden. Gendlin, E. T. (1962/1997). Experience and the creation of meaning: A philosophical and psychological approach to the subjective. Evanston, IL: Northwestern University Press. Gilligan, C. (1982). In a Different Voice. Cambridge: Harvard University Press. Gilligan, C. (2003). The Birth of Pleasure: A New Map of Love. New York: Vintage. Gilligan, C., & Richards, D. A. J. (2009). The Deepening Darkness. Patriarchy, Resistance, and Democracy's Future. New York: Cambridge University Press. Goffman, E. (1983). The interaction order: American Sociological Association, 1982 presidential address. American Sociological Review, 48(1), 1. Grosz, E. (2017). The incorporeal. Ontology, ethics, and the limits of materialism. New York: Columbia University Press. Guenther, L. (2013). Solitary Confinement: Social Death and Its Afterlives. Minneapolis: Minnesota University Press. Gunnarsson, L. (2014). The Contradictions of Love: Towards a Feminist-Realist Ontology of Sociosexuality. London: Routledge. Haraway, D. J. (2016). Staying With the Trouble. Making Kin in the Chthulucene. Durham: Duke University Press. Himberg, T., Laroche, J., Bigé, R., Buchkowski, M., & Bachrach, A. (2018). Coordinated interpersonal behaviour in collective dance improvisation: The aesthetics of kinaesthetic togetherness. Behavioral Science, 8(2), 23. hooks, b. (1994). Teaching to Transgress. Education as the Practice of Freedom. New York: Routledge. hooks, b. (2000). All About Love: New Visions. New York: William Morrow. Hutto, D. D., & Myin, E. (2013). Radicalizing Enactivism: Basic Minds Without Content. Cambridge: MIT Press. Jack, A. I., & Roepstorff, A. (2003). Why trust the subject? Journal of Consciousness Studies, 10, 5(9–10), –20. Jacobs, J. (1961). The Death and Life of Great American Cities. New York: Random House. Jonas, H. (1966). The Phenomenon of Life. Toward a Philosophical Biology. Evanston: Northwestern University Press. Jonas, H. (1984). The Imperative of Responsibility: In Search of an Ethics for the Technological Age. Chicago: University of Chicago Press. Jonas, H. (2016). Organism and Freedom. An Essay in Philosophical Biology. (Appendix zu Bd. I,1 KGA). In D. Böhler, M. Bongardt, H. Burckhart, & W. C. Zimmerli (Eds.), Kritische Gesamtausgabe der Werke von Hans Jonas. Freiburg i.Br.: Rombach. Kincheloe, J. (2011). Critical ontology and indigenous ways of being. In K. Hayes, S. R. Steinberg, & K. Tobin (Eds.), Key works in critical pedagogy. Rotterdam: Sense Publishers. Kohn, E. (2013). How Forests Think. Toward an Anthropology Beyond the Human. Berkeley: University of California Press. Kontos, P. C. (2012). Rethinking sociability in long-term care: An embodied dimension of selfhood. Dementia, 11(3), 329–346. https://doi.org/10.1177/1471301211421073. Kontos, P. C., & Naglie, G. (2009). Tacit knowledge of caring and embodied selfhood. Sociology of Health & Illness, 31(5), 688–704. https://doi.org/10.1111/j.1467-9566.2009.01158.x. Koubová, A. (2014). Invisible excess of sense in social interaction. Frontiers in Psychology, 5. https://doi. org/10.3389/fpsyg.2014.01081."
+  },
+  {
+    "block_id": "yolo_caption_22_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_2",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_1",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_3",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_4",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_13",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_7",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_10",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_12",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_9",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_6",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_5",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_8",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_22_11",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "text_23_1",
+    "block_type": "blocktype.list_item",
+    "text": "Krukowski, D. (2017). The New Analog: Listening and Reconnecting in a Digital World. New York: New Press. Kyselo, M. (2014). The body social: An enactive approach to the self. Frontiers in Psychology, 5. https://doi. org/10.3389/fpsyg.2014.00986. Le Guin, U. (2004). The Wave in the Mind. Talks and Essays on the Writer, the Reader, and the Imagination. Boulder: Shambhala. Lenay, C. (2017). Explanatory schemes for social cognition—A minimalist interaction-based approach. Pragmatism Today, 8(1), 63–85. Lieder, F., & Griffiths, T. L. (forthcoming). Resource-rational analysis: Understanding human cognition as the optimal use of limited computational resources. Behavioral and Brain Sciences. https://doi.org/10.1017 /S0140525X1900061X Lindquist, K. A., Gendron, M., Barrett, L. F., & Dickerson, B. C. (2014). Emotion perception, but not affect perception, is impaired with semantic memory loss. Emotion, 14(2), 375–387. https://doi.org/10.1037 /a0035293. Loaiza, J. M. (2019). From enactive concern to care in social life: Towards an enactive anthropology of caring. Adaptive Behavior, 27(1), 17–30. https://doi.org/10.1177/1059712318800673. Lorde, A. (2012). Sister Outsider: Essays and Speeches. Berkeley: Crossing Press. Lugones, M. (1987). Playfulness, \"world\"-travelling, and loving perception. Hypatia, 2(2), 3–19. Luijpen, W. (1959). Existentiële Fenomenologie. Utrecht/Antwerpen: Het Spectrum. (An English translation, entitled Existential Phenomenology, appeared in 1960 with Duquesne Press). Maclaren, K. (2002). Intercorporeality, Intersubjectivity and the problem of ‘letting others be’. Chiasmi International: Trilingual Studies Concerning Merleau-Ponty’s Thought, 4, 187–210. Maclaren, K. (2009). Emotional metamorphoses: The role of others in becoming-oneself. In S. Sherwin, L. Meynell, & S. Campbell (Eds.), Embodiment and Agency: New Essays in Feminist Philosophy. Pennsylvania: Pennsylvania State University Press. Maclaren, K. (2017). Merleau-Ponty on human development and the retrospective realization of potential. Phenomenology and the Cognitive Sciences, 16(4), 609–621. Marcel, G. (1951). The mystery of being (Vol. I and II). Chicago: Henry Regnery Company. Marion, J.-L. (2007). The Erotic Phenomenon. Chicago: University of Chicago Press. Maturana, H. R., & Varela, F. J. (1980). Autopoiesis and Cognition. The Realization of the Living. Dordrecht: Reidel. Merleau-Ponty, M. (1945/2012). Phenomenology of Perception (D. A. Landes, Trans.). London: Routledge. Merleau-Ponty, M. (1960). The child's relations with others (W. cobb, trans.). In M. Merleau-Ponty (Ed.), The Primacy of Perception. Evanston: Northwestern University Press. Merleau-Ponty, M. (1968). The Visible and the Invisible (A. Lingis, Trans.). Evanston: Northwestern University Press. Milhaven, J. G. (1993). Hadewijch and her sisters. Other ways of loving and knowing. New York: State University of New York Press. Mitroff, S. R., Scholl, B. J., & Wynn, K. (2004). Divide and conquer: How object files adapt when a persisting object splits into two. Psychological Science, 15(6), 420–425. https://doi.org/10.1111/j.0956- 7976.2004.00695.x. Needs, A., & Adair-Stantiall, A. (2017). The social context of transition and rehabilitiation. In G. Akerman, A. Needs, & C. Bainbridge (Eds.), Transforming Environments and Offender Rehabilitation. London: Routledge. Pieper, J. (2014). Über die Liebe. Munich: Kösel-Verlag. Polanyi, M. (1958). Personal Knowledge. Towards a Post-Critical Philosophy London: Routledge and Kegan Paul. Prigogine, I., & Stengers, I. (1984). Order Out of Chaos. Man's New Dialogue with Nature. New York: Bantam Books. Reddy, V. (2008). How Infants Know Minds. Cambridge: Harvard University Press. Rodríguez, C. (2007). Object use, communication and signs. The triadic basis of early cognitive development. In J. Valsiner & A. Rosa (Eds.), The Cambridge Handbook of Socio-Cultural Psychology (pp. 257–276). New York: Cambridge University Press. Rollo, T. (forthcoming). Back to the rough ground: Textual, oral and enactive meaning in comparative political theory. European Journal of Political Theory. https://doi.org/10.1177/1474885118795284. Rossmanith, N., Costall, A., Reichelt, A. F., López, B., & Reddy, V. (2014). Jointly structuring triadic spaces of meaning and action: Book sharing from 3 months on. Frontiers in Psychology, 5(1390). https://doi. org/10.3389/fpsyg.2014.01390."
+  },
+  {
+    "block_id": "yolo_list_23_11",
+    "block_type": "blocktype.list_item",
+    "text": "Costall, A., Reichelt, A. F., López, B., & Reddy, V. (2014). Jointly structuring triadic spaces\n and action: Book sharing from 3 months on. Frontiers in Psychology, 5(1390). https://doi.\n9/fpsyg.2014.01390."
+  },
+  {
+    "block_id": "yolo_list_23_14",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_12",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_13",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_9",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_8",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_2",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_1",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_15",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_4",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_6",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_10",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_7",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_5",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_23_3",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_23_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  },
+  {
+    "block_id": "text_24_3",
+    "block_type": "blocktype.heading",
+    "text": "H. De Jaegher"
+  },
+  {
+    "block_id": "text_24_1",
+    "block_type": "blocktype.list_item",
+    "text": "Scheler, M. (1992). On Feeling, Knowing, and Valuing: Selected Writings. Chicago: University of Chicago Press. Simondon, G. (2005). L’Individuation a? la lumie?re des notions de forme et d’information. Grenoble: Millon. Simondon, G. (2009). The position of the problem of ontogenesis. Parrhesia, 7, 4–16. Simpson, L. B. (2014). Land as pedagogy: Nishnaabeg intelligence and rebellious transformation. Decolonization: Indigeneity, Education & Society, 3(3), 1–25. Simpson, L. B. (2017). As we have always done. Indigenous freedom through radical resistance. Minneapolis: University of Minnesota Press. Smith, L. T. (2012). Decolonizing Methodologies: Research and Indigenous Peoples (2nd ed.). London: Zed Books. Spelman, E. (2007). Managing ignorance. In S. Sullivan & N. Tuana (Eds.), Race and Epistemologies of Ignorance. Albany: SUNY Press. Spinoza, B. (1985) The collected writings of Spinoza, Volume 1. (Edwin Curley, Trans.). Princeton: Princeton University Press. Stengers, I. (2013). Une autre science est possible! Paris: La découverte. Thompson, E. (2001). Empathy and consciousness. Journal of Consciousness Studies, 8(5–7), 1–32. Thompson, E. (2004). Life and mind: From autopoiesis to neurophenomenology. A tribute to Francisco Varela. Phenomenology and the Cognitive Sciences, 3(4), 381–398. Thompson, E. (2007). Mind in Life: Biology, Phenomenology, and the Sciences of Mind. Cambridge: Harvard University Press. Tuana, N. (2006). The speculum of ignorance: The women's health movement and epistemologies of ignorance. Hypatia, 21(3), 1–19. van Grunsven, J. (2018). Enactivism, second-person engagement and personal responsibility. Phenomenology and the Cognitive Sciences, 17(1), 131–156. https://doi.org/10.1007/s11097-017-9500-8. Varela, F. J. (1991). Organism: A meshwork of selfless selves. In A. Tauber (Ed.), Organism and the Origin of Self (pp. 79–107). Dordrecht: Kluwer. Varela, F. J. (1997). Patterns of life: Intertwining identity and cognition. Brain and Cognition, 34, 72–87. Varela, F. J., Thompson, E., & Rosch, E. (1991). The Embodied Mind: Cognitive Science and Human Experience (6th ed.). Cambridge: MIT Press. Welch, S. (2019). The phenomenology of a performative knowledge system. Dancing with native American epistemology. London: Palgrave Macmillan. Wheeler, M. (2010). Minds, things, and materiality. In C. Renfrew & L. Malafouris (Eds.), The Cognitive Life of Things: Recasting the Boundaries of the Mind. Cambridge McDonald Institute for Archaeological Research Publications. Zeiler, K. (2014). A philosophical defense of the idea that we can hold each other in personhood: Intercorporeal personhood in dementia care. Medicine, Health Care and Philosophy, 17(1), 131–141. Zlatev, J., Racine, T. P., Sinha, C., & Itkonen, E. (2008). The shared mind. Perspectives on Intersubjectivity. Amsterdam/Philadelphia: John Benjamins."
+  },
+  {
+    "block_id": "yolo_caption_24_1",
+    "block_type": "blocktype.caption",
+    "text": ""
+  },
+  {
+    "block_id": "text_24_2",
+    "block_type": "blocktype.list_item",
+    "text": "Publisher’s note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations."
+  },
+  {
+    "block_id": "yolo_list_24_5",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_6",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_7",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_8",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_10",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_9",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_2",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_1",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_4",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_list_24_3",
+    "block_type": "blocktype.list_item",
+    "text": ""
+  },
+  {
+    "block_id": "yolo_quote_24_1",
+    "block_type": "blocktype.quote",
+    "text": ""
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      51.01362609863281,
+      57.6240348815918,
+      388.42706298828125,
+      115.8192138671875
+    ],
+    "text_snippet": "humans as humans but merely, institutionally, as “risks to b"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      51.01362609863281,
+      129.61502075195312,
+      141.9024200439453,
+      139.57762145996094
+    ],
+    "text_snippet": "2.2 Can we do better?"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      51.01361083984375,
+      153.6471710205078,
+      388.4169616699219,
+      331.0014343261719
+    ],
+    "text_snippet": "Can we understand human knowing better? This question is a s"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      50.994873046875,
+      332.956787109375,
+      388.4381103515625,
+      594.0665893554688
+    ],
+    "text_snippet": "Doing better implies once again to get closely and earnestly"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      51.02360153198242,
+      605.921875,
+      170.2735137939453,
+      617.4071044921875
+    ],
+    "text_snippet": "10 See also Cuffari and Jensen (2014)."
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 7,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

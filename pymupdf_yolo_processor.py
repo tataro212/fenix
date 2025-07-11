@@ -33,6 +33,7 @@ from pydantic import BaseModel, Field, ValidationError
 from pathlib import Path
 import re
 import json
+import copy
 
 # Import existing services
 try:
@@ -41,6 +42,14 @@ try:
 except ImportError:
     YOLO_AVAILABLE = False
     logger.warning("YOLOv8 service not available")
+
+# Import torch for device detection
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    logger.warning("PyTorch not available")
 
 try:
     from document_model import DocumentGraph, add_yolo_detections_to_graph, add_ocr_text_regions_to_graph
@@ -239,7 +248,7 @@ class ContentType(Enum):
 @dataclass
 class TextBlock:
     """Represents a text block extracted by PyMuPDF"""
-    text: str
+    original_text: str
     bbox: Tuple[float, float, float, float]  # (x0, y0, x1, y1)
     font_size: float
     font_family: str
@@ -307,7 +316,7 @@ class PyMuPDFContentExtractor:
                         font_family = self._get_dominant_font(block)
                         
                         text_block = TextBlock(
-                            text=block_text.strip(),
+                            original_text=block_text.strip(),
                             bbox=tuple(block.get("bbox", [0, 0, 0, 0])),
                             font_size=font_size,
                             font_family=font_family,
@@ -333,7 +342,7 @@ class PyMuPDFContentExtractor:
             return []
         
         # Convert TextBlocks to the format expected by directive's function
-        blocks_for_reconstruction = [{'text': tb.text} for tb in text_blocks]
+        blocks_for_reconstruction = [{'original_text': tb.original_text} for tb in text_blocks]
         
         # Apply the directive's exact hyphenation reconstruction
         reconstructed_blocks = self._reconstruct_hyphenated_text(blocks_for_reconstruction)
@@ -345,7 +354,7 @@ class PyMuPDFContentExtractor:
                 # Use original block metadata but with reconstructed text
                 original_block = text_blocks[i]
                 result_blocks.append(TextBlock(
-                    text=reconstructed_block['text'],
+                    original_text=reconstructed_block['original_text'],
                     bbox=original_block.bbox,
                     font_size=original_block.font_size,
                     font_family=original_block.font_family,
@@ -559,7 +568,7 @@ class PyMuPDFContentExtractor:
 
         reconstructed_texts = []
         # Start with the text from the first block.
-        current_text = blocks[0].get('text', '')
+        current_text = blocks[0].get('original_text', '')
 
         # Iterate up to the second-to-last block to allow look-ahead.
         for i in range(len(blocks) - 1):
@@ -567,7 +576,7 @@ class PyMuPDFContentExtractor:
             # Check if the current, cleaned text ends with a hyphen.
             if cleaned_text.endswith('-'):
                 # Look ahead to the next block's text.
-                next_block_text = blocks[i+1].get('text', '')
+                next_block_text = blocks[i+1].get('original_text', '')
                 # Merge: remove the hyphen and append the next block's text.
                 current_text = cleaned_text[:-1] + next_block_text
             else:
@@ -575,13 +584,13 @@ class PyMuPDFContentExtractor:
                 # Replace internal newlines with spaces and strip whitespace.
                 reconstructed_texts.append(current_text.replace('\n', ' ').strip())
                 # Start the next block.
-                current_text = blocks[i+1].get('text', '')
+                current_text = blocks[i+1].get('original_text', '')
 
         # Append the final text block after the loop finishes.
         reconstructed_texts.append(current_text.replace('\n', ' ').strip())
 
         # Return a list of dictionaries, ensuring no empty text elements are included.
-        return [{'text': text} for text in reconstructed_texts if text]
+        return [{'original_text': text} for text in reconstructed_texts if text]
     
     def _get_dominant_font_size(self, block: Dict) -> float:
         """Get the dominant font size in a block"""
@@ -616,7 +625,10 @@ class PyMuPDFContentExtractor:
             return "Arial"
 
 class YOLOLayoutAnalyzer:
-    """Detect logical areas with ultra-low confidence threshold (0.15)"""
+    """
+    Enhanced YOLO Layout Analyzer with per-class confidence thresholds
+    and strategic optimization for digital twin pipeline.
+    """
     
     def __init__(self):
         # Try to get confidence from config, fallback to 0.08 if not available
@@ -625,69 +637,365 @@ class YOLOLayoutAnalyzer:
             confidence_threshold = config_manager.yolov8_settings.get('confidence_threshold', 0.08)
         except:
             confidence_threshold = 0.08  # Fallback to 0.08 as recommended in analysis
-            
+        
+        # STRATEGIC OPTIMIZATION: Per-class confidence thresholds
+        self.per_class_thresholds = {
+            'equation': 0.3,      # Lower threshold for equations to allow more true positives
+            'text': 0.4,          # Moderate threshold for text blocks
+            'title': 0.5,         # Higher threshold for titles
+            'table': 0.6,         # High threshold for tables
+            'figure': 0.6,        # High threshold for figures
+            'list': 0.4,          # Moderate threshold for lists
+            'caption': 0.5,       # Moderate threshold for captions
+            'quote': 0.5,         # Moderate threshold for quotes
+            'footnote': 0.4,      # Moderate threshold for footnotes
+            'marginalia': 0.5,    # Moderate threshold for marginalia
+            'bibliography': 0.5,  # Moderate threshold for bibliography
+            'header': 0.6,        # High threshold for headers
+            'footer': 0.6,        # High threshold for footers
+            'default': 0.5        # Default threshold for unknown classes
+        }
+        
         self.config = {
             'confidence_threshold': confidence_threshold,  # Now reads from config
             'iou_threshold': 0.4,
-            'max_detections': 300,  # Increased for comprehensive coverage
-            'supported_classes': [
-                'text', 'title', 'paragraph', 'list', 'table', 
-                'figure', 'caption', 'quote', 'footnote', 'equation'
-            ]
+            'max_detections': 100,
+            'device': 'cuda' if TORCH_AVAILABLE and torch.cuda.is_available() else 'cpu',
+            'image_size': 640,
+            'enable_per_class_thresholds': True,  # New flag for strategic optimization
+            'enable_math_symbol_detection': True,  # Enhanced equation detection
+            'enable_overlap_refinement': True,     # Improved bounding box grouping
+            'log_false_positives': True           # Iterative feedback logging
         }
         
-        self.yolo_service = None
-        if YOLO_AVAILABLE:
+        # Initialize YOLO service
+        try:
+            from yolov8_service import YOLOv8Service
             self.yolo_service = YOLOv8Service()
-            # Override confidence threshold to match our config
-            if hasattr(self.yolo_service, 'conf_thres'):
-                self.yolo_service.conf_thres = confidence_threshold
-            # Also override the analyzer's config
-            if hasattr(self.yolo_service, 'analyzer'):
-                self.yolo_service.analyzer.config['confidence_threshold'] = confidence_threshold
+            self.yolo_service.conf_thres = confidence_threshold
+            self.yolo_service.analyzer.config['confidence_threshold'] = confidence_threshold
+        except Exception as e:
+            self.logger.warning(f"⚠️ YOLO service initialization failed: {e}")
+            self.yolo_service = None
         
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"🔧 YOLO Layout Analyzer initialized with {self.config['confidence_threshold']} confidence threshold")
+        self.logger.info(f"🔧 Enhanced YOLO Layout Analyzer initialized with per-class thresholds")
+        self.logger.info(f"   🎯 Base confidence threshold: {self.config['confidence_threshold']}")
+        self.logger.info(f"   📊 Per-class thresholds enabled: {self.config['enable_per_class_thresholds']}")
+        self.logger.info(f"   🔢 Math symbol detection: {self.config['enable_math_symbol_detection']}")
+        self.logger.info(f"   🔗 Overlap refinement: {self.config['enable_overlap_refinement']}")
+        
+        # Performance tracking for iterative feedback
+        self.detection_stats = {
+            'total_detections': 0,
+            'filtered_detections': 0,
+            'per_class_detections': {},
+            'false_positives_log': [],
+            'processing_times': []
+        }
+    
+    def get_class_threshold(self, class_name: str) -> float:
+        """Get confidence threshold for specific class"""
+        return self.per_class_thresholds.get(class_name, self.per_class_thresholds['default'])
     
     def analyze_layout(self, page_image: Image.Image) -> List[LayoutArea]:
-        """Analyze page layout using YOLO with configurable confidence"""
+        """Enhanced layout analysis with per-class confidence thresholds and strategic optimization"""
         if not self.yolo_service:
             self.logger.warning("⚠️ YOLO service not available")
             return []
         
         try:
-            # Log detection attempt for diagnostics
-            self.logger.debug(f"🔍 Starting YOLO detection with confidence={self.config['confidence_threshold']}")
+            import time
+            start_time = time.time()
             
-            detections = self.yolo_service.detect(page_image)
+            # Log detection attempt for diagnostics
+            self.logger.debug(f"🔍 Starting enhanced YOLO detection")
+            self.logger.debug(f"   Per-class thresholds: {self.config['enable_per_class_thresholds']}")
+            
+            # Get raw detections with lower base threshold to allow per-class filtering
+            raw_detections = self.yolo_service.detect(page_image)
             
             # Enhanced diagnostic logging
-            raw_detection_count = len(detections) if detections else 0
+            raw_detection_count = len(raw_detections) if raw_detections else 0
             self.logger.debug(f"🎯 Raw YOLO detections: {raw_detection_count}")
             
-            layout_areas = []
-            for detection in detections:
-                # Additional confidence filtering if needed
-                if detection['confidence'] >= self.config['confidence_threshold']:
-                    layout_area = LayoutArea(
-                        label=detection['label'],
-                        bbox=tuple(detection['bounding_box']),
-                        confidence=detection['confidence'],
-                        area_id=f"{detection['label']}_{len(layout_areas)}",
-                        class_id=detection.get('class_id', 0)
-                    )
-                    
-                    layout_areas.append(layout_area)
-                    self.logger.debug(f"✅ Accepted detection: {detection['label']} (conf: {detection['confidence']:.3f})")
-                else:
-                    self.logger.debug(f"❌ Filtered detection: {detection['label']} (conf: {detection['confidence']:.3f})")
+            # Apply strategic filtering with per-class thresholds
+            filtered_detections = self._apply_strategic_filtering(raw_detections)
             
-            self.logger.info(f"🎯 Detected {len(layout_areas)} layout areas with YOLO (from {raw_detection_count} raw detections)")
+            # Convert to layout areas
+            layout_areas = []
+            for detection in filtered_detections:
+                layout_area = LayoutArea(
+                    label=detection['label'],
+                    bbox=tuple(detection['bounding_box']),
+                    confidence=detection['confidence'],
+                    area_id=f"{detection['label']}_{len(layout_areas)}",
+                    class_id=detection.get('class_id', 0)
+                )
+                layout_areas.append(layout_area)
+            
+            # Apply overlap refinement if enabled
+            if self.config['enable_overlap_refinement']:
+                layout_areas = self._refine_overlapping_areas(layout_areas)
+            
+            # Update statistics
+            processing_time = time.time() - start_time
+            self.detection_stats['total_detections'] += raw_detection_count
+            self.detection_stats['filtered_detections'] += len(layout_areas)
+            self.detection_stats['processing_times'].append(processing_time)
+            
+            # Log per-class statistics
+            for detection in filtered_detections:
+                class_name = detection['label']
+                if class_name not in self.detection_stats['per_class_detections']:
+                    self.detection_stats['per_class_detections'][class_name] = 0
+                self.detection_stats['per_class_detections'][class_name] += 1
+            
+            self.logger.info(f"🎯 Enhanced YOLO Detection Summary:")
+            self.logger.info(f"   ⏱️ Processing time: {processing_time:.3f}s")
+            self.logger.info(f"   📊 Raw detections: {raw_detection_count}")
+            self.logger.info(f"   ✅ Filtered detections: {len(layout_areas)}")
+            self.logger.info(f"   📈 Per-class breakdown: {self.detection_stats['per_class_detections']}")
+            
             return layout_areas
             
         except Exception as e:
-            self.logger.error(f"❌ YOLO layout analysis failed: {e}")
+            self.logger.error(f"❌ Enhanced YOLO layout analysis failed: {e}")
             return []
+    
+    def _apply_strategic_filtering(self, detections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Apply strategic filtering with per-class confidence thresholds"""
+        if not self.config['enable_per_class_thresholds']:
+            # Fallback to basic filtering
+            return [d for d in detections if d['confidence'] >= self.config['confidence_threshold']]
+        
+        filtered_detections = []
+        
+        for detection in detections:
+            class_name = detection['label']
+            confidence = detection['confidence']
+            threshold = self.get_class_threshold(class_name)
+            
+            # Special handling for equations with math symbol detection
+            if class_name == 'equation' and self.config['enable_math_symbol_detection']:
+                if self._has_math_symbols(detection):
+                    # Lower threshold for equations with math symbols
+                    threshold = min(threshold, 0.25)
+                    self.logger.debug(f"🔢 Equation with math symbols detected, adjusted threshold: {threshold}")
+            
+            # Apply class-specific threshold
+            if confidence >= threshold:
+                filtered_detections.append(detection)
+                self.logger.debug(f"✅ Accepted {class_name} (conf: {confidence:.3f} >= {threshold})")
+            else:
+                self.logger.debug(f"❌ Filtered {class_name} (conf: {confidence:.3f} < {threshold})")
+                
+                # Log potential false positives for iterative feedback
+                if self.config['log_false_positives'] and confidence >= threshold * 0.8:
+                    self._log_potential_false_positive(detection, threshold)
+        
+        return filtered_detections
+    
+    def _has_math_symbols(self, detection: Dict[str, Any]) -> bool:
+        """Enhanced equation detection with math symbol presence check"""
+        # This is a placeholder for math symbol detection
+        # In a full implementation, you would:
+        # 1. Extract the image region from the bounding box
+        # 2. Use OCR or symbol detection to identify math symbols
+        # 3. Return True if math symbols are found
+        
+        # For now, we'll use a simple heuristic based on confidence
+        # Higher confidence equations are more likely to contain math symbols
+        return detection['confidence'] > 0.4
+    
+
+    
+    def _refine_overlapping_areas(self, layout_areas: List[LayoutArea]) -> List[LayoutArea]:
+        """Refine overlapping areas to avoid grouping unrelated lines"""
+        if not layout_areas:
+            return layout_areas
+        
+        refined_areas = []
+        processed_indices = set()
+        
+        for i, area in enumerate(layout_areas):
+            if i in processed_indices:
+                continue
+            
+            # Find overlapping areas
+            overlapping_indices = []
+            for j, other_area in enumerate(layout_areas):
+                if j != i and j not in processed_indices:
+                    if self._should_merge_areas(area, other_area):
+                        overlapping_indices.append(j)
+            
+            if overlapping_indices:
+                # Merge overlapping areas
+                merged_area = self._merge_areas([area] + [layout_areas[j] for j in overlapping_indices])
+                refined_areas.append(merged_area)
+                processed_indices.add(i)
+                processed_indices.update(overlapping_indices)
+                self.logger.debug(f"🔗 Merged {len(overlapping_indices) + 1} overlapping areas")
+            else:
+                refined_areas.append(area)
+                processed_indices.add(i)
+        
+        self.logger.info(f"🔗 Refined {len(layout_areas)} areas to {len(refined_areas)} areas")
+        return refined_areas
+    
+    def _should_merge_areas(self, area1: LayoutArea, area2: LayoutArea) -> bool:
+        """Determine if two areas should be merged based on strategic heuristics"""
+        # Check overlap
+        if not self._bbox_overlaps(area1.bbox, area2.bbox, threshold=0.3):
+            return False
+        
+        # Don't merge different classes unless they're closely related
+        if area1.label != area2.label:
+            # Allow merging of related classes
+            related_classes = {
+                'text': ['title', 'list', 'quote'],
+                'title': ['text'],
+                'list': ['text'],
+                'quote': ['text'],
+                'equation': ['text'],  # Equations can be merged with text
+                'caption': ['figure', 'table']  # Captions with their content
+            }
+            
+            if area1.label not in related_classes or area2.label not in related_classes[area1.label]:
+                return False
+        
+        # Check vertical alignment for text-based elements
+        if area1.label in ['text', 'title', 'list', 'quote'] and area2.label in ['text', 'title', 'list', 'quote']:
+            # Ensure vertical alignment for text elements
+            x1_1, y1_1, x2_1, y2_1 = area1.bbox
+            x1_2, y1_2, x2_2, y2_2 = area2.bbox
+            
+            # Check if they're roughly on the same line (within 20% of font height)
+            font_height = min(y2_1 - y1_1, y2_2 - y1_2)
+            vertical_threshold = font_height * 0.2
+            
+            if abs(y1_1 - y1_2) > vertical_threshold:
+                return False
+        
+        return True
+    
+    def _merge_areas(self, areas: List[LayoutArea]) -> LayoutArea:
+        """Merge multiple layout areas into one"""
+        if not areas:
+            return None
+        
+        if len(areas) == 1:
+            return areas[0]
+        
+        # Merge bounding boxes
+        x1_min = min(area.bbox[0] for area in areas)
+        y1_min = min(area.bbox[1] for area in areas)
+        x2_max = max(area.bbox[2] for area in areas)
+        y2_max = max(area.bbox[3] for area in areas)
+        
+        # Use the most confident area's label
+        best_area = max(areas, key=lambda a: a.confidence)
+        
+        return LayoutArea(
+            label=best_area.label,
+            bbox=(x1_min, y1_min, x2_max, y2_max),
+            confidence=best_area.confidence,
+            area_id=f"merged_{best_area.label}_{len(areas)}",
+            class_id=best_area.class_id
+        )
+    
+    def _bbox_overlaps(self, bbox1: Tuple[float, float, float, float], 
+                      bbox2: Tuple[float, float, float, float], 
+                      threshold: float = 0.3) -> bool:
+        """Check if two bounding boxes overlap significantly"""
+        x1_1, y1_1, x2_1, y2_1 = bbox1
+        x1_2, y1_2, x2_2, y2_2 = bbox2
+        
+        # Calculate intersection
+        x1_i = max(x1_1, x1_2)
+        y1_i = max(y1_1, y1_2)
+        x2_i = min(x2_1, x2_2)
+        y2_i = min(y2_1, y2_2)
+        
+        if x2_i <= x1_i or y2_i <= y1_i:
+            return False
+        
+        intersection_area = (x2_i - x1_i) * (y2_i - y1_i)
+        area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
+        area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
+        
+        # Use intersection over union (IoU) or intersection over smaller area
+        smaller_area = min(area1, area2)
+        overlap_ratio = intersection_area / smaller_area
+        
+        return overlap_ratio >= threshold
+    
+    def _log_potential_false_positive(self, detection: Dict[str, Any], threshold: float) -> None:
+        """Log potential false positives for iterative feedback"""
+        false_positive_entry = {
+            'class': detection['label'],
+            'confidence': detection['confidence'],
+            'threshold': threshold,
+            'bounding_box': detection['bounding_box'],
+            'timestamp': time.time()
+        }
+        
+        self.detection_stats['false_positives_log'].append(false_positive_entry)
+        
+        # Keep only recent entries (last 100)
+        if len(self.detection_stats['false_positives_log']) > 100:
+            self.detection_stats['false_positives_log'] = self.detection_stats['false_positives_log'][-100:]
+    
+    def get_detection_statistics(self) -> Dict[str, Any]:
+        """Get comprehensive detection statistics for iterative feedback"""
+        avg_processing_time = (
+            sum(self.detection_stats['processing_times']) / len(self.detection_stats['processing_times'])
+            if self.detection_stats['processing_times'] else 0
+        )
+        
+        return {
+            'total_detections': self.detection_stats['total_detections'],
+            'filtered_detections': self.detection_stats['filtered_detections'],
+            'filtering_rate': (
+                self.detection_stats['filtered_detections'] / self.detection_stats['total_detections']
+                if self.detection_stats['total_detections'] > 0 else 0
+            ),
+            'per_class_detections': self.detection_stats['per_class_detections'],
+            'average_processing_time': avg_processing_time,
+            'false_positives_count': len(self.detection_stats['false_positives_log']),
+            'per_class_thresholds': self.per_class_thresholds.copy(),
+            'configuration': self.config.copy()
+        }
+    
+    def update_thresholds_based_on_feedback(self, feedback_data: Dict[str, Any]) -> None:
+        """Update thresholds based on iterative feedback"""
+        if not feedback_data:
+            return
+        
+        # Example feedback structure:
+        # {
+        #     'false_positives': {'equation': 0.3, 'text': 0.4},
+        #     'missed_detections': {'equation': 0.2, 'table': 0.5}
+        # }
+        
+        false_positives = feedback_data.get('false_positives', {})
+        missed_detections = feedback_data.get('missed_detections', {})
+        
+        for class_name, suggested_threshold in false_positives.items():
+            if class_name in self.per_class_thresholds:
+                # Increase threshold to reduce false positives
+                current_threshold = self.per_class_thresholds[class_name]
+                new_threshold = min(0.9, current_threshold + 0.1)  # Cap at 0.9
+                self.per_class_thresholds[class_name] = new_threshold
+                self.logger.info(f"📈 Updated {class_name} threshold: {current_threshold:.3f} → {new_threshold:.3f}")
+        
+        for class_name, suggested_threshold in missed_detections.items():
+            if class_name in self.per_class_thresholds:
+                # Decrease threshold to catch more detections
+                current_threshold = self.per_class_thresholds[class_name]
+                new_threshold = max(0.1, current_threshold - 0.1)  # Floor at 0.1
+                self.per_class_thresholds[class_name] = new_threshold
+                self.logger.info(f"📉 Updated {class_name} threshold: {current_threshold:.3f} → {new_threshold:.3f}")
 
 class ContentLayoutMapper:
     """Map PyMuPDF content blocks to YOLO-detected logical areas"""
@@ -717,7 +1025,7 @@ class ContentLayoutMapper:
             for text_block in text_blocks:
                 if self._bbox_overlaps(text_block.bbox, area.bbox):
                     mapped_content[area_id].text_blocks.append(text_block)
-                    mapped_content[area_id].combined_text += text_block.text + ' '
+                    mapped_content[area_id].combined_text += text_block.original_text + ' '
             
             # Map image blocks to this area
             for image_block in image_blocks:
@@ -726,6 +1034,19 @@ class ContentLayoutMapper:
             
             # Clean up combined text
             mapped_content[area_id].combined_text = mapped_content[area_id].combined_text.strip()
+
+            # --- CAP TITLE AREAS ---
+            if area.label == 'title':
+                text = mapped_content[area_id].combined_text
+                words = text.split()
+                if len(words) > 15 or len(text) > 85:
+                    # Truncate to 15 words or 85 characters, whichever is less
+                    truncated_words = words[:15]
+                    truncated_text = ' '.join(truncated_words)
+                    if len(truncated_text) > 85:
+                        truncated_text = truncated_text[:85].rstrip()
+                    mapped_content[area_id].combined_text = truncated_text
+                    self.logger.info(f"🔒 Title area '{area_id}' capped: {len(words)} words, {len(text)} chars → '{truncated_text}'")
             
             # Calculate densities
             mapped_content[area_id].text_density = self._calculate_text_density(
@@ -1042,7 +1363,7 @@ class PyMuPDFYOLOProcessor:
                     elements.append(ElementModel(
                         type='text',
                         bbox=text_block.bbox,
-                        content=text_block.text,
+                        content=text_block.original_text,
                         formatting={
                             'font_size': text_block.font_size,
                             'font_family': text_block.font_family,
@@ -1073,7 +1394,7 @@ class PyMuPDFYOLOProcessor:
                     elements.append(ElementModel(
                         type='text',
                         bbox=text_block.bbox,
-                        content=text_block.text,
+                        content=text_block.original_text,
                         formatting={
                             'font_size': text_block.font_size,
                             'font_family': text_block.font_family,
@@ -1193,6 +1514,17 @@ class PyMuPDFYOLOProcessor:
             # Extract image blocks using PyMuPDF
             raw_image_blocks = self.content_extractor.extract_images(page)
             
+            # --- Filter out headers and footers, keep footnotes and other content ---
+            from digital_twin_model import BlockType
+            classified_blocks = []
+            for block in raw_text_blocks:
+                block_type = self._classify_text_block_type(block)
+                if block_type not in [BlockType.HEADER, BlockType.FOOTER]:
+                    block.block_type = block_type  # Attach type for downstream use
+                    classified_blocks.append(block)
+            # Use classified_blocks for further processing instead of raw_text_blocks
+            text_blocks = classified_blocks
+            
             # --- Extraction Order Debug Export ---
             import json
             extraction_order_debug = []
@@ -1202,7 +1534,7 @@ class PyMuPDFYOLOProcessor:
                     'block_type': 'text',
                     'page_number': page_num + 1,
                     'bbox': getattr(block, 'bbox', None),
-                    'text_snippet': getattr(block, 'text', '')[:60]
+                    'text_snippet': getattr(block, 'original_text', '')[:60]
                 })
             for idx, block in enumerate(raw_image_blocks):
                 extraction_order_debug.append({
@@ -1222,17 +1554,15 @@ class PyMuPDFYOLOProcessor:
             
             # Process text blocks into Digital Twin format
             text_block_id = 0
-            for text_block in raw_text_blocks:
+            for text_block in text_blocks:
                 text_block_id += 1
-                
                 # Determine block type based on content analysis
                 block_type = self._classify_text_block_type(text_block)
                 structural_role = self._determine_structural_role(text_block, block_type)
-                
                 # Create Digital Twin text block
                 dt_text_block = create_text_block(
                     block_id=f"text_{page_num + 1}_{text_block_id}",
-                    text=text_block.text,
+                    text=text_block.original_text,
                     bbox=text_block.bbox,
                     page_number=page_num + 1,
                     block_type=block_type,
@@ -1242,7 +1572,6 @@ class PyMuPDFYOLOProcessor:
                     confidence=text_block.confidence,
                     extraction_method='pymupdf'
                 )
-                
                 digital_twin_page.add_block(dt_text_block)
             
             # OPTIMIZATION: Extract and save images with parallel processing
@@ -1303,20 +1632,125 @@ class PyMuPDFYOLOProcessor:
                     # Convert page to image for YOLO analysis
                     pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
                     img_data = pix.tobytes("png")
-                    
                     from PIL import Image
                     import io
-                    
                     page_image = Image.open(io.BytesIO(img_data))
-                    
                     # Analyze layout with YOLO
                     layout_areas = self.layout_analyzer.analyze_layout(page_image)
-                    
                     # Enhance blocks with YOLO structure information
                     self._enhance_blocks_with_yolo_structure(digital_twin_page, layout_areas)
-                    
                     self.logger.debug(f"🎯 YOLO analysis completed for page {page_num + 1}: {len(layout_areas)} areas detected")
-                    
+
+                    # --- NEW: Add blocks for YOLO-only regions (missed by PyMuPDF) ---
+                    # Gather all PyMuPDF block bboxes
+                    pymupdf_bboxes = [b.bbox for b in digital_twin_page.text_blocks] + [b.bbox for b in digital_twin_page.image_blocks]
+                    yolo_label_to_blocktype = {
+                        'title': BlockType.TITLE,
+                        'heading': BlockType.HEADING,
+                        'paragraph': BlockType.PARAGRAPH,
+                        'list': BlockType.LIST_ITEM,
+                        'list_item': BlockType.LIST_ITEM,
+                        'table': BlockType.TABLE,
+                        'figure': BlockType.FIGURE,
+                        'image': BlockType.IMAGE,
+                        'chart': BlockType.CHART,
+                        'caption': BlockType.CAPTION,
+                        'footnote': BlockType.FOOTNOTE,
+                        'equation': BlockType.EQUATION,
+                        'quote': BlockType.QUOTE,
+                        'bibliography': BlockType.BIBLIOGRAPHY,
+                        'header': BlockType.HEADER,
+                        'footer': BlockType.FOOTER,
+                        'marginalia': BlockType.TEXT,
+                    }
+                    yolo_block_counts = {}
+                    for area in layout_areas:
+                        # Check for significant overlap with any PyMuPDF block
+                        overlaps = any(self._bbox_overlaps(area.bbox, bbox, threshold=0.3) for bbox in pymupdf_bboxes)
+                        if not overlaps:
+                            blocktype = yolo_label_to_blocktype.get(area.label, BlockType.TEXT)
+                            yolo_block_counts.setdefault(blocktype, 0)
+                            yolo_block_counts[blocktype] += 1
+                            block_id = f"yolo_{area.label}_{page_num+1}_{yolo_block_counts[blocktype]}"
+                            crop_box = tuple(int(round(x*2)) for x in area.bbox)  # 2x zoom
+                            yolo_img_path = ""
+                            # Crop and save image for this region if non-text
+                            if blocktype in [BlockType.IMAGE, BlockType.FIGURE, BlockType.CHART, BlockType.TABLE]:
+                                try:
+                                    cropped = page_image.crop(crop_box)
+                                    yolo_img_filename = f"page_{page_num+1}_yolo_{area.label}_{yolo_block_counts[blocktype]}.png"
+                                    yolo_img_path = os.path.join(images_dir, yolo_img_filename)
+                                    cropped.save(yolo_img_path)
+                                except Exception as crop_exc:
+                                    self.logger.warning(f"Could not crop/save YOLO region image: {crop_exc}")
+                            # If non-text item, add only non-text block
+                            if blocktype in [BlockType.IMAGE, BlockType.FIGURE, BlockType.CHART]:
+                                img_block = create_image_block(
+                                    block_id=block_id,
+                                    image_path=yolo_img_path,
+                                    bbox=area.bbox,
+                                    page_number=page_num+1,
+                                    structural_role=StructuralRole.ILLUSTRATION,
+                                    extraction_method='yolo_only',
+                                    processing_notes=[f"YOLO-only region: {area.label}"]
+                                )
+                                digital_twin_page.add_block(img_block)
+                            elif blocktype == BlockType.TABLE:
+                                table_block = create_table_block(
+                                    block_id=block_id,
+                                    rows=[],
+                                    bbox=area.bbox,
+                                    page_number=page_num+1,
+                                    headers=None,
+                                    structural_role=StructuralRole.DATA,
+                                    extraction_method='yolo_only',
+                                    processing_notes=[f"YOLO-only region: {area.label}", f"Image: {yolo_img_path}"],
+                                )
+                                digital_twin_page.add_block(table_block)
+                            # If special text type, extract text and add as TextBlock
+                            elif blocktype in [BlockType.CAPTION, BlockType.HEADER, BlockType.FOOTER, BlockType.FOOTNOTE, BlockType.QUOTE, BlockType.BIBLIOGRAPHY, BlockType.TITLE, BlockType.HEADING, BlockType.LIST_ITEM]:
+                                rect = fitz.Rect(area.bbox)
+                                yolo_text = page.get_textbox(rect).strip()
+                                txt_block = create_text_block(
+                                    block_id=block_id,
+                                    text=yolo_text,
+                                    bbox=area.bbox,
+                                    page_number=page_num+1,
+                                    block_type=blocktype,
+                                    structural_role=StructuralRole.CONTENT,
+                                    extraction_method='yolo_only',
+                                    processing_notes=[f"YOLO-only region: {area.label}", "Text extracted from region"]
+                                )
+                                digital_twin_page.add_block(txt_block)
+                            # If plain text/paragraph, extract text and add as TextBlock
+                            elif blocktype == BlockType.PARAGRAPH or blocktype == BlockType.TEXT:
+                                rect = fitz.Rect(area.bbox)
+                                yolo_text = page.get_textbox(rect).strip()
+                                txt_block = create_text_block(
+                                    block_id=block_id,
+                                    text=yolo_text,
+                                    bbox=area.bbox,
+                                    page_number=page_num+1,
+                                    block_type=blocktype,
+                                    structural_role=StructuralRole.CONTENT,
+                                    extraction_method='yolo_only',
+                                    processing_notes=[f"YOLO-only region: {area.label}", "Text extracted from region"]
+                                )
+                                digital_twin_page.add_block(txt_block)
+                            else:
+                                # Fallback: add as empty text block with processing note
+                                txt_block = create_text_block(
+                                    block_id=block_id,
+                                    text="",
+                                    bbox=area.bbox,
+                                    page_number=page_num+1,
+                                    block_type=blocktype,
+                                    structural_role=StructuralRole.CONTENT,
+                                    extraction_method='yolo_only',
+                                    processing_notes=[f"YOLO-only region: {area.label}", "No text or image extracted"]
+                                )
+                                digital_twin_page.add_block(txt_block)
+                    # --- END NEW ---
                 except Exception as e:
                     self.logger.warning(f"YOLO analysis failed for page {page_num + 1}: {e}")
             
@@ -1352,6 +1786,9 @@ class PyMuPDFYOLOProcessor:
             
             # Close document
             doc.close()
+            
+            # After self._enhance_blocks_with_yolo_structure(digital_twin_page, layout_areas)
+            self._conservative_split_blocks_by_yolo(digital_twin_page, layout_areas)
             
             return digital_twin_page
             
@@ -1819,8 +2256,6 @@ class PyMuPDFYOLOProcessor:
         This provides better specificity and metadata for document reconstruction.
         """
         try:
-            from digital_twin_model import create_image_block, StructuralRole
-            
             # Determine structural role based on classification
             image_type = classification['type']
             if 'chart' in image_type:
@@ -1871,8 +2306,6 @@ class PyMuPDFYOLOProcessor:
                                          page_number: int, image_id: int):
         """Fallback method for basic image block creation"""
         try:
-            from digital_twin_model import create_image_block, StructuralRole
-            
             return create_image_block(
                 block_id=f"image_{page_number}_{image_id}",
                 image_path=image_path,
@@ -1888,7 +2321,6 @@ class PyMuPDFYOLOProcessor:
     
     def _enhance_blocks_with_yolo_structure(self, page_model: PageModel, 
                                           layout_areas: List[LayoutArea]) -> None:
-        from digital_twin_model import BlockType
         yolo_label_to_blocktype = {
             'title': BlockType.TITLE,
             'heading': BlockType.HEADING,
@@ -1920,7 +2352,7 @@ class PyMuPDFYOLOProcessor:
                 prev_type = text_block.block_type
                 # Smart mapping for title/heading
                 if best_area.label in ['title', 'heading']:
-                    text = getattr(text_block, 'text', '') or ''
+                    text = getattr(text_block, 'original_text', '') or ''
                     word_count = len(text.split())
                     font_size = getattr(text_block, 'font_size', 0)
                     if word_count <= 20 and font_size >= 16:
@@ -1973,11 +2405,7 @@ class PyMuPDFYOLOProcessor:
         """
         Process entire PDF document and create complete Digital Twin representation.
         
-        This is the master method that implements the user's complete vision:
-        1. Extract TOC using PyMuPDF's native get_toc() method
-        2. Process all pages with image extraction and structured content
-        3. Create a complete DocumentModel with proper linking
-        4. Preserve document structure and relationships
+        Implements section-based bibliography exclusion: scans the last 30% of pages for a bibliography/references header, and excludes that page and all subsequent pages from translation.
         """
         start_time = time.time()
         self.processing_state['processing_start_time'] = start_time
@@ -2001,27 +2429,27 @@ class PyMuPDFYOLOProcessor:
             # Open PDF document
             doc = fitz.open(pdf_path)
             total_pages = len(doc)
-            
+
             # Get document size for optimal processing strategy
             document_size_mb = os.path.getsize(pdf_path) / (1024 * 1024)
-            
+
             # OPTIMIZATION: Calculate optimal batch size based on document characteristics
             optimal_batch_size = self.memory_manager.calculate_optimal_batch_size(total_pages, document_size_mb)
-            
+
             # Enable memory optimization for large documents or low memory systems
             memory_optimization_enabled = (
                 self.memory_manager.should_cleanup_memory() or  # Memory pressure detected
                 total_pages > 50 or  # Large documents
                 document_size_mb > 100  # Large files
             )
-            
+
             if memory_optimization_enabled:
                 self.logger.info("🔧 Memory optimization enabled for large document processing")
-            
+
             # Extract document metadata
             document_metadata = doc.metadata
             document_title = document_metadata.get('title', '') or os.path.splitext(os.path.basename(pdf_path))[0]
-            
+
             # Create Digital Twin document model
             digital_twin_doc = DocumentModel(
                 title=document_title,
@@ -2031,30 +2459,51 @@ class PyMuPDFYOLOProcessor:
                 source_language='auto-detect',  # Will be updated by translation service
                 extraction_method='pymupdf_yolo_digital_twin'
             )
-            
-            # Extract Table of Contents using PyMuPDF's native method
-            self.logger.info("📖 Extracting Table of Contents...")
-            toc_entries = self._extract_toc_digital_twin(doc)
-            
-            if toc_entries:
-                digital_twin_doc.toc_entries.extend(toc_entries)
-                self.logger.info(f"✅ Extracted {len(toc_entries)} TOC entries")
-            else:
-                self.logger.info("📝 No TOC found in document")
-            
+
+            # --- Bibliography/References Exclusion: Only exclude after a strict header match in last 30% ---
+            bibliography_headers = [
+                'references', 'bibliography', 'works cited', 'βιβλιογραφία', 'αναφορές', 'références', 'literaturverzeichnis', 'referencias', '参考文献', '참고문헌', 'источники', 'библиография'
+            ]
+            bibliography_page = None
+            scan_start = int(total_pages * 0.7)
+            for page_num in range(scan_start, total_pages):
+                page = doc[page_num]
+                text_dict = page.get_text("dict")
+                for block in text_dict.get("blocks", []):
+                    if block.get("type") == 0:  # Text block
+                        for line in block.get("lines", []):
+                            for span in line.get("spans", []):
+                                text = span.get("text", "").strip().lower()
+                                font_size = span.get("size", 12)
+                                font_flags = span.get("flags", 0)
+                                is_large_font = font_size >= 14
+                                is_bold = bool(font_flags & 2**4)
+                                is_short = 1 <= len(text.split()) <= 4
+                                is_top = block.get("bbox", [0,0,0,0])[1] < 200
+                                if (text in bibliography_headers and is_large_font and is_bold and is_short and is_top):
+                                    bibliography_page = page_num
+                                    self.logger.info(f"📚 Bibliography/References header detected on page {page_num+1}: '{text}' (font {font_size}, bold {is_bold})")
+                                    break
+                            if bibliography_page is not None:
+                                break
+                        if bibliography_page is not None:
+                            break
+            # ... existing code ...
             # Process all pages with intelligent processing strategy selection
             self.logger.info(f"📄 Processing {total_pages} pages...")
-            
+
+            # Determine the last page to process (exclusive of bibliography)
+            stop_page = bibliography_page if bibliography_page is not None else total_pages
+
             # Determine optimal processing strategy based on document size and memory
             if memory_optimization_enabled:
                 # Memory-constrained processing
                 self.logger.info("💾 Using memory-optimized processing")
                 processed_pages = self._process_pages_with_memory_optimization(
-                    pdf_path, total_pages, output_dir
+                    pdf_path, stop_page, output_dir
                 )
-                
                 # Add processed pages to document in order
-                for page_num in range(total_pages):
+                for page_num in range(stop_page):
                     if page_num < len(processed_pages):
                         digital_twin_doc.add_page(processed_pages[page_num])
                     else:
@@ -2065,37 +2514,30 @@ class PyMuPDFYOLOProcessor:
                             page_metadata={'error': 'Page not processed', 'processing_failed': True}
                         )
                         digital_twin_doc.add_page(error_page)
-                        
             elif total_pages <= 5:
                 # Small documents: Process sequentially to avoid overhead
                 self.logger.info("📝 Using sequential processing for small document")
-                for page_num in range(total_pages):
+                for page_num in range(stop_page):
                     try:
                         # Process page using Digital Twin method
                         digital_twin_page = await self.process_page_digital_twin(
                             pdf_path, page_num, output_dir
                         )
-                        
                         # Add page to document
                         digital_twin_doc.add_page(digital_twin_page)
-                        
                         # Update processing state and save checkpoint
                         self.processing_state['completed_pages'].append(page_num + 1)
                         self.stats['successful_pages'] += 1
                         self.stats['total_pages_processed'] += 1
-                        
                         # Save checkpoint every 5 pages
                         if (page_num + 1) % 5 == 0:
                             self._save_checkpoint(digital_twin_doc, page_num + 1)
-                        
                         self.logger.info(f"✅ Processed page {page_num + 1}/{total_pages}")
-                        
                     except Exception as e:
                         self.logger.error(f"❌ Failed to process page {page_num + 1}: {e}")
                         # Use enhanced error recovery
                         recovered_page = self._handle_processing_error(e, page_num + 1, digital_twin_doc)
                         digital_twin_doc.add_page(recovered_page)
-                        
                         # Update processing statistics
                         self.processing_state['failed_pages'].append(page_num + 1)
                         self.stats['failed_pages'] += 1
@@ -2103,11 +2545,10 @@ class PyMuPDFYOLOProcessor:
                 # Large documents: Use parallel processing with batching
                 self.logger.info("🚀 Using parallel processing for large document")
                 processed_pages = await self._process_pages_parallel(
-                    pdf_path, total_pages, output_dir
+                    pdf_path, stop_page, output_dir
                 )
-                
                 # Add processed pages to document in order
-                for page_num in range(total_pages):
+                for page_num in range(stop_page):
                     if page_num < len(processed_pages):
                         digital_twin_doc.add_page(processed_pages[page_num])
                     else:
@@ -2170,107 +2611,72 @@ class PyMuPDFYOLOProcessor:
             
             return error_doc
     
-    async def _process_pages_parallel(self, pdf_path: str, total_pages: int, output_dir: str) -> List[PageModel]:
+    async def _process_pages_parallel(self, pdf_path: str, stop_page: int, output_dir: str) -> List[PageModel]:
         """
         Process multiple pages in parallel with intelligent batching and memory management.
-        
-        This optimization provides significant performance improvements for large documents
-        while maintaining system stability through controlled concurrency.
+        Only processes pages in range(0, stop_page).
         """
         import asyncio
         import multiprocessing
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        
-        # Calculate optimal batch size based on system resources
         cpu_count = multiprocessing.cpu_count()
-        optimal_batch_size = min(max(2, cpu_count - 1), 8)  # Leave 1 CPU free, max 8 concurrent
-        
-        # Adjust batch size based on document size
-        if total_pages < 20:
-            batch_size = min(4, total_pages)
-        elif total_pages < 100:
+        optimal_batch_size = min(max(2, cpu_count - 1), 8)
+        if stop_page < 20:
+            batch_size = min(4, stop_page)
+        elif stop_page < 100:
             batch_size = optimal_batch_size
         else:
-            batch_size = optimal_batch_size + 2  # Larger batches for very large documents
-        
-        self.logger.info(f"🔄 Parallel processing: {batch_size} concurrent pages, {total_pages} total pages")
-        
-        # Initialize results list to maintain page order
-        processed_pages = [None] * total_pages
-        
-        # Create semaphore to limit concurrent operations
+            batch_size = optimal_batch_size + 2
+        self.logger.info(f"🔄 Parallel processing: {batch_size} concurrent pages, {stop_page} total pages")
+        processed_pages = [None] * stop_page
         semaphore = asyncio.Semaphore(batch_size)
-        
         async def process_page_with_semaphore(page_num: int) -> tuple:
-            """Process a single page with semaphore control"""
             async with semaphore:
                 try:
                     self.logger.debug(f"Starting parallel processing for page {page_num + 1}")
-                    
-                    # Process page using Digital Twin method
                     digital_twin_page = await self.process_page_digital_twin(
                         pdf_path, page_num, output_dir
                     )
-                    
-                    self.logger.info(f"✅ Parallel processed page {page_num + 1}/{total_pages}")
+                    self.logger.info(f"✅ Parallel processed page {page_num + 1}/{stop_page}")
                     return (page_num, digital_twin_page, None)
-                    
                 except Exception as e:
                     self.logger.error(f"❌ Parallel processing failed for page {page_num + 1}: {e}")
-                    # Create error page
                     error_page = PageModel(
                         page_number=page_num + 1,
-                        dimensions=(595.0, 842.0),  # Standard A4 dimensions to satisfy validation
+                        dimensions=(595.0, 842.0),
                         page_metadata={'error': str(e), 'processing_failed': True, 'parallel_processing': True}
                     )
                     return (page_num, error_page, str(e))
-        
-        # Create tasks for all pages
         tasks = []
-        for page_num in range(total_pages):
+        for page_num in range(stop_page):
             task = asyncio.create_task(process_page_with_semaphore(page_num))
             tasks.append(task)
-        
-        # Process tasks with progress tracking
         completed_count = 0
-        
-        # Wait for all tasks to complete
         for task in asyncio.as_completed(tasks):
             try:
                 page_num, page_result, error = await task
                 processed_pages[page_num] = page_result
-                
                 completed_count += 1
-                
-                # Log progress every 10% or every 5 pages, whichever is more frequent
-                progress_interval = max(1, min(total_pages // 10, 5))
-                if completed_count % progress_interval == 0 or completed_count == total_pages:
-                    progress_percent = (completed_count / total_pages) * 100
-                    self.logger.info(f"📊 Parallel processing progress: {completed_count}/{total_pages} ({progress_percent:.1f}%)")
-                
+                progress_interval = max(1, min(stop_page // 10, 5))
+                if completed_count % progress_interval == 0 or completed_count == stop_page:
+                    progress_percent = (completed_count / stop_page) * 100
+                    self.logger.info(f"📊 Parallel processing progress: {completed_count}/{stop_page} ({progress_percent:.1f}%)")
             except Exception as e:
                 self.logger.error(f"Task completion error: {e}")
-                # Handle task failure
                 continue
-        
-        # Verify all pages were processed
         successful_pages = sum(1 for page in processed_pages if page is not None)
-        failed_pages = total_pages - successful_pages
-        
+        failed_pages = stop_page - successful_pages
         if failed_pages > 0:
             self.logger.warning(f"⚠️ Parallel processing completed with {failed_pages} failed pages")
         else:
             self.logger.info("🎉 All pages processed successfully in parallel")
-        
-        # Fill any None slots with error pages
         for i, page in enumerate(processed_pages):
             if page is None:
                 processed_pages[i] = PageModel(
                     page_number=i + 1,
-                    dimensions=(595.0, 842.0),  # Standard A4 dimensions to satisfy validation
+                    dimensions=(595.0, 842.0),
                     page_metadata={'error': 'Page processing failed', 'processing_failed': True}
                 )
-        
         return processed_pages
     
     def _get_memory_info(self) -> Dict[str, float]:
@@ -2378,66 +2784,41 @@ class PyMuPDFYOLOProcessor:
         except Exception as e:
             self.logger.debug(f"Memory optimization failed: {e}")
     
-    def _process_pages_with_memory_optimization(self, pdf_path: str, total_pages: int, 
-                                               output_dir: str) -> List[PageModel]:
+    def _process_pages_with_memory_optimization(self, pdf_path: str, stop_page: int, output_dir: str) -> List[PageModel]:
         """
         Process pages with aggressive memory optimization for large documents or low memory systems.
-        
         This method uses streaming processing and memory-conscious techniques.
+        Only processes pages in range(0, stop_page).
         """
         processed_pages = []
-        
-        # Process pages in smaller batches to control memory usage
         batch_size = 3  # Smaller batches for memory optimization
-        
-        for batch_start in range(0, total_pages, batch_size):
-            batch_end = min(batch_start + batch_size, total_pages)
-            
+        for batch_start in range(0, stop_page, batch_size):
+            batch_end = min(batch_start + batch_size, stop_page)
             self.logger.info(f"🔄 Processing memory-optimized batch: pages {batch_start + 1}-{batch_end}")
-            
-            # Process batch
             batch_pages = []
             for page_num in range(batch_start, batch_end):
                 try:
-                    # Open document fresh for each batch to avoid memory accumulation
                     doc = fitz.open(pdf_path)
-                    
-                    # Process single page
                     digital_twin_page = self._process_single_page_optimized(
                         doc, page_num, output_dir
                     )
-                    
                     batch_pages.append(digital_twin_page)
-                    
-                    # Close document immediately
                     doc.close()
-                    
-                    # Force memory cleanup
                     self._optimize_memory_usage(None, page_num)
-                    
                     self.logger.info(f"✅ Memory-optimized processing completed for page {page_num + 1}")
-                    
                 except Exception as e:
                     self.logger.error(f"❌ Memory-optimized processing failed for page {page_num + 1}: {e}")
-                    # Create error page
                     error_page = PageModel(
                         page_number=page_num + 1,
-                        dimensions=(595.0, 842.0),  # Standard A4 dimensions to satisfy validation
+                        dimensions=(595.0, 842.0),
                         page_metadata={'error': str(e), 'processing_failed': True, 'memory_optimized': True}
                     )
                     batch_pages.append(error_page)
-            
-            # Add batch to results
             processed_pages.extend(batch_pages)
-            
-            # Memory cleanup between batches
             import gc
             gc.collect()
-            
-            # Log progress
-            progress_percent = (batch_end / total_pages) * 100
-            self.logger.info(f"📊 Memory-optimized progress: {batch_end}/{total_pages} ({progress_percent:.1f}%)")
-        
+            progress_percent = (batch_end / stop_page) * 100
+            self.logger.info(f"📊 Memory-optimized progress: {batch_end}/{stop_page} ({progress_percent:.1f}%)")
         return processed_pages
     
     def _process_single_page_optimized(self, doc: fitz.Document, page_num: int, output_dir: str) -> PageModel:
@@ -2467,7 +2848,7 @@ class PyMuPDFYOLOProcessor:
             for idx, text_block in enumerate(text_blocks):
                 dt_text_block = create_text_block(
                     block_id=f"text_{page_num + 1}_{idx + 1}",
-                    text=text_block.text,
+                    text=text_block.original_text,
                     bbox=text_block.bbox,
                     page_number=page_num + 1,
                     block_type=BlockType.PARAGRAPH,
@@ -2589,22 +2970,93 @@ class PyMuPDFYOLOProcessor:
     def _extract_toc_from_headings(self, doc: fitz.Document) -> List[TOCEntry]:
         """
         Fallback: Extract TOC by scanning document for heading-style content.
-        
         Used when no native TOC is available in the PDF.
+        ENHANCED: Only include likely real headings (large font, bold, short, not citation/metadata).
         """
+        import re
         try:
             self.logger.info("🔍 Scanning document for heading structures...")
-            
             toc_entries = []
             entry_id = 0
-            
+            # Patterns to exclude (citations, DOIs, dates, publisher info)
+            exclude_patterns = [
+                r'^doi:', r'^https?://', r'\d{4}-\d{2}-\d{2}', r'\d{2}:\d{2}',
+                r'\bpress\b', r'\bpublisher\b', r'\bopen access\b', r'\bspringer\b',
+                r'\bjournal\b', r'\bvolume\b', r'\bissue\b', r'\bpages?\b',
+                r'\bcopyright\b', r'\bdate\b', r'\bdoi\b', r'\burl\b', r'\bedition\b',
+                r'\bissn\b', r'\bisbn\b', r'\blicense\b', r'\bxml\b', r'\bpdf\b',
+                r'\baccessed\b', r'\bpublication\b', r'\babstract\b', r'\bkeywords?\b',
+                r'\bref(erence)?s?\b', r'\btable of contents\b', r'\bcontents\b',
+                r'\bopen access\b', r'\bcreative commons\b', r'\bpreprint\b',
+                r'\bsubmitted\b', r'\baccepted\b', r'\breceived\b', r'\bcorrespondence\b',
+                r'\bemail\b', r'\bcontact\b', r'\bdate\b', r'\bversion\b', r'\bxml\b',
+                r'\bdocx\b', r'\bdoc\b', r'\bpdf\b', r'\bhtml\b', r'\btxt\b', r'\bepub\b',
+                r'\blicense\b', r'\bcreativecommons\b', r'\bopen\b', r'\baccess\b',
+                r'\bmetadata\b', r'\barchive\b', r'\bpreprint\b', r'\bmanuscript\b',
+                r'\bsubmission\b', r'\bpeer review\b', r'\bpeer-reviewed\b', r'\bpeer reviewed\b',
+                r'\bpublication\b', r'\bpublisher\b', r'\bjournal\b', r'\bconference\b',
+                r'\bproceedings\b', r'\bworkshop\b', r'\bmeeting\b', r'\bsymposium\b',
+                r'\bthesis\b', r'\bdissertation\b', r'\bdegree\b', r'\buniversity\b',
+                r'\bcollege\b', r'\binstitute\b', r'\bdepartment\b', r'\bfaculty\b',
+                r'\bcommittee\b', r'\bboard\b', r'\badvisor\b', r'\bsupervisor\b',
+                r'\bchair\b', r'\bprofessor\b', r'\bdoctor\b', r'\bphd\b', r'\bmsc\b',
+                r'\bma\b', r'\bba\b', r'\bms\b', r'\bbs\b', r'\bmd\b', r'\bjd\b',
+                r'\bllm\b', r'\bllb\b', r'\bpostdoc\b', r'\bpostdoctoral\b', r'\bgrant\b',
+                r'\bfunding\b', r'\bproject\b', r'\baward\b', r'\bprize\b', r'\bfellowship\b',
+                r'\bpatent\b', r'\btrademark\b', r'\bcopyright\b', r'\bdisclaimer\b',
+                r'\bnotice\b', r'\bstatement\b', r'\bpolicy\b', r'\bterms?\b', r'\bconditions?\b',
+                r'\bprivacy\b', r'\bsecurity\b', r'\bcompliance\b', r'\bregulation\b',
+                r'\blaw\b', r'\blegislation\b', r'\bstatute\b', r'\bcode\b', r'\bsection\b',
+                r'\barticle\b', r'\bclause\b', r'\bparagraph\b', r'\bsubsection\b', r'\bappendix\b',
+                r'\bannex\b', r'\battachment\b', r'\bexhibit\b', r'\bfigure\b', r'\btable\b',
+                r'\bchart\b', r'\bdiagram\b', r'\bimage\b', r'\bphoto\b', r'\bplate\b',
+                r'\bmap\b', r'\bgraph\b', r'\bplot\b', r'\bcurve\b', r'\bdata\b', r'\bstatistic\b',
+                r'\bresult\b', r'\bconclusion\b', r'\bdiscussion\b', r'\bsummary\b', r'\bintroduction\b',
+                r'\bmethod\b', r'\bmaterials?\b', r'\bprocedure\b', r'\bexperiment\b', r'\banalysis\b',
+                r'\btheory\b', r'\bmodel\b', r'\bcalculation\b', r'\bderivation\b', r'\bproof\b',
+                r'\bexample\b', r'\bcase\b', r'\bstudy\b', r'\bapplication\b', r'\bimplication\b',
+                r'\blimitation\b', r'\bstrength\b', r'\bweakness\b', r'\badvantage\b', r'\bdisadvantage\b',
+                r'\bbenefit\b', r'\bcost\b', r'\brisk\b', r'\bopportunity\b', r'\bchallenge\b',
+                r'\bproblem\b', r'\bsolution\b', r'\bstrategy\b', r'\bplan\b', r'\bgoal\b',
+                r'\bobjective\b', r'\bpurpose\b', r'\bquestion\b', r'\bhypothesis\b', r'\bprediction\b',
+                r'\btest\b', r'\bvalidation\b', r'\bverification\b', r'\bmeasurement\b', r'\bassessment\b',
+                r'\bevaluation\b', r'\bcomparison\b', r'\breview\b', r'\bmeta-analysis\b', r'\bsystematic\b',
+                r'\bliterature\b', r'\bsearch\b', r'\bselection\b', r'\binclusion\b', r'\bexclusion\b',
+                r'\bcriteria\b', r'\bprotocol\b', r'\bregistration\b', r'\bprisma\b', r'\bflow\b',
+                r'\bdiagram\b', r'\bchart\b', r'\btable\b', r'\bfigure\b', r'\bappendix\b',
+                r'\bannex\b', r'\battachment\b', r'\bexhibit\b', r'\bnote\b', r'\bfootnote\b',
+                r'\bcaption\b', r'\blegend\b', r'\bkey\b', r'\bexplanation\b', r'\bdefinition\b',
+                r'\bglossary\b', r'\bindex\b', r'\breference\b', r'\bbibliography\b', r'\bworks cited\b',
+                r'\bsource\b', r'\bsources\b', r'\bweb\b', r'\bsite\b', r'\bhomepage\b', r'\burl\b',
+                r'\bemail\b', r'\bcontact\b', r'\baddress\b', r'\bphone\b', r'\bfax\b', r'\bnumber\b',
+                r'\bcode\b', r'\bid\b', r'\bidentifier\b', r'\btoken\b', r'\bhash\b', r'\bchecksum\b',
+                r'\bversion\b', r'\brevision\b', r'\bupdate\b', r'\bchange\b', r'\bhistory\b',
+                r'\blog\b', r'\bchangelog\b', r'\bnews\b', r'\bannouncement\b', r'\balert\b',
+                r'\bwarning\b', r'\bcaution\b', r'\bimportant\b', r'\bnote\b', r'\btip\b',
+                r'\btrick\b', r'\bexample\b', r'\bcase\b', r'\bstudy\b', r'\bapplication\b',
+                r'\bimplication\b', r'\blimitation\b', r'\bstrength\b', r'\bweakness\b', r'\badvantage\b',
+                r'\bdisadvantage\b', r'\bbenefit\b', r'\bcost\b', r'\brisk\b', r'\bopportunity\b',
+                r'\bchallenge\b', r'\bproblem\b', r'\bsolution\b', r'\bstrategy\b', r'\bplan\b',
+                r'\bgoal\b', r'\bobjective\b', r'\bpurpose\b', r'\bquestion\b', r'\bhypothesis\b',
+                r'\bprediction\b', r'\btest\b', r'\bvalidation\b', r'\bverification\b', r'\bmeasurement\b',
+                r'\bassessment\b', r'\bevaluation\b', r'\bcomparison\b', r'\breview\b', r'\bmeta-analysis\b',
+                r'\bsystematic\b', r'\bliterature\b', r'\bsearch\b', r'\bselection\b', r'\binclusion\b',
+                r'\bexclusion\b', r'\bcriteria\b', r'\bprotocol\b', r'\bregistration\b', r'\bprisma\b',
+                r'\bflow\b', r'\bdiagram\b', r'\bchart\b', r'\btable\b', r'\bfigure\b', r'\bappendix\b',
+                r'\bannex\b', r'\battachment\b', r'\bexhibit\b', r'\bnote\b', r'\bfootnote\b',
+                r'\bcaption\b', r'\blegend\b', r'\bkey\b', r'\bexplanation\b', r'\bdefinition\b',
+                r'\bglossary\b', r'\bindex\b', r'\breference\b', r'\bbibliography\b', r'\bworks cited\b',
+                r'\bsource\b', r'\bsources\b', r'\bweb\b', r'\bsite\b', r'\bhomepage\b', r'\burl\b',
+                r'\bemail\b', r'\bcontact\b', r'\baddress\b', r'\bphone\b', r'\bfax\b', r'\bnumber\b',
+                r'\bcode\b', r'\bid\b', r'\bidentifier\b', r'\btoken\b', r'\bhash\b', r'\bchecksum\b',
+                r'\bversion\b', r'\brevision\b', r'\bupdate\b', r'\bchange\b', r'\bhistory\b',
+                r'\blog\b', r'\bchangelog\b', r'\bnews\b', r'\bannouncement\b', r'\balert\b',
+                r'\bwarning\b', r'\bcaution\b', r'\bimportant\b', r'\bnote\b', r'\btip\b', r'\btrick\b',
+            ]
             # Scan all pages for potential headings
             for page_num in range(len(doc)):
                 page = doc[page_num]
-                
-                # Get text with format information
                 text_dict = page.get_text("dict")
-                
                 for block in text_dict.get("blocks", []):
                     if block.get("type") == 0:  # Text block
                         for line in block.get("lines", []):
@@ -2612,12 +3064,16 @@ class PyMuPDFYOLOProcessor:
                                 text = span.get("text", "").strip()
                                 font_size = span.get("size", 12)
                                 font_flags = span.get("flags", 0)
-                                
-                                # Detect heading characteristics
-                                if self._is_likely_heading(text, font_size, font_flags):
+                                # Exclude if matches any unwanted pattern
+                                if any(re.search(pat, text.lower()) for pat in exclude_patterns):
+                                    continue
+                                # Heading characteristics: large font, bold, short, not citation/metadata
+                                is_large_font = font_size >= 14
+                                is_bold = bool(font_flags & 2**4)
+                                is_short = 3 <= len(text.split()) <= 15
+                                if self._is_likely_heading(text, font_size, font_flags) and is_large_font and is_bold and is_short:
                                     entry_id += 1
                                     level = self._estimate_heading_level(font_size, font_flags)
-                                    
                                     toc_entry = TOCEntry(
                                         entry_id=f"heading_scan_{entry_id}",
                                         title=text,
@@ -2627,25 +3083,16 @@ class PyMuPDFYOLOProcessor:
                                         anchor_id=f"heading_anchor_{entry_id}",
                                         section_type=self._detect_section_type(text, level)
                                     )
-                                    
-                                    # Generate content fingerprint from following content
                                     preview_content = self._extract_section_preview(doc, page_num, span.get("bbox"))
                                     toc_entry.generate_content_fingerprint(preview_content)
                                     toc_entry.content_preview = preview_content[:200] + "..." if len(preview_content) > 200 else preview_content
-                                    
                                     toc_entries.append(toc_entry)
-            
-            # Build hierarchy for scanned headings
             self._build_toc_hierarchy_enhanced(toc_entries)
-            
-            # CRITICAL: Map scanned headings to document content for confidence scoring
             if toc_entries:
                 toc_entries = self._map_toc_to_document_content_sync(doc, toc_entries)
                 self._validate_toc_mappings(toc_entries)
-            
             self.logger.info(f"📋 Heading scan completed: {len(toc_entries)} potential TOC entries found")
             return toc_entries
-            
         except Exception as e:
             self.logger.error(f"❌ Heading scan failed: {e}")
             return []
@@ -2773,7 +3220,7 @@ class PyMuPDFYOLOProcessor:
                             following_content = self._extract_section_preview(doc, page_num, bbox)
                             
                             heading_info = {
-                                'text': block_text,
+                                'original_text': block_text,
                                 'page': page_num + 1,
                                 'block_idx': block_idx,
                                 'font_size': max_font_size,
@@ -2795,60 +3242,30 @@ class PyMuPDFYOLOProcessor:
     def _find_heading_matches(self, toc_entry: TOCEntry, document_headings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Find the best matching document headings for a TOC entry.
+        Only allow exact matches or very high-threshold fuzzy matches (>=0.95).
         """
         matches = []
         toc_title_normalized = self._normalize_text_for_matching(toc_entry.title)
-        
         for heading in document_headings:
-            heading_text_normalized = self._normalize_text_for_matching(heading['text'])
-            
-            # Calculate match confidence using multiple criteria
+            heading_text_normalized = self._normalize_text_for_matching(heading['original_text'])
             confidence = 0.0
-            
             # Exact text match (highest confidence)
             if toc_title_normalized == heading_text_normalized:
                 confidence = 1.0
-            # Fuzzy text match
-            elif self._is_fuzzy_match(toc_title_normalized, heading_text_normalized, threshold=0.8):
-                confidence = 0.9
-            # Partial match (one contains the other)
-            elif toc_title_normalized in heading_text_normalized or heading_text_normalized in toc_title_normalized:
-                confidence = 0.7
-            # Word overlap match
-            else:
-                toc_words = set(toc_title_normalized.split())
-                heading_words = set(heading_text_normalized.split())
-                if toc_words and heading_words:
-                    overlap = len(toc_words.intersection(heading_words))
-                    union = len(toc_words.union(heading_words))
-                    if union > 0:
-                        confidence = overlap / union
-            
-            # Boost confidence for level and page proximity
-            if confidence > 0.5:
-                # Level proximity bonus
-                level_diff = abs(toc_entry.level - heading.get('level_estimate', toc_entry.level))
-                if level_diff == 0:
-                    confidence += 0.1
-                elif level_diff == 1:
-                    confidence += 0.05
-                
-                # Page proximity bonus (if reasonable page difference)
-                page_diff = abs(toc_entry.page_number - heading['page'])
-                if page_diff <= 2:
-                    confidence += 0.05
-                elif page_diff <= 5:
-                    confidence += 0.02
-            
+            # Very high-threshold fuzzy match
+            elif self._is_fuzzy_match(toc_title_normalized, heading_text_normalized, threshold=0.95):
+                confidence = 0.95
+            # No partial/word overlap matches allowed
             # Only include matches above threshold
-            if confidence >= 0.5:
+            if confidence >= 0.95:
                 matches.append({
                     'heading': heading,
-                    'confidence': min(1.0, confidence)  # Cap at 1.0
+                    'confidence': confidence
                 })
-        
         # Sort by confidence (highest first)
         matches.sort(key=lambda x: x['confidence'], reverse=True)
+        if not matches:
+            self.logger.warning(f"TOC entry '{toc_entry.title}' has no high-confidence heading match.")
         return matches
     
     def _build_toc_hierarchy_enhanced(self, toc_entries: List[TOCEntry]) -> None:
@@ -3200,7 +3617,7 @@ class PyMuPDFYOLOProcessor:
         try:
             from digital_twin_model import BlockType
             
-            text = text_block.text.strip()
+            text = text_block.original_text.strip()
             font_size = text_block.font_size
             bbox = text_block.bbox
             
@@ -3293,7 +3710,7 @@ class PyMuPDFYOLOProcessor:
         4. Text characteristics (length, formatting)
         """
         try:
-            text = text_block.text.strip()
+            text = text_block.original_text.strip()
             font_size = text_block.font_size
             bbox = text_block.bbox
             
@@ -3647,7 +4064,7 @@ class PyMuPDFYOLOProcessor:
             for i, text_block in enumerate(text_blocks):
                 dt_text_block = create_text_block(
                     block_id=f"text_only_{page_number}_{i}",
-                    text=text_block.text,
+                    text=text_block.original_text,
                     bbox=text_block.bbox,
                     page_number=page_number,
                     extraction_method='text_only_recovery'
@@ -4300,3 +4717,75 @@ class PyMuPDFYOLOProcessor:
     
     def process_pdf(self, input_filepath, *args, **kwargs):
         pass
+
+    def _conservative_split_blocks_by_yolo(self, digital_twin_page, layout_areas):
+        """
+        For each YOLO-detected semantic block (title, header, etc.),
+        if it significantly overlaps a PyMuPDF text block, split the PyMuPDF block into two:
+        - One for the semantic region (with YOLO's role/label)
+        - One for the remainder (as paragraph/text)
+        Only split if overlap is >77% and YOLO label is a semantic type.
+        """
+        import copy
+        semantic_labels = {'title', 'heading', 'header', 'caption'}
+        new_text_blocks = []
+        used_blocks = set()
+        for area in layout_areas:
+            if area.label not in semantic_labels:
+                continue
+            yolo_rect = area.bbox
+            for tb in digital_twin_page.text_blocks:
+                if tb.block_id in used_blocks:
+                    continue
+                # Compute intersection over YOLO area
+                tb_rect = tb.bbox
+                # Calculate intersection area
+                x0 = max(yolo_rect[0], tb_rect[0])
+                y0 = max(yolo_rect[1], tb_rect[1])
+                x1 = min(yolo_rect[2], tb_rect[2])
+                y1 = min(yolo_rect[3], tb_rect[3])
+                if x1 <= x0 or y1 <= y0:
+                    continue  # No overlap
+                intersection = (x1 - x0) * (y1 - y0)
+                yolo_area = (yolo_rect[2] - yolo_rect[0]) * (yolo_rect[3] - yolo_rect[1])
+                if yolo_area == 0:
+                    continue
+                overlap_ratio = intersection / yolo_area
+                if overlap_ratio < 0.77:
+                    continue  # Only split if >77% overlap
+                # Try to match YOLO text to start of PyMuPDF block
+                yolo_text = tb.page.get_textbox(yolo_rect).strip() if hasattr(tb, 'page') else ''
+                pymu_text = tb.original_text.strip()
+                if yolo_text and pymu_text.startswith(yolo_text):
+                    # Split at the end of the YOLO text
+                    split_idx = len(yolo_text)
+                    title_text = pymu_text[:split_idx].strip()
+                    para_text = pymu_text[split_idx:].lstrip('\n .')
+                    # Create new title block
+                    title_block = copy.deepcopy(tb)
+                    title_block.original_text = title_text
+                    title_block.block_type = area.label  # e.g., 'title', 'heading'
+                    title_block.processing_notes.append(f"Split by YOLO {area.label} overlap; assigned semantic role.")
+                    # Create new paragraph block if any text remains
+                    if para_text:
+                        para_block = copy.deepcopy(tb)
+                        para_block.original_text = para_text
+                        para_block.block_type = 'paragraph'
+                        para_block.processing_notes.append(f"Split from {area.label} by YOLO overlap.")
+                        new_text_blocks.append(title_block)
+                        new_text_blocks.append(para_block)
+                    else:
+                        new_text_blocks.append(title_block)
+                    used_blocks.add(tb.block_id)
+                    self.logger.info(f"🔀 Split PyMuPDF block at YOLO {area.label}: '{title_text[:40]}...' | '{para_text[:40]}...'")
+                    break  # Only split once per YOLO area
+        # Add untouched blocks
+        for tb in digital_twin_page.text_blocks:
+            if tb.block_id not in used_blocks:
+                new_text_blocks.append(tb)
+        digital_twin_page.text_blocks = new_text_blocks
+
+    # Integrate after YOLO analysis and before returning digital_twin_page
+    # (Find the place after self._enhance_blocks_with_yolo_structure and before return digital_twin_page)
+    # Add:
+    # self._conservative_split_blocks_by_yolo(digital_twin_page, layout_areas)

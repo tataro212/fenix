@@ -131,8 +131,8 @@ class IntelligentBatcher:
         """
         if not translation_tasks:
             return []
-        # Step 1: Add paragraph boundary markers to tasks
-        self._add_paragraph_markers_to_tasks(translation_tasks)
+        # Step 1: Add paragraph tags to tasks
+        self._add_paragraph_tags_to_tasks(translation_tasks)
         # Define special roles
         special_roles = {'footnote', 'title', 'header', 'heading', 'caption', 'list_item', 'bullet'}
         batches = []
@@ -366,128 +366,99 @@ class IntelligentBatcher:
         )
 
     def _create_combined_text_from_tasks(self, tasks: List[TranslationTask]) -> str:
-        """Create combined text from tasks with proper XML formatting."""
-        xml_segments = []
-        
+        """Create combined text from tasks with explicit prompt to preserve <p> tags."""
+        prompt = (
+            "You are translating a document. Each paragraph is wrapped in <p>...</p> tags. "
+            "Do NOT merge, split, or remove these tags. Preserve the <p>...</p> tags exactly as they are. "
+            "Translate only the text inside each <p>...</p> and keep the tags in the same order."
+        )
+        xml_segments = [prompt]
         for i, task in enumerate(tasks):
             # Escape XML special characters
             escaped_text = task.text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            xml_segments.append(f'<seg id="{i}">{escaped_text}</seg>')
-        
+            # Unescape <p> tags for the actual paragraph boundaries
+            escaped_text = escaped_text.replace('&lt;p&gt;', '<p>').replace('&lt;/p&gt;', '</p>')
+            xml_segments.append(f'{escaped_text}')
         return '\n'.join(xml_segments)
 
     def parse_batch_translation(self, batch: TranslationBatch, translated_text) -> List[str]:
         """
-        Parse translated batch text back into individual translations.
-        Enhanced to preserve paragraph structure and handle various response formats.
+        Parse translated batch text back into individual translations using <p>...</p> tags.
         """
+        import re
         translations = []
-        # Handle case where translated_text might be a list (fallback from failed translation)
-        if isinstance(translated_text, list):
-            self.logger.warning(f"⚠️ Received list instead of string for batch translation, using fallback")
-            return translated_text[:len(batch.text_blocks)] if len(translated_text) >= len(batch.text_blocks) else [task.text for task in batch.text_blocks]
-        # Ensure we have a string
-        if not isinstance(translated_text, str):
-            self.logger.error(f"❌ Invalid translated_text type: {type(translated_text)}")
-            return [task.text for task in batch.text_blocks]
-        # Log the raw response for debugging
-        self.logger.info(f"🔍 Parsing batch response for {len(batch.text_blocks)} segments")
-        self.logger.info(f"Raw response length: {len(translated_text)} chars")
-        self.logger.info(f"🔍 RAW GEMINI RESPONSE (first 500 chars):\n{translated_text[:500]}")
-        # Try multiple parsing strategies for robustness
         translation_map = {}
-        
-        # Strategy 1: Standard XML seg tags (most common)
-        pattern1 = r'<seg id=["\']?(\d+)["\']?[^>]*>(.*?)</seg>'
-        matches1 = re.findall(pattern1, translated_text, re.DOTALL | re.IGNORECASE)
-        if matches1:
-            self.logger.info(f"✅ Strategy 1: Found {len(matches1)} segments with standard XML")
-            for match in matches1:
-                seg_id = int(match[0])
-                content = match[1].strip()
-                translation_map[seg_id] = self._clean_translated_content(content)
-                self.logger.debug(f"   Segment {seg_id}: {content[:100]}...")
-        
-        # Strategy 2: Try without quotes around ID
-        if not translation_map:
-            pattern2 = r'<seg id=(\d+)[^>]*>(.*?)</seg>'
-            matches2 = re.findall(pattern2, translated_text, re.DOTALL | re.IGNORECASE)
-            if matches2:
-                self.logger.info(f"✅ Strategy 2: Found {len(matches2)} segments without quotes")
-                for match in matches2:
-                    seg_id = int(match[0])
-                    content = match[1].strip()
-                    translation_map[seg_id] = self._clean_translated_content(content)
-                    self.logger.debug(f"   Segment {seg_id}: {content[:100]}...")
-        
-        # Strategy 3: Try single-line segments (no DOTALL)
-        if not translation_map:
-            pattern3 = r'<seg[^>]*id=["\']?(\d+)["\']?[^>]*>(.*?)</seg>'
-            matches3 = re.findall(pattern3, translated_text, re.IGNORECASE)
-            if matches3:
-                self.logger.info(f"✅ Strategy 3: Found {len(matches3)} single-line segments")
-                for match in matches3:
-                    seg_id = int(match[0])
-                    content = match[1].strip()
-                    translation_map[seg_id] = self._clean_translated_content(content)
-                    self.logger.debug(f"   Segment {seg_id}: {content[:100]}...")
-        
-        # Strategy 4: Look for numbered segments without XML tags (fallback)
-        if not translation_map:
-            self.logger.warning(f"🚨 No XML segments found, trying numbered lines...")
-            # Split by lines and look for patterns like "1. content" or "Segment 0: content"
-            lines = translated_text.split('\n')
-            for line in lines:
-                line = line.strip()
-                if not line:
-                    continue
-                
-                # Pattern: "0: content" or "0. content" or "Segment 0: content"
-                number_match = re.match(r'(?:Segment\s+)?(\d+)[:.\-]\s*(.*)', line, re.IGNORECASE)
-                if number_match:
-                    seg_id = int(number_match.group(1))
-                    content = number_match.group(2).strip()
-                    if content:
-                        translation_map[seg_id] = self._clean_translated_content(content)
-                        self.logger.debug(f"   Numbered segment {seg_id}: {content[:100]}...")
-            
-            if translation_map:
-                self.logger.info(f"✅ Strategy 4: Found {len(translation_map)} numbered segments")
-        
-        # Strategy 5: Split by lines and match sequentially (last resort)
-        if not translation_map:
-            self.logger.warning(f"🚨 No structured segments found, trying sequential line matching...")
-            lines = [line.strip() for line in translated_text.split('\n') if line.strip()]
-            # Filter out lines that look like XML tags or metadata
-            content_lines = []
-            for line in lines:
-                if not line.startswith('<') and not line.startswith('[') and len(line) > 5:
-                    content_lines.append(line)
-                    self.logger.debug(f"   Content line: {line[:100]}...")
-            
-            if content_lines:
-                self.logger.info(f"✅ Strategy 5: Using {len(content_lines)} sequential lines")
-                for i, line in enumerate(content_lines):
-                    if i < len(batch.text_blocks):
-                        translation_map[i] = self._clean_translated_content(line)
-        
-        # If still no translations found, log the full response for debugging
-        if not translation_map:
-            self.logger.error(f"🚨 CRITICAL: No translations found in Gemini response!")
-            self.logger.error(f"🔍 FULL GEMINI RESPONSE:\n{translated_text}")
-            self.logger.error(f"🔍 ORIGINAL BATCH CONTENT:\n{batch.combined_text[:1000]}")
-        
-        # Reconstruct translations in original order
-        for i, task in enumerate(batch.text_blocks):
-            if i in translation_map:
-                translations.append(translation_map[i])
-                self.logger.debug(f"✅ Segment {i}: Translated successfully")
+        # First, try to extract <seg id="..."><p>...</p></seg> blocks
+        seg_pattern = re.compile(r'<seg id=["\']?(\d+)["\']?[^>]*>\s*<p>(.*?)</p>\s*</seg>', re.DOTALL | re.IGNORECASE)
+        segs = seg_pattern.findall(translated_text)
+        if segs and len(segs) == len(batch.text_blocks):
+            # Sort by segment id to ensure order
+            segs_sorted = sorted(segs, key=lambda x: int(x[0]))
+            translations = [seg[1].strip() for seg in segs_sorted]
+        else:
+            # Fallback: try to extract <p>...</p> directly
+            p_pattern = re.compile(r'<p>(.*?)</p>', re.DOTALL)
+            matches = p_pattern.findall(translated_text)
+            if matches and len(matches) == len(batch.text_blocks):
+                translations = [m.strip() for m in matches]
             else:
-                self.logger.warning(f"❌ Missing translation for segment {i}, using original text")
-                # Clean the original text of any paragraph markers we added
-                clean_original = task.text.replace('[PARAGRAPH_START]', '').replace('[PARAGRAPH_END]', '').replace('[PARAGRAPH_BREAK]', '').strip()
-                translations.append(clean_original)
-        self.logger.info(f"📊 Batch parsing results: {len(translation_map)}/{len(batch.text_blocks)} segments successfully translated")
+                # Fallback to previous strategies (legacy)
+                # (Keep the rest of the original fallback logic here)
+                pattern1 = r'<seg id=["\']?(\d+)["\']?[^>]*>(.*?)</seg>'
+                matches1 = re.findall(pattern1, translated_text, re.DOTALL | re.IGNORECASE)
+                if matches1:
+                    for match in matches1:
+                        seg_id = int(match[0])
+                        content = match[1].strip()
+                        translation_map[seg_id] = self._clean_translated_content(content)
+                if not translation_map:
+                    pattern2 = r'<seg id=(\d+)[^>]*>(.*?)</seg>'
+                    matches2 = re.findall(pattern2, translated_text, re.DOTALL | re.IGNORECASE)
+                    if matches2:
+                        for match in matches2:
+                            seg_id = int(match[0])
+                            content = match[1].strip()
+                            translation_map[seg_id] = self._clean_translated_content(content)
+                if not translation_map:
+                    pattern3 = r'<seg[^>]*id=["\']?(\d+)["\']?[^>]*>(.*?)</seg>'
+                    matches3 = re.findall(pattern3, translated_text, re.IGNORECASE)
+                    if matches3:
+                        for match in matches3:
+                            seg_id = int(match[0])
+                            content = match[1].strip()
+                            translation_map[seg_id] = self._clean_translated_content(content)
+                if not translation_map:
+                    lines = translated_text.split('\n')
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        number_match = re.match(r'(?:Segment\s+)?(\d+)[:.\-]\s*(.*)', line, re.IGNORECASE)
+                        if number_match:
+                            seg_id = int(number_match.group(1))
+                            content = number_match.group(2).strip()
+                            if content:
+                                translation_map[seg_id] = self._clean_translated_content(content)
+                if not translation_map:
+                    lines = [line.strip() for line in translated_text.split('\n') if line.strip()]
+                    content_lines = []
+                    for line in lines:
+                        if not line.startswith('<') and not line.startswith('[') and len(line) > 5:
+                            content_lines.append(line)
+                    for i, line in enumerate(content_lines):
+                        if i < len(batch.text_blocks):
+                            translation_map[i] = self._clean_translated_content(line)
+                # If we have a translation_map, reconstruct translations in order
+                if translation_map:
+                    for i, task in enumerate(batch.text_blocks):
+                        if i in translation_map:
+                            translations.append(translation_map[i])
+                        else:
+                            clean_original = task.text.replace('[PARAGRAPH_START]', '').replace('[PARAGRAPH_END]', '').replace('[PARAGRAPH_BREAK]', '').strip()
+                            translations.append(clean_original)
+                else:
+                    # If still nothing, fallback to original
+                    translations = [task.text.replace('[PARAGRAPH_START]', '').replace('[PARAGRAPH_END]', '').replace('[PARAGRAPH_BREAK]', '').strip() for task in batch.text_blocks]
         return translations
 
     def _clean_translated_content(self, content: str) -> str:
@@ -530,34 +501,13 @@ class IntelligentBatcher:
         
         return text.strip()
     
-    def _add_paragraph_markers_to_tasks(self, translation_tasks: List[TranslationTask]) -> None:
+    def _add_paragraph_tags_to_tasks(self, translation_tasks: List[TranslationTask]) -> None:
         """
-        Add paragraph boundary markers to translation tasks based on content analysis.
-        
-        This method analyzes the text content and adds markers that will survive translation
-        to help reconstruct proper paragraph structure.
+        Wrap each paragraph in <p>...</p> tags for robust preservation through translation.
         """
-        try:
-            for i, task in enumerate(translation_tasks):
-                original_text = task.text
-                
-                # Detect if this task starts a new paragraph
-                if self._is_paragraph_start(task, translation_tasks, i):
-                    task.text = f"{self.paragraph_start_marker} {original_text}"
-                
-                # Detect if this task ends a paragraph
-                if self._is_paragraph_end(task, translation_tasks, i):
-                    task.text = f"{task.text} {self.paragraph_end_marker}"
-                
-                # Detect paragraph breaks within the task
-                if self._contains_paragraph_break(original_text):
-                    task.text = self._insert_paragraph_break_markers(task.text)
-                
-                self.logger.debug(f"Task {i}: Added paragraph markers to text: {task.text[:100]}...")
-                
-        except Exception as e:
-            self.logger.error(f"Failed to add paragraph markers: {e}")
-    
+        for task in translation_tasks:
+            task.text = f"<p>{task.text}</p>"
+
     def _is_paragraph_start(self, task: TranslationTask, all_tasks: List[TranslationTask], index: int) -> bool:
         """
         Determine if a task represents the start of a new paragraph.
@@ -734,11 +684,9 @@ class AsyncTranslationService:
                 config_concurrency = base_concurrency
 
             # Use the higher of system-based or config-based concurrency
-            self.max_concurrent = max(config_concurrency, base_concurrency)
-            
-            # Cap at reasonable limits to avoid overwhelming the API
-            self.max_concurrent = min(self.max_concurrent, 15)  # Increased from 5 to 15
-            
+            # Limit concurrency to 5 to reduce risk of API overload and translation failures
+            self.max_concurrent = 5  # Lowered from previous adaptive logic
+            # NOTE: Too many concurrent calls can cause API failures or rate limiting.
             # Adaptive request delay based on concurrency
             if self.max_concurrent <= 5:
                 self.request_delay = 0.1  # 100ms for low concurrency
@@ -800,10 +748,11 @@ class AsyncTranslationService:
         logger.info(f"   • Memory cache size: {self.memory_cache.max_size}")
         logger.info(f"   • System resources: {self.stats['system_resources']['cpu_count']} CPUs, {self.stats['system_resources']['memory_gb']:.1f}GB RAM")
 
-    async def translate_batch_concurrent(self, tasks: List[TranslationTask]) -> List[str]:
+    async def translate_batch_concurrent(self, tasks: List[TranslationTask], max_retries: int = 2) -> List[str]:
         """
         Translate multiple tasks using intelligent batching with contextual continuity.
         This dramatically reduces API calls while maintaining translation quality.
+        Now includes robust retry logic for failed batches.
         """
         start_time = time.time()
         self.stats['total_requests'] += len(tasks)
@@ -856,10 +805,10 @@ class AsyncTranslationService:
         
         logger.info(f"📊 Batch cache performance: {len(cached_results)} hits, {len(remaining_batches)} API calls needed")
         
-        # Translate remaining batches concurrently
+        # Translate remaining batches concurrently with retry logic
         batch_results = {}
         if remaining_batches:
-            batch_results = await self._translate_batches_concurrent(remaining_batches)
+            batch_results = await self._translate_batches_concurrent(remaining_batches, max_retries=max_retries)
         
         # Parse batch results back to individual translations
         all_translations = []
@@ -891,51 +840,56 @@ class AsyncTranslationService:
         key_data = f"{batch.combined_text[:500]}_{batch.target_language}_{batch.context_from_previous[:100]}"
         return hashlib.md5(key_data.encode('utf-8')).hexdigest()
     
-    async def _translate_batches_concurrent(self, batches: List[TranslationBatch]) -> Dict[str, str]:
-        """Translate batches concurrently with adaptive scaling"""
-        
-        # Adaptive semaphore based on current performance
+    async def _translate_batches_concurrent(self, batches: List[TranslationBatch], max_retries: int = 2) -> Dict[str, str]:
+        """Translate batches concurrently with adaptive scaling and retry logic"""
         adaptive_semaphore = asyncio.Semaphore(self._get_adaptive_concurrency_limit())
-        
-        async def translate_batch_with_semaphore(batch):
-            async with adaptive_semaphore:
+
+        async def translate_batch_with_retries(batch):
+            last_exception = None
+            for attempt in range(max_retries + 1):
                 try:
-                    # Add adaptive delay
-                    await asyncio.sleep(self.request_delay)
-                    
-                    result = await self._translate_single_batch(batch)
-                    
-                    # Cache the result
-                    cache_key = self._generate_batch_cache_key(batch)
-                    self.memory_cache.set(cache_key, result)
-                    
-                    return result
+                    async with adaptive_semaphore:
+                        if attempt > 0:
+                            logger.info(f"🔁 Retrying batch {batch.batch_id} (attempt {attempt+1}/{max_retries+1})...")
+                        await asyncio.sleep(self.request_delay)
+                        result = await self._translate_single_batch(batch)
+                        # If result is not just the original text, consider it a success
+                        if result.strip() and result.strip() != batch.combined_text.strip():
+                            cache_key = self._generate_batch_cache_key(batch)
+                            self.memory_cache.set(cache_key, result)
+                            return result
+                        else:
+                            logger.warning(f"Batch {batch.batch_id} returned empty or unchanged result on attempt {attempt+1}.")
                 except Exception as e:
-                    logger.error(f"Batch translation failed for {batch.batch_id}: {e}")
-                    return batch.combined_text  # Return original on failure
-        
+                    logger.error(f"Batch translation failed for {batch.batch_id} on attempt {attempt+1}: {e}")
+                    last_exception = e
+            logger.error(f"❌ Batch {batch.batch_id} failed after {max_retries+1} attempts. Using original text.")
+            # FIX: Return only the original texts for each segment, not the prompt or combined_text
+            originals = [task.text for task in batch.text_blocks]
+            return '\n'.join(originals)
+
         # Execute with progress tracking
         try:
             from tqdm.asyncio import tqdm
             TQDM_AVAILABLE = True
         except ImportError:
             TQDM_AVAILABLE = False
-        
-        logger.info(f"⚡ Starting concurrent batch translation of {len(batches)} batches...")
-        
+
+        logger.info(f"⚡ Starting concurrent batch translation of {len(batches)} batches with retry logic...")
+
         if TQDM_AVAILABLE and len(batches) > 2:
             results = await tqdm.gather(
-                *[translate_batch_with_semaphore(batch) for batch in batches],
+                *[translate_batch_with_retries(batch) for batch in batches],
                 desc="🌐 Translating batches",
                 unit="batch",
                 colour="green"
             )
         else:
             results = await asyncio.gather(
-                *[translate_batch_with_semaphore(batch) for batch in batches],
+                *[translate_batch_with_retries(batch) for batch in batches],
                 return_exceptions=True
             )
-        
+
         # Process results
         batch_results = {}
         for i, result in enumerate(results):
@@ -945,7 +899,7 @@ class AsyncTranslationService:
                 batch_results[batch.batch_id] = batch.combined_text
             else:
                 batch_results[batch.batch_id] = result
-        
+
         return batch_results
     
     async def _translate_single_batch(self, batch: TranslationBatch) -> str:

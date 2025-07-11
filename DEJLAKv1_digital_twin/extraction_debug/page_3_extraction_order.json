@@ -1,0 +1,62 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      51.019683837890625,
+      57.99626541137695,
+      388.43682861328125,
+      319.0574645996094
+    ],
+    "text_snippet": "discretizing logic, but on a living, lived logic? These exam"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      51.019683837890625,
+      332.8533020019531,
+      169.70411682128906,
+      342.81591796875
+    ],
+    "text_snippet": "1.1 Preview of the argument"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      51.0196533203125,
+      356.8854675292969,
+      388.4230651855469,
+      534.23974609375
+    ],
+    "text_snippet": "In the next section, I will show that also from a societal p"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      51.02360153198242,
+      549.1156616210938,
+      388.5009765625,
+      617.4071044921875
+    ],
+    "text_snippet": "3 This refers to a particular school of thought through some"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 3,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

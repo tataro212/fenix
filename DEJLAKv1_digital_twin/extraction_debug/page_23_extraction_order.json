@@ -1,0 +1,26 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 23,
+    "bbox": [
+      51.00761413574219,
+      57.021236419677734,
+      388.4897155761719,
+      617.4324340820312
+    ],
+    "text_snippet": "Krukowski, D. (2017). The New Analog: Listening and Reconnec"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 23,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

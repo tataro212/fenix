@@ -1,0 +1,38 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 24,
+    "bbox": [
+      51.00769805908203,
+      57.021236419677734,
+      388.46588134765625,
+      415.2181701660156
+    ],
+    "text_snippet": "Scheler, M. (1992). On Feeling, Knowing, and Valuing: Select"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 24,
+    "bbox": [
+      51.023895263671875,
+      428.34820556640625,
+      388.3544921875,
+      446.0848083496094
+    ],
+    "text_snippet": "Publisher’s note Springer Nature remains neutral with regard"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 24,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

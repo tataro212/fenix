@@ -1,0 +1,87 @@
+{
+  "per_class_thresholds": {
+    "equation": 0.19999999999999998,
+    "text": 0.30000000000000004,
+    "title": 0.5,
+    "table": 0.5,
+    "figure": 0.5,
+    "list": 0.4,
+    "caption": 0.5,
+    "quote": 0.5,
+    "footnote": 0.4,
+    "marginalia": 0.5,
+    "bibliography": 0.5,
+    "header": 0.6,
+    "footer": 0.6,
+    "default": 0.5
+  },
+  "configuration": {
+    "confidence_threshold": 0.08,
+    "iou_threshold": 0.4,
+    "max_detections": 100,
+    "device": "cuda",
+    "image_size": 640,
+    "enable_per_class_thresholds": true,
+    "enable_math_symbol_detection": true,
+    "enable_overlap_refinement": true,
+    "log_false_positives": true
+  },
+  "detection_statistics": {
+    "total_detections": 20,
+    "filtered_detections": 12,
+    "filtering_rate": 0.6,
+    "per_class_detections": {
+      "title": 4,
+      "caption": 4,
+      "list": 3,
+      "text": 1
+    },
+    "average_processing_time": 0.032254934310913086,
+    "false_positives_count": 2,
+    "per_class_thresholds": {
+      "equation": 0.19999999999999998,
+      "text": 0.30000000000000004,
+      "title": 0.5,
+      "table": 0.5,
+      "figure": 0.5,
+      "list": 0.4,
+      "caption": 0.5,
+      "quote": 0.5,
+      "footnote": 0.4,
+      "marginalia": 0.5,
+      "bibliography": 0.5,
+      "header": 0.6,
+      "footer": 0.6,
+      "default": 0.5
+    },
+    "configuration": {
+      "confidence_threshold": 0.08,
+      "iou_threshold": 0.4,
+      "max_detections": 100,
+      "device": "cuda",
+      "image_size": 640,
+      "enable_per_class_thresholds": true,
+      "enable_math_symbol_detection": true,
+      "enable_overlap_refinement": true,
+      "log_false_positives": true
+    }
+  },
+  "test_results": {
+    "initial_detections": 12,
+    "updated_detections": 12,
+    "initial_processing_time": 3.147641181945801,
+    "updated_processing_time": 0.03325700759887695,
+    "class_distribution": {
+      "title": 4,
+      "caption": 4,
+      "list": 3,
+      "text": 1
+    },
+    "updated_class_distribution": {
+      "title": 4,
+      "caption": 4,
+      "list": 3,
+      "text": 1
+    }
+  }
+}

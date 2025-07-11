@@ -1216,15 +1216,20 @@ class WordDocumentGenerator:
         return self.create_word_document_from_structured_document(structured_content, output_path, images_dir)
 
     def create_word_document_from_digital_twin(self, digital_twin_doc: DocumentModel, 
-                                             output_path: str, target_language: str = 'el') -> bool:
+                                             output_path: str, target_language: str = 'el', 
+                                             batch_info: List[Dict] = None) -> bool:
         """
         Generate a Word document from Digital Twin model with structure preservation.
         
         ENHANCED: Now includes proper output directory tracking for image paths.
         """
         try:
-            # Store output directory for image path resolution
+            # Store output directory and path for debug export
             self.output_dir = os.path.dirname(output_path)
+            self.output_path = output_path
+            self.batch_info = batch_info or []
+            # Store merged blocks for debug export
+            self.merged_blocks = []
             
             # Create Word document
             doc = Document()
@@ -1238,7 +1243,10 @@ class WordDocumentGenerator:
             
             # Process all content with bookmarks and structure preservation
             self._process_digital_twin_content_with_bookmarks(doc, digital_twin_doc, heading_page_map)
-            
+
+            # CLEANUP: Remove paragraph markers and excessive whitespace before saving
+            self._cleanup_text_blocks(doc)
+
             # Apply document quality enhancements
             if hasattr(self, 'quality_enhancer'):
                 self.quality_enhancer.enhance_document_quality(doc, digital_twin_doc)
@@ -1822,6 +1830,114 @@ class WordDocumentGenerator:
                     self.logger.warning(f"⚠️ Page {page.page_number} has no content blocks, skipping")
                     continue
                 sorted_blocks = sorted(all_blocks, key=lambda block: block.bbox[1] if block.bbox else 0)
+                
+                # --- Merge paragraph line fragments for Digital Twin ---
+                def is_merge_candidate_dt(prev_block, next_block):
+                    import re
+                    
+                    # Allow merging between text-like block types
+                    mergeable_types = {'paragraph', 'text', 'caption', 'list_item'}
+                    
+                    prev_type = str(getattr(prev_block, 'block_type', '')).lower()
+                    next_type = str(getattr(next_block, 'block_type', '')).lower()
+                    
+                    self.logger.info(f"[MERGE CHECK] {getattr(prev_block, 'block_id', 'unknown')} ({prev_type}) + {getattr(next_block, 'block_id', 'unknown')} ({next_type})")
+                    
+                    if prev_type not in mergeable_types or next_type not in mergeable_types:
+                        self.logger.debug(f"[NOT MERGEABLE] {prev_type} → {next_type}")
+                        return False
+                    
+                    # Get text from prev block
+                    if hasattr(prev_block, 'translated_text') and prev_block.translated_text:
+                        prev_text = prev_block.translated_text.rstrip()
+                    elif hasattr(prev_block, 'original_text') and prev_block.original_text:
+                        prev_text = prev_block.original_text.rstrip()
+                    else:
+                        prev_text = str(prev_block.get_display_text()).rstrip()
+                    
+                    # Get text from next block
+                    if hasattr(next_block, 'translated_text') and next_block.translated_text:
+                        next_text = next_block.translated_text.lstrip()
+                    elif hasattr(next_block, 'original_text') and next_block.original_text:
+                        next_text = next_block.original_text.lstrip()
+                    else:
+                        next_text = str(next_block.get_display_text()).lstrip()
+                    
+                    self.logger.info(f"[TEXTS] '{prev_text[-40:]}' → '{next_text[:40]}'")
+                    
+                    if not prev_text or not next_text:
+                        self.logger.debug(f"[NO MERGE] One of the texts is empty.")
+                        return False
+                    
+                    if prev_text.endswith('-'):
+                        self.logger.info(f"[MERGE] {getattr(prev_block, 'block_id', 'unknown')} ends with hyphen")
+                        return True
+                    if not re.search(r'[.!?;:…]$', prev_text) and next_text and next_text[0].islower():
+                        self.logger.info(f"[MERGE] {getattr(prev_block, 'block_id', 'unknown')} + {getattr(next_block, 'block_id', 'unknown')} - no punctuation + lowercase")
+                        return True
+                    self.logger.info(f"[NO MERGE] Pattern doesn't match for '{prev_text[-20:]}' + '{next_text[:20]}'")
+                    return False
+                
+                def merge_paragraph_fragments_dt(blocks):
+                    merged_blocks = []
+                    i = 0
+                    while i < len(blocks):
+                        current = blocks[i]
+                        j = i + 1
+                        while j < len(blocks):
+                            self.logger.info(f"[LOOP] i={i}, j={j}, current={getattr(current, 'block_id', 'unknown')}, next={getattr(blocks[j], 'block_id', 'unknown')}")
+                            if is_merge_candidate_dt(current, blocks[j]):
+                                next_block = blocks[j]
+                                self.logger.info(f"[MERGING] {getattr(current, 'block_id', 'unknown')} + {getattr(next_block, 'block_id', 'unknown')}")
+                                # Get current text
+                                if hasattr(current, 'translated_text') and current.translated_text:
+                                    current_text = current.translated_text
+                                elif hasattr(current, 'original_text') and current.original_text:
+                                    current_text = current.original_text
+                                else:
+                                    current_text = str(current.get_display_text())
+                                # Get next text
+                                if hasattr(next_block, 'translated_text') and next_block.translated_text:
+                                    next_text = next_block.translated_text
+                                elif hasattr(next_block, 'original_text') and next_block.original_text:
+                                    next_text = next_block.original_text
+                                else:
+                                    next_text = str(next_block.get_display_text())
+                                # Merge text
+                                if current_text.rstrip().endswith('-'):
+                                    merged_text = current_text.rstrip()[:-1] + next_text.lstrip()
+                                else:
+                                    merged_text = current_text.rstrip() + ' ' + next_text.lstrip()
+                                # Update both text fields if they exist
+                                if hasattr(current, 'translated_text'):
+                                    current.translated_text = merged_text
+                                if hasattr(current, 'original_text'):
+                                    current.original_text = merged_text
+                                # Expand bbox if possible
+                                if hasattr(current, 'bbox') and hasattr(next_block, 'bbox') and current.bbox and next_block.bbox:
+                                    current.bbox = [
+                                        min(current.bbox[0], next_block.bbox[0]),
+                                        min(current.bbox[1], next_block.bbox[1]), 
+                                        max(current.bbox[2], next_block.bbox[2]),
+                                        max(current.bbox[3], next_block.bbox[3])
+                                    ]
+                                j += 1
+                            else:
+                                break
+                        merged_blocks.append(current)
+                        i = j
+                    return merged_blocks
+                
+                # Apply merging to text-like blocks
+                original_count = len(sorted_blocks)
+                sorted_blocks = merge_paragraph_fragments_dt(sorted_blocks)
+                merged_count = len(sorted_blocks)
+                if merged_count < original_count:
+                    self.logger.info(f"📝 Merged {original_count - merged_count} fragmented blocks on page {page.page_number} ({original_count} → {merged_count})")
+                # Store merged blocks for debug export
+                self.merged_blocks.extend(sorted_blocks)
+                # --- End paragraph merging ---
+                
                 if page_index > 0:
                     doc.add_page_break()
                     self.logger.debug(f"📄 Added page break before page {page.page_number}")
@@ -1895,6 +2011,38 @@ class WordDocumentGenerator:
             with open(debug_path, 'w', encoding='utf-8') as f:
                 json.dump(final_output_blocks, f, ensure_ascii=False, indent=2)
             self.logger.info(f"🪪 Final output block order exported to: {debug_path}")
+            
+            # --- DEBUG: Export block mapping debug after merging ---
+            # Build a mapping from (block_id) to (batch_id, index_in_batch) for merged blocks
+            batch_map = {}
+            if hasattr(self, 'batch_info') and self.batch_info:
+                for batch in self.batch_info:
+                    for idx, block_id in enumerate(batch.get('block_ids', [])):
+                        batch_map[block_id] = {
+                            'batch_id': batch.get('batch_id'),
+                            'index_in_batch': idx
+                        }
+            
+            debug_blocks = []
+            # Use the actual merged blocks from document generation
+            for block in self.merged_blocks:
+                block_id = getattr(block, 'block_id', None)
+                batch_info = batch_map.get(block_id, {})
+                debug_blocks.append({
+                    'block_id': block_id,
+                    'page_number': getattr(block, 'page_number', None),
+                    'block_type': getattr(block, 'block_type', None),
+                    'original_text': getattr(block, 'original_text', None),
+                    'translated_text': getattr(block, 'translated_text', None),
+                    'batch_id': batch_info.get('batch_id'),
+                    'index_in_batch': batch_info.get('index_in_batch'),
+                })
+            # Export to the same location as the main pipeline expects
+            base_name = os.path.splitext(os.path.basename(self.output_path))[0] if hasattr(self, 'output_path') else output_name
+            block_mapping_debug_path = os.path.join(output_dir, f"{base_name}_block_mapping_debug.json")
+            with open(block_mapping_debug_path, 'w', encoding='utf-8') as f:
+                json.dump(debug_blocks, f, ensure_ascii=False, indent=2)
+            self.logger.info(f"🪪 Block mapping debug exported to: {block_mapping_debug_path}")
             # --- END DEBUG ---
             self.logger.info(f"📄 Document generation completed:")
             self.logger.info(f"   • Total pages: {len(digital_twin_doc.pages)}")  
@@ -2338,6 +2486,9 @@ class WordDocumentGenerator:
     def _process_digital_twin_table_block(self, doc: Document, table_block: TableBlock) -> None:
         """Process Digital Twin table blocks with proper structure"""
         try:
+            if not isinstance(table_block, TableBlock):
+                self.logger.error(f"Block passed to _process_digital_twin_table_block is not a TableBlock: {type(table_block)}")
+                return
             if not table_block.rows:
                 self.logger.warning("Empty table block, skipping")
                 return
@@ -2419,6 +2570,22 @@ class WordDocumentGenerator:
                 
         except Exception as e:
             self.logger.error(f"❌ Failed to process Digital Twin block {getattr(block, 'block_id', 'unknown')}: {e}")
+
+    def _cleanup_text_blocks(self, doc):
+        """Clean up paragraph markers and excessive whitespace in all text blocks of the document."""
+        import re
+        for paragraph in doc.paragraphs:
+            text = paragraph.text
+            # Remove paragraph markers
+            text = text.replace('[PARAGRAPH_START]', '').replace('[PARAGRAPH_END]', '').replace('[PARAGRAPH_BREAK]', '')
+            # Replace 3+ newlines with a single newline
+            text = re.sub(r'\n{3,}', '\n', text)
+            # Replace 3+ spaces with a single space
+            text = re.sub(r' {3,}', ' ', text)
+            # Optionally, strip leading/trailing whitespace
+            text = text.strip()
+            if text != paragraph.text:
+                paragraph.text = text
 
 class DocumentQualityEnhancer:
     """

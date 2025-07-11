@@ -1,0 +1,50 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      51.013641357421875,
+      57.99626541137695,
+      388.4169006347656,
+      127.7843017578125
+    ],
+    "text_snippet": "since the earliest stages of development (already in utero),"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      51.013641357421875,
+      141.58010864257812,
+      206.6613311767578,
+      151.54270935058594
+    ],
+    "text_snippet": "3.3 Need for a different epistemology"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      51.003692626953125,
+      165.6122589111328,
+      388.42706298828125,
+      617.984130859375
+    ],
+    "text_snippet": "The view of cognition as sense-making sketched so far ranges"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 10,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

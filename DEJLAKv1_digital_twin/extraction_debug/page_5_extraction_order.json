@@ -1,0 +1,86 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      51.02360153198242,
+      57.99626541137695,
+      388.3273010253906,
+      79.9239501953125
+    ],
+    "text_snippet": "mean that to begin researching it, we first need to get it i"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      51.02360153198242,
+      93.76962280273438,
+      130.11868286132812,
+      103.73222351074219
+    ],
+    "text_snippet": "2.1.1 Dementia care"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      51.010101318359375,
+      117.42958068847656,
+      388.4333801269531,
+      378.82598876953125
+    ],
+    "text_snippet": "First, take dementia care—an area in which emotional capacit"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      62.34754180908203,
+      404.3764343261719,
+      377.02618408203125,
+      510.3721923828125
+    ],
+    "text_snippet": "“From within a monadic cognition-oriented conception of pers"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      51.000152587890625,
+      524.2799682617188,
+      388.3636169433594,
+      546.2076416015625
+    ],
+    "text_snippet": "An approach that reduces emotional capacities to picture cat"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      51.02360153198242,
+      577.5187377929688,
+      388.4531555175781,
+      617.4105834960938
+    ],
+    "text_snippet": "7 I literally mean it is in the connection (not: the connect"
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 5,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

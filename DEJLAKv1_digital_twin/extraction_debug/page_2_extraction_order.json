@@ -1,0 +1,62 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 2,
+    "bbox": [
+      51.02360153198242,
+      57.12471389770508,
+      198.89340209960938,
+      68.0837173461914
+    ],
+    "text_snippet": "1 In search of human knowing"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 2,
+    "bbox": [
+      51.023582458496094,
+      81.92070007324219,
+      388.427001953125,
+      187.54425048828125
+    ],
+    "text_snippet": "Ask cognitive scientists what the highest forms of cognition"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 2,
+    "bbox": [
+      51.0196533203125,
+      189.52378845214844,
+      388.45281982421875,
+      474.4698791503906
+    ],
+    "text_snippet": "It is often thought that embodied and enactive cognitive sci"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 2,
+    "bbox": [
+      51.02061462402344,
+      492.3660583496094,
+      388.4581604003906,
+      617.417724609375
+    ],
+    "text_snippet": "1 See for instance: Mitroff et al. 2004; Doumas and Martin 2"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 2,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

@@ -1,0 +1,158 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      71.14796447753906,
+      541.635986328125,
+      84.43196868896484
+    ],
+    "text_snippet": "Szabó, Zoltán Gendler (2003). Nominalism. In Michael J. Loux"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      91.80799865722656,
+      347.7099914550781,
+      105.09200286865234
+    ],
+    "text_snippet": "Oxford Handbook of Metaphysics. Oxford University Press."
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      115.14026641845703,
+      536.5,
+      128.95562744140625
+    ],
+    "text_snippet": "Thomasson, Amie, (1999,). Fiction and Metaphysics, Cambridge"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      135.4879913330078,
+      485.739990234375,
+      148.77198791503906
+    ],
+    "text_snippet": "Thomasson, Amie L. (2015). Ontology Made Easy. New York: Oxf"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      156.2480010986328,
+      541.6799926757812,
+      169.53199768066406
+    ],
+    "text_snippet": "Van Inwagen, Peter (1977). Creatures of Fiction. American Ph"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      176.88795471191406,
+      500.9800109863281,
+      190.1719512939453
+    ],
+    "text_snippet": "Wetzel, Linda (2009) Types and Tokens: On Abstract Objects, "
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      197.64796447753906,
+      509.0199890136719,
+      210.9319610595703
+    ],
+    "text_snippet": "Williamson, Timothy (2013). Modal Logic as Metaphysics. Oxfo"
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      218.28797912597656,
+      541.6799926757812,
+      231.5719757080078
+    ],
+    "text_snippet": "Yablo, Stephen (2005). The myth of seven. In Mark Eli Kalder"
+  },
+  {
+    "order": 8,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      239.04798889160156,
+      202.97000122070312,
+      252.3319854736328
+    ],
+    "text_snippet": "Clarendon Press. pp. 88--115."
+  },
+  {
+    "order": 9,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      259.7179870605469,
+      541.6799926757812,
+      273.0019836425781
+    ],
+    "text_snippet": "Yablo, S. (2010). Things: Papers on objects, events, and pro"
+  },
+  {
+    "order": 10,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      280.4779968261719,
+      517.2999877929688,
+      293.7619934082031
+    ],
+    "text_snippet": "Yablo, Stephen (2012). Explanation, Extrapolation, and Exist"
+  },
+  {
+    "order": 11,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      301.1180114746094,
+      541.6719360351562,
+      314.4020080566406
+    ],
+    "text_snippet": "Zalta, Edward (2016), Principia Metaphysica, http://mally.st"
+  },
+  {
+    "order": 12,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      56.63999938964844,
+      321.87799072265625,
+      147.25999450683594,
+      335.1619873046875
+    ],
+    "text_snippet": "October 28, 2016)"
+  }
+]

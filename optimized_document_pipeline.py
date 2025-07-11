@@ -438,8 +438,60 @@ class OptimizedDocumentPipeline:
             # STRATEGIC FIX: Use short filename to avoid Windows COM 255-character limitation
             timestamp = int(time.time())
             docx_path = os.path.join(output_dir, f"doc_translated_{timestamp}.docx")
+            # --- Merge paragraph line fragments before output ---
+            def is_merge_candidate(prev_text, next_text):
+                import re
+                prev_text = prev_text.rstrip()
+                next_text = next_text.lstrip()
+                if prev_text.endswith('-'):
+                    return True
+                if not re.search(r'[.!?;:…]$', prev_text) and next_text and next_text[0].islower():
+                    return True
+                return False
+            def merge_line_fragments(blocks):
+                import copy
+                merged_blocks = []
+                i = 0
+                while i < len(blocks):
+                    current = blocks[i]
+                    text = current.get('text', '')
+                    bbox = list(current.get('bbox', [0, 0, 0, 0]))
+                    j = i + 1
+                    while j < len(blocks):
+                        next_block = blocks[j]
+                        if next_block.get('label', '') != 'paragraph':
+                            break
+                        if is_merge_candidate(text, next_block.get('text', '')):
+                            if text.endswith('-'):
+                                text = text[:-1] + next_block.get('text', '').lstrip()
+                            else:
+                                text = text + ' ' + next_block.get('text', '').lstrip()
+                            bbox[2] = max(bbox[2], next_block.get('bbox', [0, 0, 0, 0])[2])
+                            bbox[3] = max(bbox[3], next_block.get('bbox', [0, 0, 0, 0])[3])
+                            j += 1
+                        else:
+                            break
+                    merged = copy.deepcopy(current)
+                    merged['text'] = text
+                    merged['bbox'] = tuple(bbox)
+                    merged_blocks.append(merged)
+                    i = j
+                return merged_blocks
+            # Separate paragraph and non-paragraph blocks
+            paragraph_blocks = [b for b in structured_content if b.get('label', '') == 'paragraph']
+            other_blocks = [b for b in structured_content if b.get('label', '') != 'paragraph']
+            merged_paragraphs = merge_line_fragments(paragraph_blocks)
+            final_blocks = merged_paragraphs + other_blocks
+            # Sort as before
+            final_blocks.sort(key=lambda block: (
+                block.get('page_number', 0),
+                block.get('bbox', [0, 0, 0, 0])[1],
+                block.get('element_index', 0),
+                block.get('global_index', 0)
+            ))
+            # Pass to document generator
             success = doc_generator.create_word_document_from_structured_document(
-                structured_content, docx_path, os.path.join(output_dir, "images")
+                final_blocks, docx_path, os.path.join(output_dir, "images")
             )
             if success:
                 self.logger.info(f"✅ Word document generated: {docx_path}")
@@ -562,8 +614,60 @@ class OptimizedDocumentPipeline:
             self.logger.info(f"✅ Aggregation complete. Total text sections collected: {len(structured_content)} (sorted by document order)")
             # === END FINAL REQUIRED IMPLEMENTATION ===
             # Generate the Word document using the unified method (Directive I compliance)
+            # --- Merge paragraph line fragments before output ---
+            def is_merge_candidate(prev_text, next_text):
+                import re
+                prev_text = prev_text.rstrip()
+                next_text = next_text.lstrip()
+                if prev_text.endswith('-'):
+                    return True
+                if not re.search(r'[.!?;:…]$', prev_text) and next_text and next_text[0].islower():
+                    return True
+                return False
+            def merge_line_fragments(blocks):
+                import copy
+                merged_blocks = []
+                i = 0
+                while i < len(blocks):
+                    current = blocks[i]
+                    text = current.get('text', '')
+                    bbox = list(current.get('bbox', [0, 0, 0, 0]))
+                    j = i + 1
+                    while j < len(blocks):
+                        next_block = blocks[j]
+                        if next_block.get('label', '') != 'paragraph':
+                            break
+                        if is_merge_candidate(text, next_block.get('text', '')):
+                            if text.endswith('-'):
+                                text = text[:-1] + next_block.get('text', '').lstrip()
+                            else:
+                                text = text + ' ' + next_block.get('text', '').lstrip()
+                            bbox[2] = max(bbox[2], next_block.get('bbox', [0, 0, 0, 0])[2])
+                            bbox[3] = max(bbox[3], next_block.get('bbox', [0, 0, 0, 0])[3])
+                            j += 1
+                        else:
+                            break
+                    merged = copy.deepcopy(current)
+                    merged['text'] = text
+                    merged['bbox'] = tuple(bbox)
+                    merged_blocks.append(merged)
+                    i = j
+                return merged_blocks
+            # Separate paragraph and non-paragraph blocks
+            paragraph_blocks = [b for b in structured_content if b.get('label', '') == 'paragraph']
+            other_blocks = [b for b in structured_content if b.get('label', '') != 'paragraph']
+            merged_paragraphs = merge_line_fragments(paragraph_blocks)
+            final_blocks = merged_paragraphs + other_blocks
+            # Sort as before
+            final_blocks.sort(key=lambda block: (
+                block.get('page_number', 0),
+                block.get('bbox', [0, 0, 0, 0])[1],
+                block.get('element_index', 0),
+                block.get('global_index', 0)
+            ))
+            # Pass to document generator
             success = doc_generator.create_word_document_from_structured_document(
-                structured_content, docx_path, images_dir
+                final_blocks, docx_path, images_dir
             )
             if success:
                 output_files['word_document'] = docx_path

@@ -1,0 +1,182 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      93.49876403808594,
+      251.25389099121094,
+      121.42218780517578
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      137.1002197265625,
+      139.87103271484375,
+      148.82754516601562
+    ],
+    "text_snippet": "Hanne De Jaegher1,2"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      175.04156494140625,
+      118.96957397460938,
+      184.0170135498047
+    ],
+    "text_snippet": "# The Author(s) 2019"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.00370788574219,
+      206.65687561035156,
+      388.4001159667969,
+      455.9031677246094
+    ],
+    "text_snippet": "Abstract In search of our highest capacities, cognitive scie"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      467.77423095703125,
+      361.8121032714844,
+      491.6844482421875
+    ],
+    "text_snippet": "Keywords Cognition . Participatory sense-making . Human know"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      33.347503662109375,
+      183.26515197753906,
+      50.78633117675781
+    ],
+    "text_snippet": "Phenomenology and the Cognitive Sciences https://doi.org/10."
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      529.5407104492188,
+      148.86517333984375,
+      548.30078125
+    ],
+    "text_snippet": "* Hanne De Jaegher h.de.jaegher@gmail.com"
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      569.8465576171875,
+      388.3568420410156,
+      590.1401977539062
+    ],
+    "text_snippet": "Department of Logic and Philosophy of Science, IAS-Research "
+  },
+  {
+    "order": 8,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      51.02360153198242,
+      594.7348022460938,
+      388.001220703125,
+      615.0850830078125
+    ],
+    "text_snippet": "Department of Informatics, Centre for Computational Neurosci"
+  },
+  {
+    "order": 0,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      51.02400207519531,
+      165.373046875,
+      183.23199462890625,
+      176.14505004882812
+    ],
+    "image_index": 0
+  },
+  {
+    "order": 1,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      333.58099365234375,
+      62.363037109375,
+      388.1260070800781,
+      116.90904235839844
+    ],
+    "image_index": 2
+  },
+  {
+    "order": 2,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      354.3999938964844,
+      67.34403228759766,
+      367.3089904785156,
+      86.27203369140625
+    ],
+    "image_index": 3
+  },
+  {
+    "order": 3,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      354.3990173339844,
+      67.34403228759766,
+      367.3080139160156,
+      86.27203369140625
+    ],
+    "image_index": 4
+  },
+  {
+    "order": 4,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      346.61199951171875,
+      65.09002685546875,
+      375.09600830078125,
+      93.57502746582031
+    ],
+    "image_index": 5
+  },
+  {
+    "order": 5,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      344.5979919433594,
+      73.4480209350586,
+      371.7640075683594,
+      95.0450210571289
+    ],
+    "image_index": 6
+  }
+]

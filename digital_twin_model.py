@@ -231,10 +231,14 @@ class TOCEntry(BaseModel):
     processing_notes: List[str] = Field(default_factory=list, description="Processing and mapping notes")
     
     def get_display_title(self, prefer_translation: bool = True) -> str:
-        """Get appropriate title for display"""
+        """Get appropriate title for display, always prefer translated_title if available."""
         if prefer_translation and self.translated_title:
             return self.translated_title
-        return self.title
+        if self.title:
+            return self.title
+        if self.original_title:
+            return self.original_title
+        return ""
     
     def get_hierarchical_path(self) -> str:
         """Get full hierarchical path for context (filled during hierarchy building)"""

@@ -1937,7 +1937,8 @@ class ProcessingStrategyExecutor:
                 
                 # Generate Word document from Digital Twin
                 success = doc_generator.create_word_document_from_digital_twin(
-                    translated_doc, str(output_file), target_language
+                    translated_doc, str(output_file), target_language, 
+                    batch_info=getattr(result, 'batch_info', None)
                 )
                 
                 # Store generation success for result creation
@@ -2126,14 +2127,28 @@ class ProcessingStrategyExecutor:
             translatable_blocks = []
             bibliography_blocks = []  # Track bibliography blocks separately
             
+            bibliography_section_started = False
             for page in digital_twin_doc.pages:
-                for block in page.get_all_blocks():
-                    # ENHANCED: Use improved bibliography detection
-                    if self._is_bibliography_block(block):
+                page_blocks = page.get_all_blocks()
+                total_blocks = len(page_blocks)
+                for block_index, block in enumerate(page_blocks):
+                    # If bibliography section has started, exclude all subsequent blocks
+                    if bibliography_section_started:
                         bibliography_blocks.append(block)
-                        self.logger.info(f"📚 Preserving bibliography block without translation: {block.get_display_text()[:100]}...")
+                        self.logger.info(f"📚 Preserving bibliography block (after section start): {block.get_display_text()[:100]}...")
                         continue
-                    
+                    # Only apply bibliography detection in the last 30% of the document
+                    if block_index >= int(0.7 * total_blocks):
+                        from digital_twin_model import is_bibliography_content
+                        block_text = getattr(block, 'original_text', '')
+                        prev_block_text = page_blocks[block_index-1].original_text if block_index > 0 else ''
+                        if self._is_bibliography_block(block, block_index=block_index, total_blocks=total_blocks) \
+                            or is_bibliography_content(block_text) \
+                            or (block_index > 0 and is_bibliography_content(prev_block_text)):
+                            bibliography_blocks.append(block)
+                            bibliography_section_started = True
+                            self.logger.info(f"📚 Detected start of bibliography section: {block.get_display_text()[:100]}...")
+                            continue
                     # Add translatable blocks
                     if hasattr(block, 'get_display_text'):
                         display_text = block.get_display_text()
@@ -2898,11 +2913,11 @@ class ProcessingStrategyExecutor:
                 error=str(e)
             )
 
-    def _is_bibliography_block(self, block) -> bool:
+    def _is_bibliography_block(self, block, block_index=None, total_blocks=None) -> bool:
         """
         Enhanced bibliography block detection.
-        
-        This method identifies bibliography blocks that should be preserved without translation.
+        Now only applies header/pattern checks if the block is in the last 15% of the document (if block_index and total_blocks are provided).
+        Header checks are stricter: only match if the header is a standalone line or at the start.
         """
         try:
             # Check block type first
@@ -2910,17 +2925,14 @@ class ProcessingStrategyExecutor:
                 from digital_twin_model import BlockType
                 if block.block_type == BlockType.BIBLIOGRAPHY:
                     return True
-            
             # Check structural role
             if hasattr(block, 'structural_role'):
                 from digital_twin_model import StructuralRole
                 if block.structural_role == StructuralRole.BIBLIOGRAPHY:
                     return True
-            
             # Check if block explicitly states it shouldn't be translated
             if hasattr(block, 'should_translate') and not block.should_translate():
                 return True
-            
             # Check text content for bibliography patterns
             if hasattr(block, 'original_text'):
                 text = block.original_text
@@ -2928,38 +2940,43 @@ class ProcessingStrategyExecutor:
                 text = block.get_display_text()
             else:
                 return False
-            
+            # Only apply header/pattern checks if block is in last 15% of document
+            if block_index is not None and total_blocks is not None:
+                if block_index < int(0.85 * total_blocks):
+                    return False
             # Use the bibliography detection function from digital_twin_model
             try:
                 from digital_twin_model import is_bibliography_content
                 return is_bibliography_content(text)
             except ImportError:
                 # Fallback to simple bibliography detection
-                return self._simple_bibliography_detection(text)
-            
+                return self._simple_bibliography_detection(text, strict=True)
         except Exception as e:
             self.logger.debug(f"Error in bibliography detection: {e}")
             return False
-    
-    def _simple_bibliography_detection(self, text: str) -> bool:
+
+    def _simple_bibliography_detection(self, text: str, strict: bool = False) -> bool:
         """
         Simple fallback bibliography detection when digital_twin_model is not available.
+        If strict=True, only match headers as standalone lines or at the start.
         """
         if not text or len(text.strip()) < 10:
             return False
-        
         text_lower = text.lower().strip()
-        
         # Bibliography section headers
         bibliography_headers = [
             'bibliography', 'references', 'works cited', 'sources',
             'βιβλιογραφία', 'αναφορές', 'πηγές'
         ]
-        
-        # Check for bibliography headers
-        if any(header in text_lower for header in bibliography_headers):
-            return True
-        
+        import re
+        if strict:
+            # Only match if header is a standalone line or at the start
+            for header in bibliography_headers:
+                if re.match(rf'^{header}\s*$', text_lower) or text_lower.startswith(header + '\n'):
+                    return True
+        else:
+            if any(header in text_lower for header in bibliography_headers):
+                return True
         # Bibliography entry patterns
         bibliography_patterns = [
             r'^\d+\.\s+[A-Z][a-z]+,\s*[A-Z]\..*\(\d{4}\)',  # Numbered entries with author and year
@@ -2968,8 +2985,6 @@ class ProcessingStrategyExecutor:
             r'ISBN:\s*\d+',  # ISBN patterns
             r'pp\.\s*\d+-\d+',  # Page ranges
         ]
-        
-        import re
         return any(re.search(pattern, text) for pattern in bibliography_patterns)
 
     def _parse_and_reconstruct_translation_enhanced(self, translated_text: str, original_entries: List) -> Dict[str, str]:

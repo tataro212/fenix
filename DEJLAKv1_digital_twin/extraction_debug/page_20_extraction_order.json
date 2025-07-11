@@ -1,0 +1,86 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 20,
+    "bbox": [
+      51.01481628417969,
+      57.99626541137695,
+      388.41827392578125,
+      307.1410827636719
+    ],
+    "text_snippet": "I began this paper with questions about what and how cogniti"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 20,
+    "bbox": [
+      51.02360153198242,
+      326.029052734375,
+      388.4579162597656,
+      400.2794189453125
+    ],
+    "text_snippet": "Acknowledgements Thank you Ezequiel Di Paolo, Elena Cuffari,"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 20,
+    "bbox": [
+      51.02360153198242,
+      425.9913024902344,
+      388.41131591796875,
+      445.0615539550781
+    ],
+    "text_snippet": "Compliance with ethical standards There is no conflict of in"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 20,
+    "bbox": [
+      51.02476501464844,
+      456.028564453125,
+      388.4590759277344,
+      492.4045104980469
+    ],
+    "text_snippet": "Open Access This article is distributed under the terms of t"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 20,
+    "bbox": [
+      51.02360153198242,
+      533.8552856445312,
+      103.1226806640625,
+      544.8143310546875
+    ],
+    "text_snippet": "References"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 20,
+    "bbox": [
+      51.02360153198242,
+      560.1707763671875,
+      388.3487854003906,
+      617.4127807617188
+    ],
+    "text_snippet": "Abram, D. (2012). The spell of the sensuous: Perception and "
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 20,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      51.022796630859375,
+      57.6240348815918,
+      388.4624328613281,
+      426.6180114746094
+    ],
+    "text_snippet": "what we don’t know is not unchangeable by knowing, even in i"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      51.02476501464844,
+      428.5977783203125,
+      388.398193359375,
+      486.42071533203125
+    ],
+    "text_snippet": "This brings me to another pertinent issue, which is that of "
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      51.02360153198242,
+      501.833740234375,
+      388.4833068847656,
+      617.4097900390625
+    ],
+    "text_snippet": "22 Cf. epistemologies of not knowing (see e.g. Tuana 2006; S"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 18,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

@@ -259,33 +259,9 @@ async def main():
                     # Still show partial success
                     print("✅ Digital Twin processing completed, but document generation failed")
                 
-                # === ENHANCED BLOCK MAPPING DEBUG EXPORT ===
-                # Build a mapping from (block_id) to (batch_id, index_in_batch)
-                batch_map = {}
-                if hasattr(result, 'batch_info') and result.batch_info:
-                    for batch in result.batch_info:
-                        for idx, block_id in enumerate(batch.get('block_ids', [])):
-                            batch_map[block_id] = {
-                                'batch_id': batch.get('batch_id'),
-                                'index_in_batch': idx
-                            }
-                debug_blocks = []
-                for page in getattr(digital_twin_doc, 'pages', []):
-                    for block in page.get_all_blocks():
-                        batch_info = batch_map.get(getattr(block, 'block_id', None), {})
-                        debug_blocks.append({
-                            'block_id': getattr(block, 'block_id', None),
-                            'page_number': getattr(block, 'page_number', None),
-                            'block_type': getattr(block, 'block_type', None),
-                            'original_text': getattr(block, 'original_text', None),
-                            'translated_text': getattr(block, 'translated_text', None),
-                            'batch_id': batch_info.get('batch_id'),
-                            'index_in_batch': batch_info.get('index_in_batch'),
-                        })
-                debug_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(input_file))[0]}_block_mapping_debug.json")
-                with open(debug_path, 'w', encoding='utf-8') as f:
-                    json.dump(debug_blocks, f, ensure_ascii=False, indent=2)
-                print(f"🪪 Enhanced block mapping debug exported to: {debug_path}")
+                # === BLOCK MAPPING DEBUG EXPORT MOVED TO DOCUMENT GENERATOR ===
+                # The debug export now happens after merging in the document generator
+                print(f"🪪 Block mapping debug will be exported after document generation (with merged blocks)")
                 
                 # Show Digital Twin benefits achieved
                 print(f"\n🎯 Digital Twin Benefits Achieved:")

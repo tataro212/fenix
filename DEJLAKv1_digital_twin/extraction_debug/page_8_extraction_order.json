@@ -1,0 +1,98 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      51.02360153198242,
+      57.99626541137695,
+      388.3423156738281,
+      91.8890380859375
+    ],
+    "text_snippet": "link between the personal and the interactional that suggest"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      51.02360153198242,
+      116.93575286865234,
+      288.3626403808594,
+      127.8947525024414
+    ],
+    "text_snippet": "3 Human knowing as participatory sense-making"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      51.02360153198242,
+      141.6749725341797,
+      388.4368896484375,
+      307.1239318847656
+    ],
+    "text_snippet": "The enactive theory of participatory sense-making is concern"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      51.020469665527344,
+      320.88531494140625,
+      129.59548950195312,
+      330.8479309082031
+    ],
+    "text_snippet": "3.1 Living knowing"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      50.99058532714844,
+      344.91748046875,
+      388.4039001464844,
+      462.5060729980469
+    ],
+    "text_snippet": "Enactive cognitive science builds its conception of cognitio"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      51.02476501464844,
+      464.484375,
+      388.4977722167969,
+      510.34222412109375
+    ],
+    "text_snippet": "Self-individuation and self-maintenance also take place at o"
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      51.01702880859375,
+      530.18017578125,
+      388.45501708984375,
+      617.4115600585938
+    ],
+    "text_snippet": "11 This formulation is intentionally reminiscent of Merleau-"
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 8,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

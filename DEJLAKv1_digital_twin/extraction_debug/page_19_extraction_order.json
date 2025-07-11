@@ -1,0 +1,62 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 19,
+    "bbox": [
+      51.01359558105469,
+      57.99626541137695,
+      388.43701171875,
+      366.84954833984375
+    ],
+    "text_snippet": "all, that the opposite of loving is not hatred, for hating i"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 19,
+    "bbox": [
+      51.02360153198242,
+      391.896240234375,
+      113.06251525878906,
+      402.855224609375
+    ],
+    "text_snippet": "7 Conclusion"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 19,
+    "bbox": [
+      51.02360153198242,
+      416.6355895996094,
+      388.466796875,
+      582.08447265625
+    ],
+    "text_snippet": "What I have attempted to show is that loving involves knowin"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 19,
+    "bbox": [
+      51.02360153198242,
+      596.4542846679688,
+      388.3646545410156,
+      617.4088745117188
+    ],
+    "text_snippet": "25 See also the work of, among many others, Boaventura de So"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 19,
+    "bbox": [
+      51.02360153198242,
+      33.120697021484375,
+      238.3472137451172,
+      41.09089660644531
+    ],
+    "text_snippet": "Loving and knowing: reflections for an engaged epistemology"
+  }
+]

@@ -1,0 +1,218 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      29.0,
+      788.530029296875,
+      85.69999694824219,
+      802.27001953125
+    ],
+    "text_snippet": "05 July 2025"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      127.33999633789062,
+      150.8624267578125,
+      467.66986083984375,
+      160.8624267578125
+    ],
+    "text_snippet": "AperTO - Archivio Istituzionale Open Access dell'Università "
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      273.58001708984375,
+      103.90999603271484,
+      287.1200256347656
+    ],
+    "text_snippet": "Original Citation:"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      20.0,
+      226.8624267578125,
+      407.8400573730469,
+      236.8624267578125
+    ],
+    "text_snippet": "Recent Debates over the Existence of Abstract Objects: An Ov"
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      393.5799865722656,
+      74.46000671386719,
+      407.1199951171875
+    ],
+    "text_snippet": "Publisher:"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      433.5799865722656,
+      111.69999694824219,
+      447.1199951171875
+    ],
+    "text_snippet": "Published version:"
+  },
+  {
+    "order": 6,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      453.5299987792969,
+      186.19996643066406,
+      467.2699890136719
+    ],
+    "text_snippet": "DOI:10.1007/978-3-030-38242-1_1"
+  },
+  {
+    "order": 7,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      473.5799865722656,
+      91.12998962402344,
+      487.1199951171875
+    ],
+    "text_snippet": "Terms of use:"
+  },
+  {
+    "order": 8,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      493.5299987792969,
+      89.47000122070312,
+      507.2699890136719
+    ],
+    "text_snippet": "Open Access"
+  },
+  {
+    "order": 9,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      233.86000061035156,
+      718.530029296875,
+      361.13995361328125,
+      732.27001953125
+    ],
+    "text_snippet": "(Article begins on next page)"
+  },
+  {
+    "order": 10,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      511.68243408203125,
+      564.6098022460938,
+      556.6024169921875
+    ],
+    "text_snippet": "Anyone can freely access the full text of works made availab"
+  },
+  {
+    "order": 11,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      353.5799865722656,
+      80.010009765625,
+      367.1199951171875
+    ],
+    "text_snippet": "Availability:"
+  },
+  {
+    "order": 12,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      413.5299987792969,
+      67.79000854492188,
+      427.2699890136719
+    ],
+    "text_snippet": "Springer"
+  },
+  {
+    "order": 13,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      30.0,
+      256.68243408203125,
+      310.2599792480469,
+      266.68243408203125
+    ],
+    "text_snippet": "This is a pre print version of the following article:"
+  },
+  {
+    "order": 14,
+    "block_type": "text",
+    "page_number": 1,
+    "bbox": [
+      25.0,
+      376.6824035644531,
+      520.9098510742188,
+      386.6824035644531
+    ],
+    "text_snippet": "This version is available http://hdl.handle.net/2318/1749382"
+  },
+  {
+    "order": 0,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      20.0,
+      20.0,
+      575.0,
+      100.0
+    ],
+    "image_index": 0
+  },
+  {
+    "order": 1,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      20.0,
+      20.0,
+      575.0,
+      100.0
+    ],
+    "image_index": 1
+  },
+  {
+    "order": 2,
+    "block_type": "image",
+    "page_number": 1,
+    "bbox": [
+      20.0,
+      250.0,
+      575.0,
+      585.0
+    ],
+    "image_index": 2
+  }
+]

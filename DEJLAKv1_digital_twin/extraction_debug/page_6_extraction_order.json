@@ -1,0 +1,74 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      51.02360153198242,
+      57.88431167602539,
+      124.94810485839844,
+      67.84690856933594
+    ],
+    "text_snippet": "2.1.2 Digitalization"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      51.00367736816406,
+      81.91648864746094,
+      388.43682861328125,
+      342.9336242675781
+    ],
+    "text_snippet": "In his book The New Analog, Damon Krukowski explains how, in"
+  },
+  {
+    "order": 2,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      51.023582458496094,
+      356.7792663574219,
+      155.5013427734375,
+      366.74188232421875
+    ],
+    "text_snippet": "2.1.3 Solitary confinement"
+  },
+  {
+    "order": 3,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      51.021575927734375,
+      380.4391784667969,
+      388.427001953125,
+      534.2241821289062
+    ],
+    "text_snippet": "Another example is a central notion behind much of the US’s "
+  },
+  {
+    "order": 4,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      51.02360153198242,
+      549.1156616210938,
+      388.47723388671875,
+      617.4105834960938
+    ],
+    "text_snippet": "8 I am not contrasting human knowing with animal knowing. In"
+  },
+  {
+    "order": 5,
+    "block_type": "text",
+    "page_number": 6,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]

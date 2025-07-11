@@ -1,0 +1,26 @@
+[
+  {
+    "order": 0,
+    "block_type": "text",
+    "page_number": 22,
+    "bbox": [
+      51.01567077636719,
+      57.021236419677734,
+      388.45025634765625,
+      617.42578125
+    ],
+    "text_snippet": "Doumas, L. A. A., & Martin, A. E. (2018). Chapter six - lear"
+  },
+  {
+    "order": 1,
+    "block_type": "text",
+    "page_number": 22,
+    "bbox": [
+      346.0534973144531,
+      33.120697021484375,
+      388.4549255371094,
+      41.09089660644531
+    ],
+    "text_snippet": "H. De Jaegher"
+  }
+]
