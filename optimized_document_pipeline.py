@@ -200,17 +200,21 @@ class OptimizedDocumentPipeline:
         This is the new, correct implementation.
         """
         self.logger.info("🚀 Executing architecturally sound pipeline...")
+        # Keep the document open for the extraction pass instead of reopening the
+        # complete PDF once per page.
         doc = fitz.open(pdf_path)
         num_pages = len(doc)
-        doc.close()
 
         # Step 1: Use our validated PyMuPDFYOLOProcessor to extract structured data.
         # This performs page-level hyphenation and correct text extraction.
         self.logger.info(f"📄 Step 1: Extracting content using PyMuPDFYOLOProcessor for {num_pages} pages.")
         page_models = []
-        for i in range(num_pages):
-            page_model = await self.processor.process_page(pdf_path, i)
-            page_models.append(page_model)
+        try:
+            for i in range(num_pages):
+                page_model = await self.processor.process_page(pdf_path, i, document=doc)
+                page_models.append(page_model)
+        finally:
+            doc.close()
         self.logger.info(f"✅ Content extraction complete. {len(page_models)} page models created.")
 
         # Step 2: SMART BATCHING - Collect all text elements from entire document
@@ -261,7 +265,9 @@ class OptimizedDocumentPipeline:
         # Step 3: SINGLE API CALL - Translate all elements in one batch
         self.logger.info("🚀 Step 3: Executing smart batched translation (single API call)...")
         from processing_strategies import DirectTextProcessor, ProcessingResult
-        processor = DirectTextProcessor(self.gemini_service)
+        processor = DirectTextProcessor(
+            self.gemini_service, max_concurrent_chunks=self.max_workers
+        )
         
         # Extract just the text elements for translation (without metadata)
         text_elements_for_translation = [
@@ -276,7 +282,9 @@ class OptimizedDocumentPipeline:
         # Perform batched translation
         start_time = time.time()
         try:
-            translated_blocks = await processor.translate_direct_text(text_elements_for_translation, target_language)
+            translated_blocks = await processor.translate_direct_text_concurrent(
+                text_elements_for_translation, target_language
+            )
             processing_time = time.time() - start_time
             
             self.logger.info(f"✅ Smart batched translation completed in {processing_time:.3f}s")
@@ -344,7 +352,9 @@ class OptimizedDocumentPipeline:
         from processing_strategies import DirectTextProcessor, ProcessingResult
         
         results = []
-        processor = DirectTextProcessor(self.gemini_service)
+        processor = DirectTextProcessor(
+            self.gemini_service, max_concurrent_chunks=self.max_workers
+        )
         
         for page_idx, page_model in enumerate(page_models):
             try:
@@ -477,12 +487,28 @@ class OptimizedDocumentPipeline:
                     merged_blocks.append(merged)
                     i = j
                 return merged_blocks
-            # Separate paragraph and non-paragraph blocks
-            paragraph_blocks = [b for b in structured_content if b.get('label', '') == 'paragraph']
-            other_blocks = [b for b in structured_content if b.get('label', '') != 'paragraph']
-            merged_paragraphs = merge_line_fragments(paragraph_blocks)
-            final_blocks = merged_paragraphs + other_blocks
-            # Sort as before
+            structured_content.sort(key=lambda block: (
+                block.get('page_number', 0),
+                block.get('element_index', 0),
+                block.get('bbox', [0, 0, 0, 0])[1],
+                block.get('global_index', 0)
+            ))
+            final_blocks = []
+            for block in structured_content:
+                if (
+                    final_blocks
+                    and final_blocks[-1].get('label') == 'paragraph'
+                    and block.get('label') == 'paragraph'
+                    and final_blocks[-1].get('page_number') == block.get('page_number')
+                    and is_merge_candidate(final_blocks[-1].get('text', ''), block.get('text', ''))
+                ):
+                    previous = final_blocks[-1]
+                    previous_text = previous.get('text', '')
+                    next_text = block.get('text', '').lstrip()
+                    previous['text'] = previous_text[:-1] + next_text if previous_text.endswith('-') else previous_text + ' ' + next_text
+                else:
+                    final_blocks.append(dict(block))
+
             final_blocks.sort(key=lambda block: (
                 block.get('page_number', 0),
                 block.get('bbox', [0, 0, 0, 0])[1],
@@ -601,15 +627,9 @@ class OptimizedDocumentPipeline:
                 block['global_index']     # Quaternary: global position (fallback)
             ))
             
-            # Extract final sorted content (remove positional metadata for document generator)
-            structured_content = []
-            for block in structured_content_with_position:
-                structured_content.append({
-                    'type': block['type'],
-                    'text': block['text'],
-                    'label': block['label'],
-                    'bbox': block['bbox']
-                })
+            # Preserve ordering metadata through the rendering stage. Removing it
+            # here made the second sort below treat every block as page zero.
+            structured_content = [dict(block) for block in structured_content_with_position]
 
             self.logger.info(f"✅ Aggregation complete. Total text sections collected: {len(structured_content)} (sorted by document order)")
             # === END FINAL REQUIRED IMPLEMENTATION ===
@@ -653,12 +673,33 @@ class OptimizedDocumentPipeline:
                     merged_blocks.append(merged)
                     i = j
                 return merged_blocks
-            # Separate paragraph and non-paragraph blocks
-            paragraph_blocks = [b for b in structured_content if b.get('label', '') == 'paragraph']
-            other_blocks = [b for b in structured_content if b.get('label', '') != 'paragraph']
-            merged_paragraphs = merge_line_fragments(paragraph_blocks)
-            final_blocks = merged_paragraphs + other_blocks
-            # Sort as before
+            # Merge only adjacent paragraphs in the already ordered stream. This
+            # prevents joins across headings, figures, and page boundaries.
+            final_blocks = []
+            for block in structured_content:
+                if (
+                    final_blocks
+                    and final_blocks[-1].get('label') == 'paragraph'
+                    and block.get('label') == 'paragraph'
+                    and final_blocks[-1].get('page_number') == block.get('page_number')
+                    and is_merge_candidate(final_blocks[-1].get('text', ''), block.get('text', ''))
+                ):
+                    previous = final_blocks[-1]
+                    previous_text = previous.get('text', '')
+                    next_text = block.get('text', '').lstrip()
+                    previous['text'] = (
+                        previous_text[:-1] + next_text
+                        if previous_text.endswith('-')
+                        else previous_text + ' ' + next_text
+                    )
+                    previous_bbox = list(previous.get('bbox', [0, 0, 0, 0]))
+                    next_bbox = block.get('bbox', [0, 0, 0, 0])
+                    previous_bbox[2] = max(previous_bbox[2], next_bbox[2])
+                    previous_bbox[3] = max(previous_bbox[3], next_bbox[3])
+                    previous['bbox'] = tuple(previous_bbox)
+                else:
+                    final_blocks.append(dict(block))
+
             final_blocks.sort(key=lambda block: (
                 block.get('page_number', 0),
                 block.get('bbox', [0, 0, 0, 0])[1],
@@ -942,3 +983,4 @@ async def process_pdf_optimized(pdf_path: str, output_dir: str,
     """
     pipeline = OptimizedDocumentPipeline(max_workers=max_workers)
     return await pipeline.process_pdf_with_optimized_pipeline(pdf_path, output_dir, target_language) 
+

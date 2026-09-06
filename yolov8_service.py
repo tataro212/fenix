@@ -12,6 +12,8 @@ Key Features:
 - Comprehensive error handling and logging
 """
 
+from __future__ import annotations
+
 import os
 import logging
 import io
@@ -59,8 +61,10 @@ class YOLOv8DocumentAnalyzer:
     document layout elements including figures, tables, text blocks, etc.
     """
     
-    def __init__(self, model_path: str = "C:\\Users\\30694\\gemini_translator_env\\runs\\two_stage_training\\stage2_doclaynet\\weights\\best.pt"):
+    def __init__(self, model_path: str = "yolov8m.pt"):
         self.logger = logging.getLogger(__name__)
+        if not YOLO_AVAILABLE:
+            raise RuntimeError("YOLO support is not installed; install the optional ML dependencies")
         
         # Model configuration - read from config.ini for fallback path
         try:
@@ -264,7 +268,7 @@ class YOLOv8Service:
         # Use UTF-8 encoding to handle special characters in paths
         config.read(config_path, encoding='utf-8')
         yolo_cfg = config['YOLOv8']
-        model_path = yolo_cfg.get('model_path', 'C:\\Users\\30694\\gemini_translator_env\\runs\\two_stage_training\\stage2_doclaynet\\weights\\best.pt')
+        model_path = yolo_cfg.get('model_path', '').strip() or yolo_cfg.get('fallback_model_path', 'yolov8m.pt')
         self.conf_thres = float(yolo_cfg.get('confidence_threshold', 0.5))
         self.iou_thres = float(yolo_cfg.get('iou_threshold', 0.4))
         self.analyzer = YOLOv8DocumentAnalyzer(model_path)
@@ -281,14 +285,16 @@ class YOLOv8Service:
         """
         return self.analyzer.detect_layout_elements(image)
 
-# Initialize the analyzer
+# Initialize the analyzer only when optional YOLO dependencies are present.
 try:
+    if not YOLO_AVAILABLE:
+        raise RuntimeError("YOLO support is not installed")
     # Load model from config.ini
     import configparser
     config = configparser.ConfigParser()
     # Use UTF-8 encoding to handle special characters in paths
     config.read('config.ini', encoding='utf-8')
-    model_path = config.get('YOLOv8', 'model_path', fallback='C:\\Users\\30694\\gemini_translator_env\\runs\\two_stage_training\\stage2_doclaynet\\weights\\best.pt')
+    model_path = config.get('YOLOv8', 'model_path', fallback='').strip()
     
     if os.path.exists(model_path):
         analyzer = YOLOv8DocumentAnalyzer(model_path)
@@ -300,7 +306,7 @@ try:
         logger.warning(f"⚠️ Primary model not found, using fallback: {fallback_path}")
         
 except Exception as e:
-    logger.error(f"❌ Failed to initialize YOLOv8 analyzer: {e}")
+    logger.info(f"YOLOv8 analyzer not initialized: {e}")
     analyzer = None
 
 # Create FastAPI app
@@ -413,3 +419,4 @@ def run_service(host: str = "127.0.0.1", port: int = 8000, reload: bool = False)
 if __name__ == "__main__":
     # Run the service
     run_service(host="127.0.0.1", port=8000, reload=False)
+

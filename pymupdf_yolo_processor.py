@@ -35,6 +35,8 @@ import re
 import json
 import copy
 
+logger = logging.getLogger(__name__)
+
 # Import existing services
 try:
     from yolov8_service import YOLOv8Service
@@ -60,7 +62,7 @@ except ImportError:
 
 # --- Import the Centralized Models ---
 # All data structures are now imported from the single source of truth.
-from models import PageModel, ElementModel, BoundingBox, ElementType
+from models import PageModel as CanonicalPageModel, ElementModel, BoundingBox, ElementType
 
 # Import the new Digital Twin model for enhanced functionality
 from digital_twin_model import (
@@ -631,6 +633,7 @@ class YOLOLayoutAnalyzer:
     """
     
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         # Try to get confidence from config, fallback to 0.08 if not available
         try:
             from config_manager import config_manager
@@ -678,7 +681,6 @@ class YOLOLayoutAnalyzer:
             self.logger.warning(f"⚠️ YOLO service initialization failed: {e}")
             self.yolo_service = None
         
-        self.logger = logging.getLogger(__name__)
         self.logger.info(f"🔧 Enhanced YOLO Layout Analyzer initialized with per-class thresholds")
         self.logger.info(f"   🎯 Base confidence threshold: {self.config['confidence_threshold']}")
         self.logger.info(f"   📊 Per-class thresholds enabled: {self.config['enable_per_class_thresholds']}")
@@ -1338,7 +1340,8 @@ class PyMuPDFYOLOProcessor:
             self.logger.warning(f"Error in quick content scan: {e}, defaulting to mixed content")
             return False
     
-    async def process_page(self, pdf_path: str, page_num: int) -> PageModel:
+    async def process_page(self, pdf_path: str, page_num: int,
+                           document: Optional[fitz.Document] = None) -> CanonicalPageModel:
         """
         Processes a single page and returns a validated PageModel object.
 
@@ -1346,8 +1349,11 @@ class PyMuPDFYOLOProcessor:
         "single version of truth" for a page's structure.
         """
         start_time = time.time()
+        owns_document = document is None
+        doc = document
         try:
-            doc = fitz.open(pdf_path)
+            if doc is None:
+                doc = fitz.open(pdf_path)
             page = doc[page_num]
             page_width, page_height = page.rect.width, page.rect.height
 
@@ -1436,19 +1442,22 @@ class PyMuPDFYOLOProcessor:
                 self.logger.info(f"🎯 Page {page_num + 1}: Mixed content processing completed in {time.time() - start_time:.3f}s")
 
             # Create and return the final PageModel
-            page_model = PageModel(
+            page_model = CanonicalPageModel(
                 page_number=page_num + 1,  # 1-based page numbering
                 dimensions=[page_width, page_height],  # List of two floats as expected
                 elements=elements
             )
             
-            doc.close()
+            if owns_document:
+                doc.close()
             return page_model
             
         except Exception as e:
+            if owns_document and doc is not None:
+                doc.close()
             self.logger.error(f"❌ Error processing page {page_num + 1}: {e}", exc_info=True)
             # Return a minimal PageModel with error information
-            return PageModel(
+            return CanonicalPageModel(
                 page_number=page_num + 1,
                 dimensions=[0.0, 0.0],
                 elements=[]
@@ -4789,3 +4798,4 @@ class PyMuPDFYOLOProcessor:
     # (Find the place after self._enhance_blocks_with_yolo_structure and before return digital_twin_page)
     # Add:
     # self._conservative_split_blocks_by_yolo(digital_twin_page, layout_areas)
+

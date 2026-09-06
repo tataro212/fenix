@@ -22,6 +22,8 @@ from models import ProcessResult, ElementModel, PageModel, ContentElement, PageC
 from config_manager import Config
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 # Import existing services
 # try:
     # from translation_service_enhanced import enhanced_translation_service
@@ -71,9 +73,10 @@ class ProcessingResult(BaseModel):
 class TableProcessor:
     """Process and translate detected tables using structured approach"""
     
-    def __init__(self, gemini_service=None):
+    def __init__(self, gemini_service=None, max_concurrent_chunks: int = 5):
         self.logger = logging.getLogger(__name__)
         self.gemini_service = gemini_service
+        self.max_concurrent_chunks = max(1, max_concurrent_chunks)
         self.logger.info("🔧 Table Processor initialized")
     
     def parse_table_structure(self, mapped_content_area: Dict[str, Any]) -> Dict[str, Any]:
@@ -1041,6 +1044,13 @@ class DirectTextProcessor:
         chunks = self._create_intelligent_chunks(elements_to_translate, max_chars=13000)
         self.logger.info(f"📦 Created {len(chunks)} chunks for CONCURRENT translation")
         
+        # Bound concurrency so large documents do not flood the translation API.
+        semaphore = asyncio.Semaphore(self.max_concurrent_chunks)
+
+        async def translate_limited(source_text: str, chunk_idx: int) -> str:
+            async with semaphore:
+                return await self._translate_chunk_async(source_text, target_language, chunk_idx)
+
         # PERFORMANCE OPTIMIZATION: Prepare ALL chunks first for concurrent processing
         chunk_tasks = []
         global_element_id = 0
@@ -1061,7 +1071,7 @@ class DirectTextProcessor:
             if tagged_payload_parts:
                 source_text_for_api = "\n".join(tagged_payload_parts)
                 # Create async task for this chunk
-                task = self._translate_chunk_async(source_text_for_api, target_language, chunk_idx)
+                task = translate_limited(source_text_for_api, chunk_idx)
                 chunk_tasks.append(task)
                 chunks_metadata.append({
                     'chunk_idx': chunk_idx,
@@ -3085,3 +3095,4 @@ def _dict_to_mapped_content(d):
 # This function was the source of the "rogue worker" issue that caused mojibake, hyphenation failures,
 # and data loss. The system now uses the architecturally sound PyMuPDFContentExtractor and
 # ProcessingStrategyExecutor as the single source of truth for content extraction and translation. 
+
