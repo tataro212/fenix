@@ -4,6 +4,19 @@ Fenix is a PDF translation and reconstruction pipeline. It extracts positioned
 content with PyMuPDF, uses layout detection only for pages that need it,
 translates text in bounded concurrent batches, and generates DOCX/PDF output.
 
+## Refactored core
+
+The new production foundation lives under `src/fenix` and has one canonical
+document model, a single-pass PDF extractor, provider-neutral bounded translation
+batching, and one pipeline orchestrator. The legacy modules remain temporarily
+available as migration references.
+
+An offline inspection requires no API key:
+
+```bash
+python -m fenix.cli inspect input.pdf
+```
+
 ## Recovery status
 
 This branch restores source modules and tests that were removed from the default
